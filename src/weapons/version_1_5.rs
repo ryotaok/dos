@@ -27,8 +27,8 @@ impl SpecialAbility for SongOfBrokenPines {
             .dmg_phy(20.7)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(attack.iter().any(|a| a.owned(owner_fc) && (a.kind == Na || a.kind == Ca))), time);
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+        self.timer.update(gaurd.second(attack.iter().any(|a| a.kind == Na || a.kind == Ca)), time);
     }
 
     fn modify(&self, modifiable_state: &mut [State], _owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {

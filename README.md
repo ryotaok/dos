@@ -89,6 +89,10 @@ All stats are hard coded, so the current program does not support user inputs. I
 
 Within the 20 seconds, she recharged fully and was able to cast her burst again when she used it. This kind of behaviors are found in other characters who recharge fast like Fischl, Albedo and Geo traveler. But the weapon may be bugged.
 
+- Where is the 2 member simulation result?
+
+My computer did not finish the calculation in time. Please wait.
+
 - Which character do you like?
 
 Mona :)

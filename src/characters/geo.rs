@@ -110,7 +110,7 @@ pub struct TravelerGeo {
 impl TravelerGeo {
     pub fn new() -> Self {
         Self {
-            na_1: HitsTimer::new(1.78, 1),
+            na_1: HitsTimer::new(2.55, 1),
         }
     }
 }

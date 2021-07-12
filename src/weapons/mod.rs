@@ -150,7 +150,6 @@ mod tests {
 
     use crate::state::State;
     use crate::simulate::simulate;
-    use crate::fc;
     use crate::fc::{FieldCharacterIndex, FieldAbility};
     use crate::testutil::{TestEnvironment, TestCharacter, TestArtifact, TestAbility};
 
@@ -281,6 +280,23 @@ mod tests {
         }
         // burst na na na
         let expect = 0.5 * (300.0 + 3.0 * 120.0);
+        assert_eq!(total_dmg, expect);
+    }
+
+    #[test]
+    fn songofbrokenpines() {
+        let mut members = vec![TestEnvironment::no_skill(
+            Box::new(TestCharacter::new()),
+            Box::new(TestAbility(SongOfBrokenPines::new())),
+            Box::new(TestArtifact(State::new()))
+        )];
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        for _ in 0..20 {
+            total_dmg += simulate(&mut members, &mut enemy, 1.0);
+        }
+        // 8 na and 12 na
+        let expect = 0.5 * (8.0 * 100.0 + 12.0 * 120.0);
         assert_eq!(total_dmg, expect);
     }
 }

@@ -89,7 +89,7 @@ pub struct TravelerAnemo {
 impl TravelerAnemo {
     pub fn new() -> Self {
         Self {
-            na_1: HitsTimer::new(1.78, 1),
+            na_1: HitsTimer::new(2.55, 1),
             burst_aa: DotTimer::new(15.0, 1.0, 10),
         }
     }
