@@ -45,46 +45,46 @@ pub fn revert<T>(mut xs: Vec<T>, a: usize, b: usize, c: usize) -> (Vec<T>, Vec<T
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn revert_1() {
-//         let v = vec![1,2,3,4,5];
-//         let (av, bv, cv) = revert(v, 1, 2, 2);
-//         assert_eq!(av, [1]);
-//         assert_eq!(bv, [2,3]);
-//         assert_eq!(cv, [4,5]);
-//     }
+    #[test]
+    fn revert_1() {
+        let v = vec![1,2,3,4,5];
+        let (av, bv, cv) = revert(v, 1, 2, 2);
+        assert_eq!(av, [1]);
+        assert_eq!(bv, [2,3]);
+        assert_eq!(cv, [4,5]);
+    }
 
-//     #[test]
-//     fn revert_2() {
-//         let v = vec![1,2,3,4,5];
-//         let (av, bv, cv) = revert(v, 0, 3, 2);
-//         assert_eq!(av, []);
-//         assert_eq!(bv, [1,2,3]);
-//         assert_eq!(cv, [4,5]);
-//     }
+    #[test]
+    fn revert_2() {
+        let v = vec![1,2,3,4,5];
+        let (av, bv, cv) = revert(v, 0, 3, 2);
+        assert_eq!(av, []);
+        assert_eq!(bv, [1,2,3]);
+        assert_eq!(cv, [4,5]);
+    }
 
-//     #[test]
-//     fn revert_3() {
-//         let v = vec![1,2,3,4,5];
-//         let (av, bv, cv) = revert(v, 0, 5, 0);
-//         assert_eq!(av, []);
-//         assert_eq!(bv, [1,2,3,4,5]);
-//         assert_eq!(cv, []);
-//     }
+    #[test]
+    fn revert_3() {
+        let v = vec![1,2,3,4,5];
+        let (av, bv, cv) = revert(v, 0, 5, 0);
+        assert_eq!(av, []);
+        assert_eq!(bv, [1,2,3,4,5]);
+        assert_eq!(cv, []);
+    }
 
-//     #[test]
-//     fn revert_4() {
-//         let v = vec![1,2,3,4,5];
-//         let (av, bv, cv) = revert(v, 0, 0, 0);
-//         assert_eq!(av, []);
-//         assert_eq!(bv, []);
-//         assert_eq!(cv, []);
-//     }
-// }
+    #[test]
+    fn revert_4() {
+        let v = vec![1,2,3,4,5];
+        let (av, bv, cv) = revert(v, 0, 0, 0);
+        assert_eq!(av, []);
+        assert_eq!(bv, []);
+        assert_eq!(cv, []);
+    }
+}
 
 #[derive(Debug)]
 pub struct Srdst<T> {

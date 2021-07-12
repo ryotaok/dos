@@ -6,7 +6,7 @@ use crate::action::{Attack, TimerGuard, EffectTimer, DurationTimer, DotTimer};
 
 use AttackType::*;
 use Vision::*;
-use ElementalGaugeDecay::*;
+// use ElementalGaugeDecay::*;
 
 // version 1.2
 
@@ -44,7 +44,7 @@ impl SpecialAbility for Albedo {
     fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
         if self.skill_aa.is_active() {
             atk_queue.push(Attack {
-                kind: BurstDot,
+                kind: SkillDot,
                 element: Geo,
                 multiplier: 234.72,
                 particle: Some(0.8),

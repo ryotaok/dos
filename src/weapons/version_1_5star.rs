@@ -203,7 +203,7 @@ impl SpecialAbility for SkywardSpine {
         self.timer.update(gaurd.second(testutil::chance() < 0.5 && attack.iter().any(|a| a.kind == Na || a.kind == Ca)), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, _fa: &FieldAction, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(Attack {
                 kind: AdditionalAttack,
@@ -293,7 +293,7 @@ impl SpecialAbility for SkywardHarp {
         self.timer.update(gaurd.second(testutil::chance() < 0.6 && should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, _fa: &FieldAction, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(Attack {
                 kind: AdditionalAttack,
@@ -350,7 +350,7 @@ impl SpecialAbility for SkywardAtlas {
         self.timer.update(gaurd.second(testutil::chance() < 0.5 && attack.iter().any(|a| a.is_na())), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, _fa: &FieldAction, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(Attack {
                 kind: AdditionalAttack,

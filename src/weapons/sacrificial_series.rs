@@ -18,7 +18,7 @@ impl Composed {
 }
 
 impl SpecialAbility for Composed {
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
         self.timer.update(gaurd.second(attack.iter().any(|a| a.is_skill())), time);
     }
 

@@ -406,9 +406,9 @@ impl Debuff {
         Self { caster: 1, amount: 40.0, duration: 12.0 }
     }
 
-    pub fn frozen() -> Self {
-        Self { caster: 2, amount: 1.0, duration: 4.0 }
-    }
+    // pub fn frozen() -> Self {
+    //     Self { caster: 2, amount: 1.0, duration: 4.0 }
+    // }
 
     pub fn viridescent_venerer() -> Self {
         Self { caster: 3, amount: 40.0, duration: 10.0 }

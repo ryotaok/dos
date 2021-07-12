@@ -47,7 +47,7 @@ impl SpecialAbility for FrostBurial {
         self.timer.update(gaurd.second(attack.iter().any(|a| a.owned(owner_fc) && a.is_naca())), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, _fa: &FieldAction, enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(Attack {
                 kind: AdditionalAttack,

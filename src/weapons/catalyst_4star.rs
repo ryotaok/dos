@@ -147,9 +147,8 @@ impl SpecialAbility for ThrillingTalesOfDragonSlayersR5 {
 
     fn modify(&self, modifiable_state: &mut [State], _owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
         if self.timer.is_active() {
-            for s in modifiable_state.iter_mut() {
-                s.atk += 48.0;
-            }
+            // always buff the first member
+            modifiable_state[0].atk += 48.0;
         }
     }
 
@@ -180,7 +179,7 @@ impl SpecialAbility for EyeOfPerceptionR5 {
         self.timer.update(gaurd.second(testutil::chance() < 0.5 && attack.iter().any(|a| a.is_naca()) ), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, _fa: &FieldAction, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(Attack {
                 kind: AdditionalAttack,

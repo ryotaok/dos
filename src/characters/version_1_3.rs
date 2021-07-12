@@ -99,7 +99,7 @@ impl SpecialAbility for HuTao {
     fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
         if self.skill_aa.is_active() {
             atk_queue.push(Attack {
-                kind: BurstDot,
+                kind: SkillDot,
                 element: Pyro,
                 multiplier: 115.2,
                 particle: None,

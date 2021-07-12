@@ -67,9 +67,9 @@ impl Artifact {
             Box::new(GlacierAndSnowfield::new()),
             Box::new(PaleFlame::new()),
             Box::new(TenacityOfTheMillelith::new()),
-            Box::new(ReminiscenceOfShime::new()),
-            Box::new(TwoGfTwoShime),
-            Box::new(SealOfInsulation),
+            Box::new(ShimenawasReminiscence::new()),
+            Box::new(TwoGfTwoShimenawa),
+            Box::new(EmblemOfSeveredFate),
         ]
     }
 
@@ -657,7 +657,7 @@ impl SpecialAbility for TenacityOfTheMillelith {
 }
 
 #[derive(Debug)]
-pub struct ReminiscenceOfShime {
+pub struct ShimenawasReminiscence {
     first_activation: bool,
     cd: f32,
     duration: f32,
@@ -665,7 +665,7 @@ pub struct ReminiscenceOfShime {
     _dr: f32,
 }
 
-impl ReminiscenceOfShime {
+impl ShimenawasReminiscence {
     fn new() -> Self {
         Self { first_activation: false, cd: 0.0, duration: 10.0, _cd: 0.0, _dr: 0.0 }
     }
@@ -674,10 +674,10 @@ impl ReminiscenceOfShime {
 // 4 Piece: When casting an Elemental Skill, if the character has 15 or more
 // Energy, they lose 15 Energy and Normal/Charged/ Plunging Attack DMG is
 // increased by 50% for 10s.
-impl SpecialAbility for ReminiscenceOfShime {
+impl SpecialAbility for ShimenawasReminiscence {
     fn artifact(&self) -> Artifact {
         Artifact {
-            name: String::from("Reminiscence of Shime"),
+            name: String::from("Shimenawa's Reminiscence"),
             version: 2.0,
             preference: vec![Preference::Attacker],
             state: State::new().atk(18.0)
@@ -719,12 +719,12 @@ impl SpecialAbility for ReminiscenceOfShime {
 }
 
 #[derive(Debug)]
-pub struct TwoGfTwoShime;
+pub struct TwoGfTwoShimenawa;
 
-impl SpecialAbility for TwoGfTwoShime {
+impl SpecialAbility for TwoGfTwoShimenawa {
     fn artifact(&self) -> Artifact {
         Artifact {
-            name: String::from("2 GF 2 Shime"),
+            name: String::from("2 GF 2 Shimenawa"),
             version: 2.0,
             preference: Vec::new(),
             state: State::new().atk(36.0)
@@ -733,11 +733,11 @@ impl SpecialAbility for TwoGfTwoShime {
 }
 
 #[derive(Debug)]
-pub struct SealOfInsulation;
+pub struct EmblemOfSeveredFate;
 
 // 4 Piece: Increases Elemental Burst DMG by 25% of Energy Recharge. A maximum
 // 75% DMG increase can be obtained in this way.
-impl SpecialAbility for SealOfInsulation {
+impl SpecialAbility for EmblemOfSeveredFate {
     fn artifact(&self) -> Artifact {
         Artifact {
             name: String::from("Seal of Insulation"),

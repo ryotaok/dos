@@ -5,7 +5,7 @@ use crate::action::{Attack, TimerGuard, EffectTimer, DurationTimer, DotTimer};
 
 use AttackType::*;
 use Vision::*;
-use ElementalGaugeDecay::*;
+// use ElementalGaugeDecay::*;
 
 pub struct Rosaria {
     burst_aa: DotTimer,
