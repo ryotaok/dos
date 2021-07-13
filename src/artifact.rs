@@ -599,12 +599,13 @@ impl SpecialAbility for PaleFlame {
 
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
         if self.timer.is_active() {
+            let state = &mut modifiable_state[owner_fc.idx.0];
             match self.timer.n {
                 2 => {
-                    modifiable_state[owner_fc.idx.0].atk += 18.0;
-                    modifiable_state[owner_fc.idx.0].physical_dmg += 25.0;
+                    state.atk += 18.0;
+                    state.physical_dmg += 25.0;
                 },
-                1 => modifiable_state[owner_fc.idx.0].atk += 9.0,
+                1 => state.atk += 9.0,
                 _ => (),
             };
         }
@@ -740,7 +741,7 @@ pub struct EmblemOfSeveredFate;
 impl SpecialAbility for EmblemOfSeveredFate {
     fn artifact(&self) -> Artifact {
         Artifact {
-            name: String::from("Seal of Insulation"),
+            name: String::from("Emblem of Severed Fate"),
             version: 2.0,
             preference: Vec::new(),
             state: State::new().er(20.0)
@@ -858,5 +859,29 @@ mod tests {
         );
         let differnce = (total_dmg - expect).abs();
         assert!(differnce <= 0.001);
+    }
+
+    #[test]
+    fn paleflame_1() {
+        let mut members = vec![
+            FieldAbility::boxed(
+                TestCharacter::new(),
+                TestWeapon,
+                PaleFlame::new(),
+            ).to_data(FieldCharacterIndex(0))
+        ];
+        // disable physical bonus
+        members[0].0.ar.state.infusion = true;
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        for _ in 0..40 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // skill 8 na, skill 2 na
+        let expect = 0.5 * (
+              1.09 * (200.0 + 8.0 * 100.0)
+            + 1.18 * (200.0 + 2.0 * 100.0)
+        );
+        assert_eq!(total_dmg, expect);
     }
 }

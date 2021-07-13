@@ -1,6 +1,7 @@
 #![feature(destructuring_assignment)]
 
 use std::error::Error;
+use std::env;
 use std::io;
 use std::process;
 use std::cmp::Ordering;
@@ -296,8 +297,41 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
     tx.send(items).unwrap();
 }
 
+fn debugging(args: &Args, debug_args: Vec<String>) -> () {
+    let mut character_name = "";
+    let mut weapon_name = "";
+    let mut artifact_name = "";
+    for i in 0..3 {
+        match i {
+            0 => character_name = &debug_args[0],
+            1 => weapon_name = &debug_args[1],
+            2 => artifact_name = &debug_args[2],
+            _ => (),
+        }
+    };
+    let character = characters::all().into_iter().find(|x| x.character().name == character_name).unwrap();
+    let cr = character.character();
+    let vision = Vision::from_string(&cr.vision);
+    let weapon = weapons::all().into_iter().find(|x| x.weapon().name == weapon_name).unwrap();
+    let wr = weapon.weapon();
+    let artifact = Artifact::all().into_iter().find(|x| x.artifact().name == artifact_name).unwrap();
+    let mut ar = artifact.artifact();
+    ar.state.flat_atk += 311.0;
+    ar.state.atk += 80.0;
+    ar.state.cr  += 80.0;
+    ar.infuse_goblet(&vision);
+    let mut members = vec![
+        FieldCharacter::new(FieldCharacterIndex(0), cr, vision, wr, ar).to_data(FieldAbility {character, weapon, artifact, })
+    ];
+    main_loop(&mut members, args.unit_time, args.emulation_time);
+}
+
 fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
-    let args = Args::parse()?;
+    let mut debug_args: Vec<String> = Vec::new();
+    let args = Args::parse(&mut env::args(), &mut debug_args)?;
+    if debug_args.len() > 0 {
+        return Ok(debugging(&args, debug_args));
+    }
     let num_cpu = 3;
     let character_size = characters::setup(&args).len();
     // let character_size = 6;

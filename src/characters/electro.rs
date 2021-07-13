@@ -38,8 +38,17 @@ impl SpecialAbility for Beidou {
     }
 
     fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.burst_aa.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
-        self.skill_a4.update(gaurd.second(attack.iter().any(|a| a.kind == Skill)), time);
+        let mut skill = false;
+        let mut burst = false;
+        for a in attack {
+            match a.kind {
+                Skill => skill = true,
+                Burst => burst = true,
+                _ => (),
+            };
+        }
+        self.burst_aa.update(gaurd.second(burst), time);
+        self.skill_a4.update(gaurd.second(skill), time);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
@@ -59,9 +68,10 @@ impl SpecialAbility for Beidou {
 
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
         if self.skill_a4.is_active() {
-            modifiable_state[owner_fc.idx.0].na_dmg += 15.0;
-            modifiable_state[owner_fc.idx.0].ca_dmg += 15.0;
-            modifiable_state[owner_fc.idx.0].atk_spd += 15.0;
+            let state = &mut modifiable_state[owner_fc.idx.0];
+            state.na_dmg += 15.0;
+            state.ca_dmg += 15.0;
+            state.atk_spd += 15.0;
         }
     }
 
@@ -87,6 +97,7 @@ impl SpecialAbility for Beidou {
 
 pub struct Fischl {
     skill_aa: DotTimer,
+    burst_aa: DotTimer,
     ca_a1: HitsTimer,
     aa_a4: HitsTimer,
 }
@@ -95,6 +106,7 @@ impl Fischl {
     pub fn new() -> Self {
         Self {
             skill_aa: DotTimer::new(25.0, 1.0, 12),
+            burst_aa: DotTimer::new(15.0, 1.0, 12),
             ca_a1: HitsTimer::new(1.0, 1),
             aa_a4: HitsTimer::new(1.0, 1),
         }
@@ -116,13 +128,27 @@ impl SpecialAbility for Fischl {
     }
 
     fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.skill_aa.update(gaurd.second(attack.iter().any(|a| a.kind == Skill)), time);
-        self.ca_a1.update(gaurd.second(attack.iter().any(|a| a.kind == Ca)), time);
-        self.aa_a4.update(gaurd.second(attack.iter().any(|a| enemy.trigger_er(&a.element).is_electro())), time);
+        let mut ca = false;
+        let mut skill = false;
+        let mut burst = false;
+        let mut electro_er = false;
+        for a in attack {
+            match a.kind {
+                Ca    => ca = true,
+                Skill => skill = true,
+                Burst => burst = true,
+                _ => (),
+            };
+            electro_er = enemy.trigger_er(&a.element).is_electro();
+        }
+        self.ca_a1.update(gaurd.second(ca), time);
+        self.skill_aa.update(gaurd.second(skill), time);
+        self.burst_aa.update(gaurd.second(burst), time);
+        self.aa_a4.update(gaurd.second(electro_er), time);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
-        if self.skill_aa.is_active() {
+        if self.skill_aa.is_active() || self.burst_aa.is_active() {
             atk_queue.push(Attack {
                 kind: SkillDot,
                 element: Electro,
@@ -251,8 +277,17 @@ impl SpecialAbility for Razor {
     }
 
     fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.burst_timer.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
-        self.burst_aa.update(gaurd.second(attack.iter().any(|a| a.kind == Na)), time);
+        let mut na = false;
+        let mut burst = false;
+        for a in attack {
+            match a.kind {
+                Skill => na = true,
+                Burst => burst = true,
+                _ => (),
+            }
+        }
+        self.burst_timer.update(gaurd.second(burst), time);
+        self.burst_aa.update(gaurd.second(na), time);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
@@ -313,17 +348,27 @@ impl SpecialAbility for Keqing {
     }
 
     fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.skill_timer.update(gaurd.second(attack.iter().any(|a| a.kind == Skill)), time);
-        self.burst_a4.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
+        let mut skill = false;
+        let mut burst = false;
+        for a in attack {
+            match a.kind {
+                Skill => skill = true,
+                Burst => burst = true,
+                _ => (),
+            }
+        }
+        self.skill_timer.update(gaurd.second(skill), time);
+        self.burst_a4.update(gaurd.second(burst), time);
     }
 
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[owner_fc.idx.0];
         if self.skill_timer.is_active() {
-            modifiable_state[owner_fc.idx.0].infusion = true;
+            state.infusion = true;
         }
         if self.burst_a4.is_active() {
-            modifiable_state[owner_fc.idx.0].cr += 15.0;
-            modifiable_state[owner_fc.idx.0].er += 15.0;
+            state.cr += 15.0;
+            state.er += 15.0;
         }
     }
 

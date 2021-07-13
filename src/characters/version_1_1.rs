@@ -10,13 +10,15 @@ use ElementalGaugeDecay::*;
 // version 1.1
 
 pub struct Tartaglia {
-    skill_timer: HitsTimer,
+    skill_aa: HitsTimer,
+    skill_timer: DurationTimer,
 }
 
 impl Tartaglia {
     pub fn new() -> Self {
         Self {
-            skill_timer: HitsTimer::new(1.5, 1),
+            skill_aa: HitsTimer::new(1.5, 1),
+            skill_timer: DurationTimer::new(45.0, 30.0),
         }
     }
 }
@@ -34,12 +36,22 @@ impl SpecialAbility for Tartaglia {
             .burst_unit(2.0).burst_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.skill_timer.update(gaurd.second(attack.iter().any(|a| a.owned(owner_fc) && a.kind == Na)), time);
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+        let mut na = false;
+        let mut skill = false;
+        for a in attack {
+            match a.kind {
+                Na => na = true,
+                Skill => skill = true,
+                _ => (),
+            }
+        }
+        self.skill_timer.update(gaurd.second(skill), time);
+        self.skill_aa.update(gaurd.second(na), time);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
-        if self.skill_timer.is_active() {
+        if self.skill_timer.is_active() && self.skill_aa.is_active() {
             atk_queue.push(Attack {
                 kind: SkillDot,
                 element: Hydro,
@@ -53,8 +65,15 @@ impl SpecialAbility for Tartaglia {
         }
     }
 
+    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[owner_fc.idx.0];
+        if self.skill_timer.is_active() {
+            state.infusion = true;
+        }
+    }
+
     fn reset(&mut self) -> () {
-        self.skill_timer.reset();
+        self.skill_aa.reset();
     }
 }
 

@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::env;
 use std::fmt;
 use std::process;
 
@@ -39,6 +38,12 @@ enum ArgToken {
     Value(String),
 }
 
+#[derive(Debug, PartialEq)]
+enum Mode {
+    Simulate,
+    Debugging,
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct Args {
     pub n_members: usize,
@@ -65,10 +70,31 @@ impl Default for Args {
 }
 
 impl Args {
-    pub fn parse() -> Result<Args, Box<dyn Error>> {
+    pub fn parse<I: Iterator<Item = String>>(env_args: &mut I, debug_args: &mut Vec<String>) -> Result<Args, Box<dyn Error>> {
         use ArgToken::*;
         let mut kv: Vec<(ArgToken, ArgToken)> = Vec::new();
-        for a in env::args() {
+        // ignore the first
+        env_args.next();
+        let mode = if let Some(string) = env_args.next() {
+            match string.as_str() {
+                "simulate" => Mode::Simulate,
+                "debug" => Mode::Debugging,
+                _ => {
+                    kv.push((Help, Help));
+                    Mode::Simulate
+                }
+            }
+        } else {
+            kv.push((Help, Help));
+            Mode::Simulate
+        };
+        if mode == Mode::Debugging {
+            while let Some(ref x) = env_args.next() {
+                debug_args.push(x.to_string());
+            }
+            return Ok(Args::default());
+        }
+        while let Some(a) = env_args.next() {
             match a.as_str() {
                 "-h" | "--help" => kv.push((Help, Help)),
                 "--n_members" => kv.push((NMembers, Help)),
@@ -82,16 +108,16 @@ impl Args {
                     *v = Value(a);
                 },
             };
-        }
+        };
         let mut args = Args::default();
         for item in kv.drain(..) {
             match item {
                 (Help, _) => {
-                    println!("Genshin is a party damage simulator.
+                    println!("dos is a party damage output simulator.
 
 Usage:
-    genshin [--n_members N] [--character_version N] [--weapon_version N] [--artifact_version N]
-            [--unit_time N] [--emulation_time N] [--truncate]
+    dos simulate [--n_members N] [--character_version N] [--weapon_version N] [--artifact_version N]
+                 [--unit_time N] [--emulation_time N] [--truncate]
 
 Options:
     --n_members N         : Number of field members [default: 1]

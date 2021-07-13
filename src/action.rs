@@ -179,7 +179,6 @@ impl Attack {
         self.elemental_reaction(outgoing_damage * (100.0 - res) / 100.0 * level_multiplier, fc, enemy)
     }
 
-    // https://genshin-impact.fandom.com/wiki/Elemental_Reactions
     pub fn elemental_reaction(&self, outgoing_damage: f32, fc: &FieldCharacter, enemy: &mut Enemy) -> f32 {
         use ElementalReactionType::*;
         if self.icd_cleared {
