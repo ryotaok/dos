@@ -2,7 +2,7 @@ use std::mem;
 use crate::state::State;
 use crate::types::{AttackType, Vision, ElementalGaugeDecay};
 use crate::fc::{SpecialAbility, FieldCharacter, FieldAction, CharacterRecord, Enemy, Debuff};
-use crate::action::{Attack, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer};
+use crate::action::{Attack, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, NormalAttackAction, SkillAction, BurstAction};
 
 use AttackType::*;
 use Vision::*;
@@ -97,7 +97,7 @@ impl SpecialAbility for Beidou {
 
 pub struct Fischl {
     skill_aa: DotTimer,
-    burst_aa: DotTimer,
+    burst_timer: HitsTimer,
     ca_a1: HitsTimer,
     aa_a4: HitsTimer,
 }
@@ -106,7 +106,7 @@ impl Fischl {
     pub fn new() -> Self {
         Self {
             skill_aa: DotTimer::new(25.0, 1.0, 12),
-            burst_aa: DotTimer::new(15.0, 1.0, 12),
+            burst_timer: HitsTimer::new(0.001, 1),
             ca_a1: HitsTimer::new(1.0, 1),
             aa_a4: HitsTimer::new(1.0, 1),
         }
@@ -143,12 +143,16 @@ impl SpecialAbility for Fischl {
         }
         self.ca_a1.update(gaurd.second(ca), time);
         self.skill_aa.update(gaurd.second(skill), time);
-        self.burst_aa.update(gaurd.second(burst), time);
+        self.burst_timer.update(gaurd.second(burst), time);
         self.aa_a4.update(gaurd.second(electro_er), time);
+        // reset skill timer on burst
+        if self.burst_timer.is_active() {
+            self.skill_aa.update(gaurd.second(true), 25.0);
+        }
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
-        if self.skill_aa.is_active() || self.burst_aa.is_active() {
+        if self.skill_aa.is_active() {
             atk_queue.push(Attack {
                 kind: SkillDot,
                 element: Electro,
@@ -186,8 +190,15 @@ impl SpecialAbility for Fischl {
         }
     }
 
+    fn accelerate(&self, _na: &mut NormalAttackAction, skill: &mut SkillAction, _burst: &mut BurstAction) -> () {
+        if self.burst_timer.is_active() {
+            skill.cd = 0.0;
+        }
+    }
+
     fn reset(&mut self) -> () {
         self.skill_aa.reset();
+        self.burst_timer.reset();
         self.ca_a1.reset();
         self.aa_a4.reset();
     }

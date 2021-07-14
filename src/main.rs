@@ -311,7 +311,7 @@ fn debugging(args: &Args, debug_args: Vec<String>) -> () {
     };
     let character = characters::all().into_iter().find(|x| x.character().name == character_name).unwrap();
     let cr = character.character();
-    let vision = Vision::from_string(&cr.vision);
+    let vision = Vision::from(&cr.vision);
     let weapon = weapons::all().into_iter().find(|x| x.weapon().name == weapon_name).unwrap();
     let wr = weapon.weapon();
     let artifact = Artifact::all().into_iter().find(|x| x.artifact().name == artifact_name).unwrap();

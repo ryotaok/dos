@@ -124,9 +124,9 @@ pub enum Vision {
     Physical,
 }
 
-impl Vision {
-    pub fn from_str(key: &str) -> Vision {
-        match key {
+impl From<String> for Vision {
+    fn from(key: String) -> Self {
+        match key.as_str() {
             "Pyro" => Pyro,
             "Cryo" => Cryo,
             "Hydro" => Hydro,
@@ -138,8 +138,10 @@ impl Vision {
             _ => panic!("invalid vision string: {:?}", key),
         }
     }
+}
 
-    pub fn from_string(key: &String) -> Vision {
+impl From<&String> for Vision {
+    fn from(key: &String) -> Self {
         match key.as_str() {
             "Pyro" => Pyro,
             "Cryo" => Cryo,

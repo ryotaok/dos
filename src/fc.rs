@@ -240,17 +240,17 @@ impl CharacterRecord {
     }
 
     pub fn burst_action(&self) -> BurstAction {
-        let element = Vision::from_string(&self.vision);
+        let element = Vision::from(&self.vision);
         BurstAction::new(element, self.burst_cd, self.energy_cost, self.burst_dmg)
     }
 
     pub fn skill_action(&self) -> SkillAction {
-        let element = Vision::from_string(&self.vision);
+        let element = Vision::from(&self.vision);
         SkillAction::new(element, self.press_particle, self.press_cd, self.press_dmg)
     }
 
     pub fn normal_action(&self) -> NormalAttackAction {
-        let element = Vision::from_string(&self.vision);
+        let element = Vision::from(&self.vision);
         let na_element = match self.weapon.as_str() {
             "Sword" => Vision::Physical,
             "Claymore" => Vision::Physical,
@@ -606,7 +606,7 @@ impl FieldAbility {
         let cr = self.character.character();
         let wr = self.weapon.weapon();
         let ar = self.artifact.artifact();
-        let vision = Vision::from_string(&cr.vision);
+        let vision = Vision::from(&cr.vision);
         FieldCharacter::new(idx, cr, vision, wr, ar).to_data(self)
     }
 }

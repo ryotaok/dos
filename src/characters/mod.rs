@@ -91,7 +91,7 @@ pub fn setup(args: &Args) -> Vec<(CharacterRecord, Vision, Box<dyn SpecialAbilit
     for ca in all {
         let r = ca.character();
         if r.version <= args.character_version {
-            let vision = Vision::from_string(&r.vision);
+            let vision = Vision::from(&r.vision);
             result.push((r, vision, ca));
         }
     }

@@ -210,7 +210,7 @@ impl TestEnvironment {
     pub fn fc_n(idx: FieldCharacterIndex, state: State) -> FieldCharacterData {
         let ca = TestCharacter { vision: String::from("Pyro") };
         let cr = ca.character();
-        let vision = Vision::from_string(&cr.vision);
+        let vision = Vision::from(&cr.vision);
         let wa = TestWeapon;
         let aa = TestArtifact(state);
         FieldCharacter::new(idx, cr, vision, wa.weapon(), aa.artifact()).to_data(FieldAbility {
@@ -223,7 +223,7 @@ impl TestEnvironment {
     pub fn fc_artifact<T: 'static +  SpecialAbility>(idx: FieldCharacterIndex, aa: T) -> FieldCharacterData {
         let ca = TestCharacter { vision: String::from("Pyro") };
         let cr = ca.character();
-        let vision = Vision::from_string(&cr.vision);
+        let vision = Vision::from(&cr.vision);
         let wa = TestWeapon;
         FieldCharacter::new(idx, cr, vision, wa.weapon(), aa.artifact()).to_data(FieldAbility {
             character: Box::new(ca),
@@ -235,7 +235,7 @@ impl TestEnvironment {
     pub fn vision(state: State, vision: &str) -> FieldCharacterData {
         let ca = TestCharacter { vision: String::from(vision) };
         let cr = ca.character();
-        let vision = Vision::from_string(&cr.vision);
+        let vision = Vision::from(&cr.vision);
         let wa = TestWeapon;
         let aa = TestArtifact(state);
         FieldCharacter::new(FieldCharacterIndex(0), cr, vision, wa.weapon(), aa.artifact()).to_data(FieldAbility {
@@ -250,7 +250,7 @@ impl TestEnvironment {
         let cr = character.character();
         let wr = weapon.weapon();
         let ar = artifact.artifact();
-        let vision = Vision::from_string(&cr.vision);
+        let vision = Vision::from(&cr.vision);
         let burst = cr.burst_action();
         let skill = SkillAction::noop(vision);
         let normal_action = cr.normal_action();

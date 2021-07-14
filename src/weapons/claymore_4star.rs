@@ -103,8 +103,9 @@ impl SpecialAbility for SerpentSpineR5 {
             .cr(27.6)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, _attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(true), time);
+    fn update(&mut self, gaurd: &mut TimerGuard, _attack: &[Attack], owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+        // only the attacker can activate the passive
+        self.timer.update(gaurd.second(owner_fc.idx.0 == 0), time);
     }
 
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {

@@ -24,7 +24,7 @@ impl SpecialAbility for Composed {
 
     fn accelerate(&self, _na: &mut NormalAttackAction, skill: &mut SkillAction, _burst: &mut BurstAction) -> () {
         if self.timer.is_active() {
-            skill.spd += 100.0;
+            skill.cd = 0.0;
         }
     }
 
