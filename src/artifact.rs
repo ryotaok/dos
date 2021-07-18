@@ -1,11 +1,9 @@
 use crate::state::State;
-use crate::fc::{FieldCharacter, SpecialAbility, Enemy, Debuff};
+use crate::fc::{FieldCharacter, SpecialAbility, ArtifactAbility, Enemy, Debuff};
 use crate::action::{Attack, TimerGuard, TimerGuardCheck, EffectTimer, StackTimer, DurationTimer};
-use crate::types::{AttackType, UnstackableBuff, Preference, Vision};
+use crate::types::{AttackType, UnstackableBuff, Particle, Preference, Vision};
 
 use AttackType::*;
-
-pub type ArtifactRow = (Artifact, Box<dyn SpecialAbility>);
 
 #[derive(Debug)]
 pub struct Artifact {
@@ -41,7 +39,7 @@ impl Artifact {
         self
     }
 
-    pub fn all() -> Vec<Box<dyn SpecialAbility>> {
+    pub fn all() -> Vec<Box<dyn ArtifactAbility>> {
         vec![
             Box::new(BloodstainedChivalry),
             Box::new(TwoBcTwoPf),
@@ -73,10 +71,10 @@ impl Artifact {
         ]
     }
 
-    pub fn setup(version: f32) -> Vec<ArtifactRow> {
-        let mut artifacts: Vec<(Artifact, Box<dyn SpecialAbility>)> = Vec::new();
+    pub fn setup(version: f32) -> Vec<(Artifact, Box<dyn ArtifactAbility>)> {
+        let mut artifacts: Vec<(Artifact, Box<dyn ArtifactAbility>)> = Vec::new();
         for ar in Artifact::all() {
-            let mut r = ar.artifact();
+            let mut r = ar.record();
             if r.version <= version {
                 // default setup for all artifacts
                 r.state.flat_atk += 311.0;
@@ -93,8 +91,10 @@ impl Artifact {
 #[derive(Debug)]
 pub struct BloodstainedChivalry;
 
-impl SpecialAbility for BloodstainedChivalry {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for BloodstainedChivalry {}
+
+impl ArtifactAbility for BloodstainedChivalry {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Bloodstained Chivalry"),
             version: 1.0,
@@ -107,8 +107,10 @@ impl SpecialAbility for BloodstainedChivalry {
 #[derive(Debug)]
 pub struct TwoBcTwoPf;
 
-impl SpecialAbility for TwoBcTwoPf {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for TwoBcTwoPf {}
+
+impl ArtifactAbility for TwoBcTwoPf {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("2 bc 2 pf"),
             version: 1.0,
@@ -121,8 +123,10 @@ impl SpecialAbility for TwoBcTwoPf {
 #[derive(Debug)]
 pub struct ThunderingFury;
 
-impl SpecialAbility for ThunderingFury {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for ThunderingFury {}
+
+impl ArtifactAbility for ThunderingFury {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Thundering Fury"),
             version: 1.0,
@@ -135,8 +139,8 @@ impl SpecialAbility for ThunderingFury {
 #[derive(Debug)]
 pub struct ViridescentVenerer;
 
-impl SpecialAbility for ViridescentVenerer {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for ViridescentVenerer {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Viridescent Venerer"),
             version: 1.0,
@@ -144,7 +148,9 @@ impl SpecialAbility for ViridescentVenerer {
             state: State::new().anemo_dmg(15.0).transformative_bonus(60.0)
         }
     }
+}
 
+impl SpecialAbility for ViridescentVenerer {
     fn modify(&self, _modifiable_state: &mut [State], owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
         if owner_fc.vision == Vision::Anemo {
             match &enemy.aura.aura {
@@ -167,8 +173,8 @@ impl VVem {
     }
 }
 
-impl SpecialAbility for VVem {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for VVem {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Viridescent Venerer (EM)"),
             version: 1.0,
@@ -176,7 +182,9 @@ impl SpecialAbility for VVem {
             state: State::new().anemo_dmg(15.0).transformative_bonus(60.0).em(6.012 * (53.333+80.0)).atk(-80.0).cr(-80.0)
         }
     }
+}
 
+impl SpecialAbility for VVem {
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
         self.0.modify(modifiable_state, owner_fc, enemy);
     }
@@ -185,8 +193,10 @@ impl SpecialAbility for VVem {
 #[derive(Debug)]
 pub struct ArchaicPetra;
 
-impl SpecialAbility for ArchaicPetra {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for ArchaicPetra {}
+
+impl ArtifactAbility for ArchaicPetra {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Archaic Petra"),
             version: 1.0,
@@ -199,8 +209,10 @@ impl SpecialAbility for ArchaicPetra {
 #[derive(Debug)]
 pub struct CrimsonWitchOfFlames;
 
-impl SpecialAbility for CrimsonWitchOfFlames {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for CrimsonWitchOfFlames {}
+
+impl ArtifactAbility for CrimsonWitchOfFlames {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Crimson Witch of Flames"),
             version: 1.0,
@@ -213,8 +225,10 @@ impl SpecialAbility for CrimsonWitchOfFlames {
 #[derive(Debug)]
 pub struct CrimsonWitchOfFlamesHp;
 
-impl SpecialAbility for CrimsonWitchOfFlamesHp {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for CrimsonWitchOfFlamesHp {}
+
+impl ArtifactAbility for CrimsonWitchOfFlamesHp {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Crimson Witch of Flames (HP)"),
             version: 1.0,
@@ -235,8 +249,8 @@ impl NoblesseOblige {
     }
 }
 
-impl SpecialAbility for NoblesseOblige {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for NoblesseOblige {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Noblesse Oblige"),
             version: 1.0,
@@ -244,9 +258,17 @@ impl SpecialAbility for NoblesseOblige {
             state: State::new().burst_dmg(20.0)
         }
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(attack.iter().any(|a| a.kind == AttackType::Burst)), time);
+impl SpecialAbility for NoblesseOblige {
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], _particles: &[Particle], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+        let should_update = unsafe {
+            attack.iter().any(|&a| match (*a).kind {
+                Burst => true,
+                _ => false,
+            })
+        };
+        self.timer.update(gaurd.second(should_update), time);
     }
 
     fn modify(&self, modifiable_state: &mut [State], _owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
@@ -269,8 +291,10 @@ impl SpecialAbility for NoblesseOblige {
 #[derive(Debug)]
 pub struct TwoGfTwoNo;
 
-impl SpecialAbility for TwoGfTwoNo {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for TwoGfTwoNo {}
+
+impl ArtifactAbility for TwoGfTwoNo {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("2 GF 2 NO"),
             version: 1.0,
@@ -292,8 +316,8 @@ impl GladiatorsFinale {
     }
 }
 
-impl SpecialAbility for GladiatorsFinale {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for GladiatorsFinale {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Gladiator's Finale"),
             version: 1.0,
@@ -301,8 +325,10 @@ impl SpecialAbility for GladiatorsFinale {
             state: State::new().atk(18.0)
         }
     }
+}
 
-    fn update(&mut self, _gaurd: &mut TimerGuard, _attack: &[Attack], owner_fc: &FieldCharacter, _enemy: &Enemy, _time: f32) -> () {
+impl SpecialAbility for GladiatorsFinale {
+    fn update(&mut self, _particles: &mut TimerGuard, _gaurd: &[*const Attack], _attack: &[Particle], owner_fc: &FieldCharacter, _enemy: &Enemy, _time: f32) -> () {
         if !self.checked {
             self.checked = true;
             match owner_fc.cr.weapon.as_str() {
@@ -333,8 +359,8 @@ impl GladiatorsFinaleDef {
     }
 }
 
-impl SpecialAbility for GladiatorsFinaleDef {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for GladiatorsFinaleDef {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Gladiator's Finale (DEF)"),
             version: 1.0,
@@ -342,9 +368,11 @@ impl SpecialAbility for GladiatorsFinaleDef {
             state: State::new().atk(18.0-80.0).def(110.0)
         }
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.0.update(gaurd, attack, owner_fc, enemy, time);
+impl SpecialAbility for GladiatorsFinaleDef {
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], particles: &[Particle], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
+        self.0.update(gaurd, attack, particles, owner_fc, enemy, time);
     }
 
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
@@ -359,8 +387,10 @@ impl SpecialAbility for GladiatorsFinaleDef {
 #[derive(Debug)]
 pub struct WanderersTroupe;
 
-impl SpecialAbility for WanderersTroupe {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for WanderersTroupe {}
+
+impl ArtifactAbility for WanderersTroupe {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Wanderer's Troupe"),
             version: 1.0,
@@ -373,8 +403,10 @@ impl SpecialAbility for WanderersTroupe {
 #[derive(Debug)]
 pub struct RetracingBolide;
 
-impl SpecialAbility for RetracingBolide {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for RetracingBolide {}
+
+impl ArtifactAbility for RetracingBolide {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Retracing Bolide"),
             version: 1.0,
@@ -387,8 +419,10 @@ impl SpecialAbility for RetracingBolide {
 #[derive(Debug)]
 pub struct RetracingBolideDef;
 
-impl SpecialAbility for RetracingBolideDef {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for RetracingBolideDef {}
+
+impl ArtifactAbility for RetracingBolideDef {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Retracing Bolide (DEF)"),
             version: 1.0,
@@ -401,8 +435,8 @@ impl SpecialAbility for RetracingBolideDef {
 #[derive(Debug)]
 pub struct Thundersoother;
 
-impl SpecialAbility for Thundersoother {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for Thundersoother {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Thundersoother"),
             version: 1.0,
@@ -410,7 +444,9 @@ impl SpecialAbility for Thundersoother {
             state: State::new()
         }
     }
+}
 
+impl SpecialAbility for Thundersoother {
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
         match &enemy.aura.aura {
             Vision::Electro => modifiable_state[owner_fc.idx.0].all_dmg += 35.0,
@@ -422,8 +458,8 @@ impl SpecialAbility for Thundersoother {
 #[derive(Debug)]
 pub struct Lavawalker;
 
-impl SpecialAbility for Lavawalker {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for Lavawalker {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Lavawalker"),
             version: 1.0,
@@ -431,7 +467,9 @@ impl SpecialAbility for Lavawalker {
             state: State::new()
         }
     }
+}
 
+impl SpecialAbility for Lavawalker {
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
         match &enemy.aura.aura {
             Vision::Pyro => modifiable_state[owner_fc.idx.0].all_dmg += 35.0,
@@ -443,8 +481,8 @@ impl SpecialAbility for Lavawalker {
 #[derive(Debug)]
 pub struct LavawalkerHp;
 
-impl SpecialAbility for LavawalkerHp {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for LavawalkerHp {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Lavawalker (HP)"),
             version: 1.0,
@@ -452,7 +490,9 @@ impl SpecialAbility for LavawalkerHp {
             state: State::new().atk(-80.0).hp(80.0)
         }
     }
+}
 
+impl SpecialAbility for LavawalkerHp {
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
         match &enemy.aura.aura {
             Vision::Pyro => modifiable_state[owner_fc.idx.0].all_dmg += 35.0,
@@ -464,8 +504,10 @@ impl SpecialAbility for LavawalkerHp {
 #[derive(Debug)]
 pub struct TwoGfTwoElemental;
 
-impl SpecialAbility for TwoGfTwoElemental {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for TwoGfTwoElemental {}
+
+impl ArtifactAbility for TwoGfTwoElemental {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("2 GF 2 Elemental"),
             version: 1.0,
@@ -478,8 +520,8 @@ impl SpecialAbility for TwoGfTwoElemental {
 #[derive(Debug)]
 pub struct BlizzardStrayer;
 
-impl SpecialAbility for BlizzardStrayer {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for BlizzardStrayer {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Blizzard Strayer"),
             version: 1.2,
@@ -487,7 +529,9 @@ impl SpecialAbility for BlizzardStrayer {
             state: State::new().cryo_dmg(15.0)
         }
     }
+}
 
+impl SpecialAbility for BlizzardStrayer {
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
         match (enemy.isfrozen, &enemy.aura.aura) {
             (true,  Vision::Cryo) => modifiable_state[owner_fc.idx.0].cr += 40.0,
@@ -508,8 +552,8 @@ impl HeartOfDepth {
     }
 }
 
-impl SpecialAbility for HeartOfDepth {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for HeartOfDepth {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Heart of Depth"),
             version: 1.2,
@@ -517,15 +561,24 @@ impl SpecialAbility for HeartOfDepth {
             state: State::new().hydro_dmg(15.0)
         }
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(attack.iter().any(|a| a.kind == AttackType::Skill)), time);
+impl SpecialAbility for HeartOfDepth {
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], _particles: &[Particle], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+        let should_update = unsafe {
+            attack.iter().any(|&a| match (*a).kind {
+                PressSkill | HoldSkill => true,
+                _ => false,
+            })
+        };
+        self.timer.update(gaurd.second(should_update), time);
     }
 
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
         if self.timer.is_active() {
-            modifiable_state[owner_fc.idx.0].na_dmg += 30.0;
-            modifiable_state[owner_fc.idx.0].ca_dmg += 30.0;
+            let state = &mut modifiable_state[owner_fc.idx.0];
+            state.na_dmg += 30.0;
+            state.ca_dmg += 30.0;
         }
     }
 
@@ -533,8 +586,6 @@ impl SpecialAbility for HeartOfDepth {
         self.timer.reset();
     }
 }
-
-
 
 #[derive(Debug)]
 pub struct GlacierAndSnowfield {
@@ -547,8 +598,8 @@ impl GlacierAndSnowfield {
     }
 }
 
-impl SpecialAbility for GlacierAndSnowfield {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for GlacierAndSnowfield {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Glacier and Snowfield"),
             version: 99.0,
@@ -556,9 +607,17 @@ impl SpecialAbility for GlacierAndSnowfield {
             state: State::new().cryo_dmg(15.0).amplifying_bonus(15.0).transformative_bonus(100.0)
         }
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(attack.iter().any(|a| a.kind == AttackType::Burst)), time);
+impl SpecialAbility for GlacierAndSnowfield {
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], _particles: &[Particle], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+        let should_update = unsafe {
+            attack.iter().any(|&a| match (*a).kind {
+                Burst => true,
+                _ => false,
+            })
+        };
+        self.timer.update(gaurd.second(should_update), time);
     }
 
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
@@ -583,8 +642,8 @@ impl PaleFlame {
     }
 }
 
-impl SpecialAbility for PaleFlame {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for PaleFlame {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Pale Flame"),
             version: 1.5,
@@ -592,9 +651,17 @@ impl SpecialAbility for PaleFlame {
             state: State::new().physical_dmg(25.0)
         }
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(attack.iter().any(|a| a.kind == Skill || a.kind == SkillDot)), time);
+impl SpecialAbility for PaleFlame {
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], _particles: &[Particle], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+        let should_update = unsafe {
+            attack.iter().any(|&a| match (*a).kind {
+                PressSkill | HoldSkill | SkillDot => true,
+                _ => false,
+            })
+        };
+        self.timer.update(gaurd.second(should_update), time);
     }
 
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
@@ -627,8 +694,8 @@ impl TenacityOfTheMillelith {
     }
 }
 
-impl SpecialAbility for TenacityOfTheMillelith {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for TenacityOfTheMillelith {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Tenacity of the Millelith"),
             version: 1.5,
@@ -636,9 +703,17 @@ impl SpecialAbility for TenacityOfTheMillelith {
             state: State::new().hp(20.0)
         }
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(attack.iter().any(|a| a.kind == Skill || a.kind == SkillDot)), time);
+impl SpecialAbility for TenacityOfTheMillelith {
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], _particles: &[Particle], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+        let should_update = unsafe {
+            attack.iter().any(|&a| match (*a).kind {
+                PressSkill | HoldSkill | SkillDot => true,
+                _ => false,
+            })
+        };
+        self.timer.update(gaurd.second(should_update), time);
     }
 
     fn modify(&self, modifiable_state: &mut [State], _owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
@@ -675,8 +750,8 @@ impl ShimenawasReminiscence {
 // 4 Piece: When casting an Elemental Skill, if the character has 15 or more
 // Energy, they lose 15 Energy and Normal/Charged/ Plunging Attack DMG is
 // increased by 50% for 10s.
-impl SpecialAbility for ShimenawasReminiscence {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for ShimenawasReminiscence {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Shimenawa's Reminiscence"),
             version: 2.0,
@@ -684,15 +759,22 @@ impl SpecialAbility for ShimenawasReminiscence {
             state: State::new().atk(18.0)
         }
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        let activation = attack.iter().any(|a| a.kind == AttackType::Skill) && owner_fc.state.energy.0 >= 15.0;
-        gaurd.second(activation);
+impl SpecialAbility for ShimenawasReminiscence {
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], _particles: &[Particle], owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+        let should_update = owner_fc.state.energy.0 >= 15.0 && unsafe {
+            attack.iter().any(|&a| match (*a).kind {
+                PressSkill | HoldSkill => true,
+                _ => false,
+            })
+        };
+        gaurd.second(should_update);
         gaurd.third(self._cd > 0.0);
         if !gaurd.check(()) {
             return;
         }
-        if activation && self._cd <= 0.0 {
+        if should_update && self._cd <= 0.0 {
             self._cd = self.cd;
             self._dr = self.duration;
         }
@@ -704,12 +786,14 @@ impl SpecialAbility for ShimenawasReminiscence {
 
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
         if self._dr > 0.0 && owner_fc.state.energy.0 >= 15.0 && self.first_activation {
-            modifiable_state[owner_fc.idx.0].energy.0 -= 15.0;
-            modifiable_state[owner_fc.idx.0].na_dmg += 50.0;
-            modifiable_state[owner_fc.idx.0].ca_dmg += 50.0;
+            let state = &mut modifiable_state[owner_fc.idx.0];
+            state.energy.0 -= 15.0;
+            state.na_dmg += 50.0;
+            state.ca_dmg += 50.0;
         } else if self._dr > 0.0 {
-            modifiable_state[owner_fc.idx.0].na_dmg += 50.0;
-            modifiable_state[owner_fc.idx.0].ca_dmg += 50.0;
+            let state = &mut modifiable_state[owner_fc.idx.0];
+            state.na_dmg += 50.0;
+            state.ca_dmg += 50.0;
         }
     }
 
@@ -722,8 +806,10 @@ impl SpecialAbility for ShimenawasReminiscence {
 #[derive(Debug)]
 pub struct TwoGfTwoShimenawa;
 
-impl SpecialAbility for TwoGfTwoShimenawa {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for TwoGfTwoShimenawa {}
+
+impl ArtifactAbility for TwoGfTwoShimenawa {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("2 GF 2 Shimenawa"),
             version: 2.0,
@@ -738,8 +824,8 @@ pub struct EmblemOfSeveredFate;
 
 // 4 Piece: Increases Elemental Burst DMG by 25% of Energy Recharge. A maximum
 // 75% DMG increase can be obtained in this way.
-impl SpecialAbility for EmblemOfSeveredFate {
-    fn artifact(&self) -> Artifact {
+impl ArtifactAbility for EmblemOfSeveredFate {
+    fn record(&self) -> Artifact {
         Artifact {
             name: String::from("Emblem of Severed Fate"),
             version: 2.0,
@@ -747,7 +833,9 @@ impl SpecialAbility for EmblemOfSeveredFate {
             state: State::new().er(20.0)
         }
     }
+}
 
+impl SpecialAbility for EmblemOfSeveredFate {
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
         // the maximum DMG bonus is obtained if ER is 300%.
         // `State.er` does not contain base 100% of characters.
@@ -764,9 +852,11 @@ impl SpecialAbility for EmblemOfSeveredFate {
 mod tests {
     use super::*;
     use crate::simulate::simulate;
-    use crate::types::{ElementalGauge, ElementalGaugeDecay};
-    use crate::fc::{FieldCharacterIndex, FieldAbility};
-    use crate::testutil::{TestEnvironment, TestCharacter, TestWeapon};
+    use crate::types::{Vision, ElementalGauge, ElementalGaugeDecay};
+    use crate::fc::{FieldCharacterIndex};
+    use crate::testutil::{TestEnvironment};
+
+    use Vision::*;
 
     // fc0 triggers burst, which is invariant to fc1 who equips an artifact
     // that can be triggered by own burst.
@@ -774,69 +864,65 @@ mod tests {
     fn invariance_0() {
         let mut members = vec![
             TestEnvironment::fc(State::new()),
-            TestEnvironment::fc_artifact(FieldCharacterIndex(1), NoblesseOblige::new()),
+            TestEnvironment::artifact(FieldCharacterIndex(1), Pyro, NoblesseOblige::new()),
             ];
-        members[0].0.state.energy.0 += members[0].0.state.energy_cost;
+        members[0].fc.state.energy.0 = members[0].fc.cr.energy_cost;
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
-        for _ in 0..20 {
+        for _ in 0..21 {
             total_dmg += simulate(&mut members, &mut enemy, 0.1);
         }
         // (burst skill na na na) and (skill na na na)
-        let expect = 0.5 * (300.0 + 200.0 + 100.0 + 100.0 + 100.0)
-                   + 0.5 * (200.0 + 100.0 + 100.0 + 100.0);
-        assert_eq!(total_dmg, expect);
+        let expect = (300.0 + 200.0 + 100.0 + 100.0 + 100.0)
+                   + (200.0 + 100.0 + 100.0 + 100.0);
+        assert_eq!(total_dmg, 0.5 * expect);
     }
 
     #[test]
     fn invariance_1() {
         let mut members = vec![
-            TestEnvironment::fc_artifact(FieldCharacterIndex(0), NoblesseOblige::new()),
-            TestEnvironment::fc1(State::new()),
+            TestEnvironment::artifact(FieldCharacterIndex(0), Pyro, NoblesseOblige::new()),
+            TestEnvironment::vision(FieldCharacterIndex(1), State::new(), Pyro),
             ];
-        members[0].0.state.energy.0 += members[0].0.state.energy_cost;
+        members[0].fc.state.energy.0 = members[0].fc.cr.energy_cost;
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
-        for _ in 0..20 {
+        for _ in 0..21 {
             total_dmg += simulate(&mut members, &mut enemy, 0.1);
         }
         // (burst skill na na na) and (skill na na na)
-        let expect = 0.5 * 1.2 * (360.0 + 200.0 + 100.0 + 100.0 + 100.0)
-                   + 0.5 * 1.2 * (200.0 + 100.0 + 100.0 + 100.0);
-        let differnce = (total_dmg - expect).abs();
+        let expect = 1.2 * (360.0 + 200.0 + 100.0 + 100.0 + 100.0)
+                   + 1.2 * (200.0 + 100.0 + 100.0 + 100.0);
+        let differnce = (total_dmg - 0.5 * expect).abs();
         assert!(differnce <= 0.001);
     }
 
     #[test]
     fn noblesse_oblige_unstackable() {
         let mut members = vec![
-            TestEnvironment::fc_artifact(FieldCharacterIndex(0), NoblesseOblige::new()),
-            TestEnvironment::fc_artifact(FieldCharacterIndex(1), NoblesseOblige::new()),
+            TestEnvironment::artifact(FieldCharacterIndex(0), Pyro, NoblesseOblige::new()),
+            TestEnvironment::artifact(FieldCharacterIndex(1), Pyro, NoblesseOblige::new()),
             ];
-        members[0].0.state.energy.0 += members[0].0.state.energy_cost;
-        members[1].0.state.energy.0 += members[1].0.state.energy_cost;
+        members[0].fc.state.energy.0 = members[0].fc.cr.energy_cost;
+        members[1].fc.state.energy.0 = members[1].fc.cr.energy_cost;
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
-        for _ in 0..20 {
+        for _ in 0..21 {
             total_dmg += simulate(&mut members, &mut enemy, 0.1);
         }
         // (burst skill na na na) and (burst skill na na na)
-        let expect = 0.5 * 1.2 * (360.0 + 200.0 + 100.0 + 100.0 + 100.0)
-                   + 0.5 * 1.2 * (360.0 + 200.0 + 100.0 + 100.0 + 100.0);
-        let differnce = (total_dmg - expect).abs();
+        let expect = 1.2 * (360.0 + 200.0 + 100.0 + 100.0 + 100.0)
+                   + 1.2 * (360.0 + 200.0 + 100.0 + 100.0 + 100.0);
+        let differnce = (total_dmg - 0.5 * expect).abs();
         assert!(differnce <= 0.001);
     }
 
     #[test]
     fn viridescent_venerer() {
         let mut members = vec![
-            FieldAbility::boxed(
-                TestCharacter { vision: String::from("Anemo") },
-                TestWeapon,
-                ViridescentVenerer,
-            ).to_data(FieldCharacterIndex(0))
+            TestEnvironment::artifact(FieldCharacterIndex(0), Anemo, ViridescentVenerer),
         ];
-        members[0].0.ar.state.infusion = true;
+        members[0].fc.ar.state.infusion = true;
         let mut enemy = TestEnvironment::enemy();
         enemy.aura = ElementalGauge {
             aura: Vision::Pyro,
@@ -844,7 +930,7 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         let mut total_dmg = 0.0;
-        for _ in 0..10 {
+        for _ in 0..11 {
             total_dmg += simulate(&mut members, &mut enemy, 0.2);
         }
         let expect = 0.5 * (
@@ -864,23 +950,19 @@ mod tests {
     #[test]
     fn paleflame_1() {
         let mut members = vec![
-            FieldAbility::boxed(
-                TestCharacter::new(),
-                TestWeapon,
-                PaleFlame::new(),
-            ).to_data(FieldCharacterIndex(0))
+            TestEnvironment::artifact(FieldCharacterIndex(0), Pyro, PaleFlame::new()),
         ];
         // disable physical bonus
-        members[0].0.ar.state.infusion = true;
+        members[0].fc.ar.state.infusion = true;
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
-        for _ in 0..40 {
+        for _ in 0..41 {
             total_dmg += simulate(&mut members, &mut enemy, 0.2);
         }
-        // skill 8 na, skill 2 na
+        // skill 10 na, skill 1 na
         let expect = 0.5 * (
-              1.09 * (200.0 + 8.0 * 100.0)
-            + 1.18 * (200.0 + 2.0 * 100.0)
+              1.09 * (200.0 + 10.0 * 100.0)
+            + 1.18 * (200.0 + 1.0 * 100.0)
         );
         assert_eq!(total_dmg, expect);
     }

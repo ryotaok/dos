@@ -14,7 +14,8 @@ pub enum AttackType {
     Na,
     Ca,
     // Plunge,
-    Skill,
+    PressSkill,
+    HoldSkill,
     SkillDot,
     Burst,
     BurstDot,
@@ -24,6 +25,50 @@ pub enum AttackType {
 
 #[derive(Debug, PartialEq)]
 pub struct Energy(pub f32);
+
+#[derive(Debug, PartialEq)]
+pub struct Particle {
+    element: Vision,
+    n: f32,
+}
+
+impl Particle {
+    pub fn new(element: Vision, n: f32) -> Self {
+        Self {
+            element,
+            n,
+        }
+    }
+
+    pub fn neutral(n: f32) -> Self {
+        Self {
+            element: Physical,
+            n
+        }
+    }
+
+    // TODO forget about number of members
+    pub fn on_field_energy(&self, reciver_element: &Vision) -> f32 {
+        self.n * if self.element == *reciver_element {
+            3.0
+        // physical particles mean neutral energy
+        } else if self.element == Physical {
+            2.0
+        } else {
+            1.0
+        }
+    }
+
+    pub fn off_field_energy(&self, reciver_element: &Vision) -> f32 {
+        self.n * if self.element == *reciver_element {
+            1.8
+        } else if self.element == Physical {
+            1.2
+        } else {
+            0.6
+        }
+    }
+}
 
 // The `Preference` enum means a preferable role in a battle for artifacts,
 // weapons and characters. Implementations should allow some of them to prefer
@@ -177,6 +222,22 @@ pub struct ElementalGauge {
 }
 
 impl ElementalGauge {
+    pub fn new(aura: Vision, unit: f32, decay: ElementalGaugeDecay) -> Self {
+        Self {
+            aura,
+            unit,
+            decay
+        }
+    }
+
+    pub fn physical() -> Self {
+        Self {
+            aura: Physical,
+            unit: 1.0,
+            decay: ElementalGaugeDecay::A,
+        }
+    }
+
     pub fn na(fc: &FieldCharacter) -> Self {
         Self {
             aura: if fc.state.infusion { fc.vision } else { Physical },
@@ -231,18 +292,10 @@ impl ElementalGauge {
         }
     }
 
-    pub fn trigger(&mut self, attack: &Attack) -> () {
-        if attack.icd_cleared {
-            let other = match attack.kind {
-                Na => unsafe { ElementalGauge::na(&(*attack.fc_ptr)) },
-                Ca => unsafe { ElementalGauge::ca(&(*attack.fc_ptr)) },
-                Skill => unsafe { ElementalGauge::skill(&(*attack.fc_ptr)) },
-                SkillDot => unsafe { ElementalGauge::skilldot(&(*attack.fc_ptr)) },
-                Burst => unsafe { ElementalGauge::burst(&(*attack.fc_ptr)) },
-                BurstDot => unsafe { ElementalGauge::burstdot(&(*attack.fc_ptr)) },
-                _ => ElementalGauge::default(),
-            };
-            let er = ElementalReaction::new(self.aura, other.aura);
+    pub fn trigger(&mut self, attack: &Attack, attack_element: &Vision) -> () {
+        if attack.icd_cleared() {
+            let other = &attack.element;
+            let er = ElementalReaction::new(self.aura, *attack_element);
             let before_negative = self.unit <= 0.0;
             self.unit += er.gauge_modifier() * other.unit;
             let after_negative = self.unit <= 0.0;
@@ -251,7 +304,7 @@ impl ElementalGauge {
                 self.aura = Physical;
             } else if before_negative && !after_negative {
                 // no aura was applied on the enemy
-                self.aura = other.aura;
+                self.aura = *attack_element;
                 self.unit = other.unit;
                 self.decay = other.decay;
             }

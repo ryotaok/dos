@@ -1,7 +1,9 @@
+use std::pin::Pin;
+use crate::types::AttackType;
 use crate::state::State;
 use crate::artifact::Artifact;
-use crate::action::{Attack, TimerGuard, NormalAttackAction, SkillAction, BurstAction};
-use crate::types::{Vision, ElementalGauge, ElementalGaugeDecay, ElementalReaction, ElementalReactionType};
+use crate::action::{Attack, EffectTimer, TimerGuard, FullCharacterTimers, Acceleration};
+use crate::types::{Vision, Particle, ElementalGauge, ElementalGaugeDecay, ElementalReaction, ElementalReactionType};
 
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -9,11 +11,6 @@ pub struct FieldCharacterIndex(pub usize);
 
 #[allow(unused_variables)]
 pub trait SpecialAbility {
-    // utility methods. each struct implements the respective method.
-    fn character(&self) -> CharacterRecord { Default::default() }
-    fn weapon(&self) -> WeaponRecord { Default::default() }
-    fn artifact(&self) -> Artifact { Default::default() }
-
     // the variable is named `owner_fc` because `FieldCharacter` will own this
     // `SpecialAbility`.
 
@@ -21,7 +18,7 @@ pub trait SpecialAbility {
     // passive effect duration are up to date. The three methods of
     // `additional_attack`, `modify` and `accelerate` will depend on the data
     // mutated by this self.
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () { }
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], particles: &[Particle], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () { }
 
     // `Vec::push` additional attacks created. The `atk_queue` is `Vec` because
     // some character (Eula's hold skill) deals many additional attacks of
@@ -31,7 +28,7 @@ pub trait SpecialAbility {
     // are another entities who take part in the battle. These entities
     // can also attack an enemy, so we need to know how strong their attacks
     // are, i.e. additional attack DMG (or `Attack.multiplier`).
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () { }
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<Particle>, owner_fc: &FieldCharacter, enemy: &Enemy) -> () { }
 
     // Apply own passive effects to `State`. This is the primary method that
     // "returns" passive effects to `FieldCharacter`. For example, suppose this
@@ -44,17 +41,47 @@ pub trait SpecialAbility {
     // down by Lisa).
     fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () { }
 
-    // Change speed of normal attacks or reset the cool down time of skill and
-    // burst.
-    fn accelerate(&self, na: &mut NormalAttackAction, skill: &mut SkillAction, burst: &mut BurstAction) -> () { }
-
     // This method can change the `State` of `Attack`. For example, Some abilities
     // increase CR of a specific action: Amber A1 (Every Arrow Finds Its
     // Target), Ganyu A1 (Undivided Heart), Festering Desire.
-    fn intensify(&self, attack: &mut Attack, owner_fc: &FieldCharacter, enemy: &Enemy) -> () { }
+    fn intensify(&self, attack: &Attack) -> Option<State> { None }
 
     // reinitialize own states
     fn reset(&mut self) -> () {}
+}
+
+#[allow(unused_variables)]
+pub trait CharacterAbility : SpecialAbility {
+    // utility methods. each struct implements the respective method.
+    fn record(&self) -> CharacterRecord { Default::default() }
+
+    fn maybe_attack(&self, fc: &FieldCharacter) -> Option<AttackType>;
+
+    fn use_hold(&self) -> bool { false }
+
+    // Change speed of normal attacks or reset the cool down time of skill and
+    // burst.
+    fn accelerate(&mut self, wa: &dyn WeaponAbility) -> () { }
+}
+
+#[allow(unused_variables)]
+pub trait WeaponAbility : SpecialAbility {
+    // utility methods. each struct implements the respective method.
+    fn record(&self) -> WeaponRecord { Default::default() }
+
+    // Change speed of normal attacks or reset the cool down time of skill and
+    // burst.
+    fn accelerate(&self, ac: &mut dyn Acceleration) -> () { }
+}
+
+#[allow(unused_variables)]
+pub trait ArtifactAbility : SpecialAbility {
+    // utility methods. each struct implements the respective method.
+    fn record(&self) -> Artifact { Default::default() }
+
+    // Change speed of normal attacks or reset the cool down time of skill and
+    // burst.
+    // fn accelerate(&self, ct: &mut CharacterTimers) -> () { }
 }
 
 #[derive(Debug)]
@@ -237,58 +264,6 @@ impl CharacterRecord {
             false
         };
         state
-    }
-
-    pub fn burst_action(&self) -> BurstAction {
-        let element = Vision::from(&self.vision);
-        BurstAction::new(element, self.burst_cd, self.energy_cost, self.burst_dmg)
-    }
-
-    pub fn skill_action(&self) -> SkillAction {
-        let element = Vision::from(&self.vision);
-        SkillAction::new(element, self.press_particle, self.press_cd, self.press_dmg)
-    }
-
-    pub fn normal_action(&self) -> NormalAttackAction {
-        let element = Vision::from(&self.vision);
-        let na_element = match self.weapon.as_str() {
-            "Sword" => Vision::Physical,
-            "Claymore" => Vision::Physical,
-            "Polearm" => Vision::Physical,
-            "Bow" => element,
-            "Catalyst" => element,
-            _ => panic!("This weapon is not recognized: {:?}", self.weapon.as_str()),
-        };
-        let mut nas: Vec<f32> = Vec::new();
-        let mut na_total = 0.0_f32;
-        for v in &[self.na_1, self.na_2, self.na_3, self.na_4, self.na_5, self.na_6, ] {
-            if *v > 0.0 {
-                nas.push(*v);
-                na_total += *v;
-            }
-        }
-        let mut cas: Vec<f32> = Vec::new();
-        let mut ca_total = 0.0_f32;
-        for v in &[self.na_0, self.ca_1, self.ca_2] {
-            if *v > 0.0 {
-                cas.push(*v);
-                ca_total += *v;
-            }
-        }
-        let na_dps = na_total / self.na_time;
-        let ca_dps = ca_total / self.ca_time;
-        match (self.na_time == 0.0, self.ca_time == 0.0, na_dps > ca_dps) {
-            (true, true,  _) => panic!("division by zero: check na_time and ca_time of the character: {:?}", self.name),
-            (true, false, _) => NormalAttackAction::ca(na_element, self.ca_time, ca_total),
-            (false, true, _) => NormalAttackAction::na(na_element, self.na_time / nas.len() as f32, nas),
-            (false, false, true) => NormalAttackAction::na(na_element, self.na_time / nas.len() as f32, nas),
-            (false, false, false) => NormalAttackAction::ca(na_element, self.ca_time, ca_total),
-        }
-        // if na_dps > ca_dps {
-        //     NormalAttackAction::na(na_element, self.na_time / nas.len() as f32, nas)
-        // } else {
-        //     NormalAttackAction::ca(na_element, self.ca_time, ca_total)
-        // }
     }
 }
 
@@ -539,15 +514,23 @@ impl Enemy {
     }
 }
 
-pub type FieldCharacterData = (
-    FieldCharacter,
-    FieldAbility,
+// #[derive(Debug)]
+pub struct FieldCharacterData {
+    pub fc: FieldCharacter,
+
     // `Attack`s created by this `FieldAbility`
-    Vec<Attack>,
+    pub atk_queue: Vec<*const Attack>,
     // `Vec<State>` does not need to be included here because it can be modfied
     // by other characters.
-    FieldAction
-);
+
+    // energy particles generated by character ability, weapons
+    pub particles: Vec<Particle>,
+
+    // pub character: Pin<Box<dyn CharacterAbility>>,
+    pub character: Box<dyn CharacterAbility>,
+    pub weapon: Box<dyn WeaponAbility>,
+    pub artifact: Box<dyn ArtifactAbility>,
+}
 
 // #[derive(Debug)]
 pub struct FieldCharacter {
@@ -575,54 +558,26 @@ impl FieldCharacter {
         }
     }
 
-    pub fn to_data(self, fa: FieldAbility) -> FieldCharacterData {
-        let a = FieldAction::new(&self.cr);
-        (self, fa, Vec::new(), a)
-    }
-
-    pub fn noop(self, fa: FieldAbility) -> FieldCharacterData {
-        let mut d = Self::to_data(self, fa);
-        d.3.na = NormalAttackAction::noop();
-        d
-    }
-}
-
-pub struct FieldAbility {
-    pub character: Box<dyn SpecialAbility>,
-    pub weapon:    Box<dyn SpecialAbility>,
-    pub artifact:  Box<dyn SpecialAbility>,
-}
-
-impl FieldAbility {
-    pub fn boxed<C: 'static + SpecialAbility, W: 'static + SpecialAbility, A: 'static + SpecialAbility>(ca: C, wa: W, aa: A) -> Self {
-        Self {
-            character: Box::new(ca),
-            weapon: Box::new(wa),
-            artifact: Box::new(aa),
+    pub fn to_data(self, character: Box<dyn CharacterAbility>, weapon: Box<dyn WeaponAbility>, artifact: Box<dyn ArtifactAbility>,) -> FieldCharacterData {
+        FieldCharacterData {
+            fc: self,
+            atk_queue: Vec::new(),
+            particles: Vec::new(),
+            character,
+            weapon,
+            artifact,
         }
     }
 
-    pub fn to_data(self, idx: FieldCharacterIndex) -> FieldCharacterData {
-        let cr = self.character.character();
-        let wr = self.weapon.weapon();
-        let ar = self.artifact.artifact();
-        let vision = Vision::from(&cr.vision);
-        FieldCharacter::new(idx, cr, vision, wr, ar).to_data(self)
+    pub fn can_burst(&self) -> bool {
+        self.state.energy.0 >= self.cr.energy_cost
     }
-}
 
-pub struct FieldAction {
-    pub burst: BurstAction,
-    pub skill: SkillAction,
-    pub na: NormalAttackAction,
-}
-
-impl FieldAction {
-    pub fn new(cr: &CharacterRecord) -> Self {
-        Self {
-            burst: cr.burst_action(),
-            skill: cr.skill_action(),
-            na: cr.normal_action(),
+    pub fn infused_element<'a>(&'a self, attack: &'a Attack) -> &'a Vision {
+        if self.state.infusion {
+            &self.vision
+        } else {
+            &attack.element.aura
         }
     }
 }

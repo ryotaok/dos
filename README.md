@@ -30,7 +30,7 @@ Damage calculation:
 - Critical damage is an expected value of Crit rate and Crit damage.
 - Randomness of passive effects is always 100% (for example, Prototype Archaic has 50% chance to activate its passive but it is always activated when its condition is met).
 
-Simulated field:
+The simulated field:
 
 - The enemy is a hilichurl at level 90.
 - Simulated characters try to take actions every 200 milliseconds and the simulation ends when the simulation timer is at 20 seconds (these values can be changed). If the actions are under cooldown, the characters will do nothing.

@@ -120,7 +120,8 @@ impl State {
         match key {
             AttackType::Na => self.na_dmg + self.all_dmg,
             AttackType::Ca => self.ca_dmg + self.all_dmg,
-            AttackType::Skill |
+            AttackType::PressSkill |
+            AttackType::HoldSkill |
             AttackType::SkillDot => self.skill_dmg + self.all_dmg,
             AttackType::Burst |
             AttackType::BurstDot => self.burst_dmg + self.all_dmg,

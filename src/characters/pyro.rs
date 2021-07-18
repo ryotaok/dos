@@ -36,6 +36,12 @@ impl SpecialAbility for Amber {
             .ca_unit(2.0).ca_decay(B).skill_unit(2.0).skill_decay(B)
     }
 
+    fn attack(&self, owner_fc: &FieldCharacter) -> Option<AttackType> {
+        if self.burst_timer.is_active() {
+            return Some(Burst)
+        }
+    }
+
     fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
         self.ca_timer.update(gaurd.second(attack.iter().any(|a| a.owned(owner_fc) && a.kind == Ca)), time);
     }
