@@ -1,6 +1,6 @@
 
-use crate::fc::{FieldCharacter, FieldCharacterIndex, CharacterAbility, Enemy, Debuff};
-use crate::types::{AttackType, Vision, ElementalGauge, ElementalReactionType, ElementalReaction};
+use crate::fc::{CharacterData, FieldCharacterIndex, CharacterAbility, Enemy, Debuff};
+use crate::types::{AttackType, Vision, ElementalGauge, BareElementalGauge, ElementalReactionType, ElementalReaction};
 use crate::state::State;
 
 use AttackType::*;
@@ -27,6 +27,96 @@ impl AttackEvent {
     }
 }
 
+// Because of `State.infusion`, infused element of every attack is determined at
+// the run time.
+#[derive(Debug, Clone, Copy)]
+pub struct ElementalAttack {
+    pub element: Vision,
+    pub atk: *const Attack,
+}
+
+impl ElementalAttack {
+    pub fn new(element: Vision, atk: *const Attack) -> Self {
+        Self {
+            element,
+            atk,
+        }
+    }
+
+    pub fn pyro(atk: *const Attack) -> Self {
+        Self {
+            element: Vision::Pyro,
+            atk,
+        }
+    }
+
+    pub fn hydro(atk: *const Attack) -> Self {
+        Self {
+            element: Vision::Hydro,
+            atk,
+        }
+    }
+
+    pub fn electro(atk: *const Attack) -> Self {
+        Self {
+            element: Vision::Electro,
+            atk,
+        }
+    }
+
+    pub fn cryo(atk: *const Attack) -> Self {
+        Self {
+            element: Vision::Cryo,
+            atk,
+        }
+    }
+
+    pub fn anemo(atk: *const Attack) -> Self {
+        Self {
+            element: Vision::Anemo,
+            atk,
+        }
+    }
+
+    pub fn geo(atk: *const Attack) -> Self {
+        Self {
+            element: Vision::Geo,
+            atk,
+        }
+    }
+
+    pub fn dendro(atk: *const Attack) -> Self {
+        Self {
+            element: Vision::Dendro,
+            atk,
+        }
+    }
+
+    pub fn physical(atk: *const Attack) -> Self {
+        Self {
+            element: Vision::Physical,
+            atk,
+        }
+    }
+
+    pub fn outgoing_damage(&self, attack_element: &Vision, state: Option<State>, fc: &CharacterData) -> f32 {
+        let atk = unsafe { &(*self.atk) };
+        atk.outgoing_damage(attack_element, state, fc)
+    }
+
+    pub fn incoming_damage(&self, attack_element: &Vision, outgoing_damage: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
+        let atk = unsafe { &(*self.atk) };
+        atk.incoming_damage(attack_element, outgoing_damage, fc, enemy)
+    }
+
+}
+
+impl PartialEq<Vision> for ElementalAttack {
+    fn eq(&self, other: &Vision) -> bool {
+        self.element.eq(other)
+    }
+}
+
 #[derive(Debug)]
 pub struct Attack {
     // type of this `Attack`. For example, Xiangling's skill summons Guoba to
@@ -34,8 +124,8 @@ pub struct Attack {
     // since it is created by her skill, the `kind` is `AttackType::Skill`.
     pub kind: AttackType,
 
-    // Infused element of this `Attack`.
-    pub element: ElementalGauge,
+    // elemental gauge of this `Attack`.
+    pub gauge: BareElementalGauge,
 
     pub multiplier: f32,
 
@@ -62,7 +152,7 @@ impl Attack {
         }
     }
 
-    pub fn outgoing_damage(&self, attack_element: &Vision, state: Option<State>, fc: &FieldCharacter) -> f32 {
+    pub fn outgoing_damage(&self, attack_element: &Vision, state: Option<State>, fc: &CharacterData) -> f32 {
         // use ad-hoc state if available
         if let Some(mut state) = state {
             state.merge(&fc.state);
@@ -72,10 +162,10 @@ impl Attack {
         }
     }
 
-    fn outgoing_damage_inner(&self, attack_element: &Vision, state: &State, fc: &FieldCharacter) -> f32 {
+    fn outgoing_damage_inner(&self, attack_element: &Vision, state: &State, fc: &CharacterData) -> f32 {
         let bonus = state.DMG_bonus(&self.kind, attack_element);
         let crcd = state.CRCD();
-        let atk = match (fc.cr.name.as_str(), self.kind) {
+        let atk = match (fc.cr.name, self.kind) {
             ("Albedo", AttackType::SkillDot) => state.DEF(),
             ("Noelle", AttackType::PressSkill) => state.DEF(),
             _ => state.ATK(),
@@ -84,7 +174,7 @@ impl Attack {
         self.multiplier / 100.0 * power
     }
 
-    pub fn incoming_damage(&self, attack_element: &Vision, outgoing_damage: f32, fc: &FieldCharacter, enemy: &mut Enemy) -> f32 {
+    pub fn incoming_damage(&self, attack_element: &Vision, outgoing_damage: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
         let def_down = 1.0 + enemy.get_def_down() / 100.0;
         let level_multiplier = enemy.level / (enemy.level * def_down + enemy.level);
         let dmg = outgoing_damage * self.resistance(attack_element, &enemy) * level_multiplier;
@@ -109,7 +199,7 @@ impl Attack {
         (100.0 - res) / 100.0
     }
 
-    pub fn elemental_reaction(&self, attack_element: &Vision, outgoing_damage: f32, fc: &FieldCharacter, enemy: &mut Enemy) -> f32 {
+    pub fn elemental_reaction(&self, attack_element: &Vision, outgoing_damage: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
         use ElementalReactionType::*;
         let mut total_dmg = 0.0;
         for _ in 0..self.hits {
@@ -261,6 +351,15 @@ impl HitsTimer {
     pub fn new(cool_down: f32, n_hits: usize) -> Self {
         Self { cool_down, n_hits, cd: 0.0, n: 0 }
     }
+
+    pub fn noop() -> Self {
+        Self {
+            cool_down: 10.0_f32.powf(6.0),
+            n_hits: 0,
+            cd: 10.0_f32.powf(6.0),
+            n: 0
+        }
+    }
 }
 
 impl EffectTimer for HitsTimer {
@@ -310,11 +409,39 @@ pub struct DotTimer {
 
 impl DotTimer {
     pub fn new(cool_down: f32, dot_cd: f32, n_hits: usize) -> Self {
-        Self { cool_down, dot_cd, n_hits, cd: 0.0, dcd: 0.0, dcd_cleared: false, n: 0 }
+        Self {
+            cool_down,
+            dot_cd,
+            n_hits,
+            cd: 0.0,
+            dcd: 0.0,
+            dcd_cleared: false,
+            n: 0
+        }
     }
 
     pub fn single_hit(cool_down: f32) -> Self {
-        Self { cool_down, dot_cd: 0.0, n_hits: 1, cd: 0.0, dcd: 0.0, dcd_cleared: false, n: 0 }
+        Self {
+            cool_down,
+            dot_cd: 0.0,
+            n_hits: 1,
+            cd: 0.0,
+            dcd: 0.0,
+            dcd_cleared: false,
+            n: 0
+        }
+    }
+
+    pub fn noop() -> Self {
+        Self {
+            cool_down: 10.0_f32.powf(6.0),
+            dot_cd: 10.0_f32.powf(6.0),
+            n_hits: 1,
+            cd: 10.0_f32.powf(6.0),
+            dcd: 10.0_f32.powf(6.0),
+            dcd_cleared: false,
+            n: 0
+        }
     }
 }
 
@@ -502,14 +629,14 @@ impl LoopTimer {
         }
     }
 
-    // pub fn noop() -> Self {
-    //     Self {
-    //         cool_down: 10.0_f32.powf(6.0),
-    //         steps: 1,
-    //         cd: 10.0_f32.powf(6.0),
-    //         n: 0,
-    //     }
-    // }
+    pub fn noop() -> Self {
+        Self {
+            cool_down: 10.0_f32.powf(6.0),
+            steps: 1,
+            cd: 10.0_f32.powf(6.0),
+            n: 0,
+        }
+    }
 }
 
 impl EffectTimer for LoopTimer {
@@ -551,54 +678,14 @@ pub struct ICDTimer {
     cd: f32,
     n_hits: usize,
     counting: bool,
-    // TODO remove them
-    action_1: AttackType,
-    action_2: AttackType,
-    action_3: AttackType,
 }
 
 impl ICDTimer {
-    pub fn na() -> Self {
+    pub fn new() -> Self {
         Self {
             cd: 0.0,
             n_hits: 0,
             counting: false,
-            action_1: Na,
-            action_2: Na,
-            action_3: Na,
-        }
-    }
-
-    pub fn ca() -> Self {
-        Self {
-            cd: 0.0,
-            n_hits: 0,
-            counting: false,
-            action_1: Ca,
-            action_2: Ca,
-            action_3: Ca,
-        }
-    }
-
-    pub fn skill() -> Self {
-        Self {
-            cd: 0.0,
-            n_hits: 0,
-            counting: false,
-            action_1: PressSkill,
-            action_2: HoldSkill,
-            action_3: SkillDot,
-        }
-    }
-
-    pub fn burst() -> Self {
-        Self {
-            cd: 0.0,
-            n_hits: 0,
-            counting: false,
-            action_1: Burst,
-            action_2: BurstDot,
-            action_3: BurstDot,
         }
     }
 
@@ -670,7 +757,7 @@ impl TimerGuard {
         }
     }
 
-    pub fn with_first(attack: &Attack, fc: &FieldCharacter) -> Self {
+    pub fn with_first(attack: &Attack, fc: &CharacterData) -> Self {
         Self {
             kind: attack.kind, // should be cheap
             first: attack.idx == fc.idx,
@@ -680,7 +767,7 @@ impl TimerGuard {
     }
 
     // TODO refactor the method
-    pub fn with_first_2(attack: &AttackEvent, fc: &FieldCharacter) -> Self {
+    pub fn with_first_2(attack: &AttackEvent, fc: &CharacterData) -> Self {
         Self {
             kind: attack.kind, // should be cheap
             first: attack.idx.0 == fc.idx.0,
@@ -739,6 +826,14 @@ impl StaminaTimer {
             consumption,
         }
     }
+
+    pub fn noop() -> Self {
+        Self {
+            stamina: 240.0,
+            recovery: false,
+            consumption: 0.0,
+        }
+    }
 }
 
 impl EffectTimer for StaminaTimer {
@@ -776,62 +871,258 @@ impl EffectTimer for StaminaTimer {
     }
 }
 
-pub trait MainAttack {
-    fn maybe_attack(&self, fc: &FieldCharacter, ca: &dyn CharacterAbility) -> Option<AttackType>;
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], fc: &FieldCharacter, time: f32) -> ();
+
+pub trait CharacterTimers {
+    fn maybe_attack(&self, fc: &CharacterData, ca: &dyn CharacterAbility) -> Option<AttackType>;
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[ElementalAttack], fc: &CharacterData, time: f32) -> ();
+    fn na_timer(&self) -> &LoopTimer;
+    fn ca_timer(&self) -> &HitsTimer;
+    fn press_timer(&self) -> &DotTimer;
+    fn hold_timer(&self) -> &DotTimer;
+    fn burst_timer(&self) -> &DotTimer;
+    fn reset_cd(&mut self) -> ();
 }
 
 pub trait Acceleration {
     fn reset_cd(&mut self) -> ();
 }
 
-// Actions: na, ca, press, hold, burst
 #[derive(Debug)]
-pub struct FullCharacterTimers {
-    pub na_timer: LoopTimer,
-    pub na_icd: ICDTimer,
+pub struct NaTimers<const B: bool> {
+    pub timer: LoopTimer,
+    pub icd: ICDTimer,
+}
 
+impl NaTimers<true> {
+    pub fn new(timer: LoopTimer) -> Self {
+        Self {
+            timer,
+            icd: ICDTimer::new()
+        }
+    }
+
+    pub fn should_attack(&self) -> bool {
+        self.timer.is_cd_off()
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.timer.is_active()
+    }
+
+    pub fn n(&self) -> usize {
+        self.timer.n()
+    }
+
+    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () {
+        self.timer.update(gaurd.check_second(Na), time);
+        self.icd.update(icd_should_update, time);
+    }
+}
+
+impl NaTimers<false> {
+    pub fn new() -> Self {
+        Self {
+            timer: LoopTimer::noop(),
+            icd: ICDTimer::new()
+        }
+    }
+
+    pub fn should_attack(&self) -> bool { false }
+    pub fn is_active(&self) -> bool { false }
+    pub fn n(&self) -> usize { 0 }
+    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () { }
+}
+
+#[derive(Debug)]
+pub struct CaTimers<const B: bool> {
     pub stamina: StaminaTimer,
-    pub ca_timer: HitsTimer,
-    pub ca_icd: ICDTimer,
+    pub timer: HitsTimer,
+    pub icd: ICDTimer,
+}
 
-    pub press_timer: DotTimer,
-    pub hold_timer:  DotTimer,
-    pub skill_icd: ICDTimer,
+impl CaTimers<true> {
+    pub fn new(timer: HitsTimer, stamina: StaminaTimer) -> Self {
+        Self {
+            stamina,
+            timer,
+            icd: ICDTimer::new()
+        }
+    }
+
+    pub fn should_attack(&self) -> bool {
+        self.timer.is_cd_off() && self.stamina.is_active()
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.timer.is_active() && self.stamina.is_active()
+    }
+
+    pub fn n(&self) -> usize {
+        self.timer.n()
+    }
+
+    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () {
+        self.stamina.update(gaurd.check_second(Ca), time);
+        self.timer.update(gaurd, time);
+        self.icd.update(icd_should_update, time);
+    }
+}
+
+impl CaTimers<false> {
+    pub fn new() -> Self {
+        Self {
+            stamina: StaminaTimer::noop(),
+            timer: HitsTimer::noop(),
+            icd: ICDTimer::new()
+        }
+    }
+
+    pub fn should_attack(&self) -> bool { false }
+    pub fn is_active(&self) -> bool { false }
+    pub fn n(&self) -> usize { 0 }
+    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () { }
+}
+
+// N = 1: only press skill is used
+// N = 2: both press and hold skills are used
+// N = _: for any other values, `SkillTimers` are disabled
+#[derive(Debug)]
+pub struct SkillTimers<const N: usize> {
+    pub press: DotTimer,
+    pub hold: DotTimer,
+    pub icd: ICDTimer,
+}
+
+impl SkillTimers<1> {
+    pub fn new(press: DotTimer) -> Self {
+        Self {
+            press,
+            hold: DotTimer::noop(),
+            icd: ICDTimer::new()
+        }
+    }
+
+    pub fn should_press(&self) -> bool {
+        self.press.is_cd_off()
+    }
+
+    pub fn should_hold(&self) -> bool {
+        false
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.press.is_active()
+    }
+
+    pub fn n(&self) -> usize {
+        self.press.n()
+    }
+
+    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () {
+        self.press.update(gaurd.check_second(PressSkill), time);
+        self.icd.update(icd_should_update, time);
+    }
+
+    pub fn reset_cd(&mut self) -> () {
+        self.press.reset();
+    }
+}
+
+impl SkillTimers<2> {
+    pub fn new(press: DotTimer, hold: DotTimer) -> Self {
+        Self {
+            press,
+            hold,
+            icd: ICDTimer::new()
+        }
+    }
+
+    pub fn should_press(&self) -> bool {
+        // TODO Because hold CD is longer than press CD, hold skill needs to be off to use press skill
+        self.press.is_cd_off() && self.hold.is_cd_off()
+    }
+
+    pub fn should_hold(&self) -> bool {
+        self.hold.is_cd_off()
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.press.is_active() || self.hold.is_active()
+    }
+
+    pub fn n(&self) -> usize {
+        self.hold.n()
+    }
+
+    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () {
+        self.press.update(gaurd.check_second(PressSkill), time);
+        self.hold.update(gaurd.check_second(HoldSkill), time);
+        self.icd.update(icd_should_update, time);
+    }
+
+    pub fn reset_cd(&mut self) -> () {
+        self.press.reset();
+        self.hold.reset();
+    }
+}
+
+impl SkillTimers<0> {
+    pub fn new() -> Self {
+        Self {
+            press: DotTimer::noop(),
+            hold: DotTimer::noop(),
+            icd: ICDTimer::new()
+        }
+    }
+
+    pub fn should_press(&self) -> bool { false }
+    pub fn should_hold(&self) -> bool { false }
+    pub fn is_active(&self) -> bool { false }
+    pub fn n(&self) -> usize { 0 }
+    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () {}
+    pub fn reset_cd(&mut self) -> () {}
+}
+
+#[derive(Debug)]
+pub struct FullCharacterTimers<const N: bool, const C: bool, const S: usize> {
+    pub na: NaTimers<N>,
+
+    pub ca: CaTimers<C>,
+
+    pub skill: SkillTimers<S>,
 
     pub burst_timer: DotTimer,
     pub burst_icd: ICDTimer,
 }
 
-impl MainAttack for FullCharacterTimers {
-    fn maybe_attack(&self, fc: &FieldCharacter, ca: &dyn CharacterAbility) -> Option<AttackType> {
+impl<const N: bool, const C: bool, const S: usize> CharacterTimers for FullCharacterTimers<N, C, S> {
+    fn maybe_attack(&self, fc: &CharacterData, ca: &dyn CharacterAbility) -> Option<AttackType> {
         // na combo blocks other actions.
-        if self.na_timer.n() > 0 && self.na_timer.is_active() {
+        if self.na.n() > 0 && self.na.is_active() {
             Some(Na)
         } else if fc.can_burst() && self.burst_timer.is_cd_off() {
             Some(Burst)
-        } else if ca.use_hold() && self.hold_timer.is_cd_off() {
+        } else if ca.use_hold() && self.skill.should_hold() {
             Some(HoldSkill)
-        // Because hold CD is longer than press CD, hold skill needs to be off to use press skill
-        } else if self.hold_timer.is_cd_off() && self.press_timer.is_cd_off() {
+        } else if self.skill.should_press() {
             Some(PressSkill)
-        } else if self.ca_timer.is_cd_off() && self.stamina.is_active() {
+        } else if self.ca.should_attack() {
             Some(Ca)
-        } else if self.na_timer.is_cd_off() {
+        } else if self.na.should_attack() {
             Some(Na)
         } else {
             None
         }
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], fc: &FieldCharacter, time: f32) -> () {
+    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[ElementalAttack], fc: &CharacterData, time: f32) -> () {
         let mut na = false;
         let mut ca = false;
         let mut skill = false;
         let mut burst = false;
         unsafe {
             for &a in attack {
-                match &(*a).kind {
+                match &(*(a.atk)).kind {
                     Na => na = true,
                     Ca => ca = true,
                     PressSkill | HoldSkill | SkillDot => skill = true,
@@ -840,365 +1131,53 @@ impl MainAttack for FullCharacterTimers {
                 }
             }
         }
-        self.na_icd.update(na, time);
-        self.ca_icd.update(ca, time);
-        self.skill_icd.update(skill, time);
+        self.na.update(gaurd, na, time * (1.0 + fc.state.atk_spd / 100.0));
+        self.ca.update(gaurd, ca, time);
+        self.skill.update(gaurd, skill, time);
+        // 
+        // self.na_icd.update(na, time);
+        // self.ca_icd.update(ca, time);
+        // self.skill_icd.update(skill, time);
         self.burst_icd.update(burst, time);
-        self.na_timer.update(gaurd.check_second(Na), time * (1.0 + fc.state.atk_spd / 100.0));
-        self.ca_timer.update(gaurd.check_second(Ca), time);
-        self.stamina.update(gaurd, time);
-        self.press_timer.update(gaurd.check_second(PressSkill), time);
-        self.hold_timer.update(gaurd.check_second(HoldSkill), time);
+        // self.na_timer.update();
+        // self.ca_timer.update(gaurd.check_second(Ca), time);
+        // self.stamina.update(gaurd, time);
+        // self.press_timer.update(gaurd.check_second(PressSkill), time);
+        // self.hold_timer.update(gaurd.check_second(HoldSkill), time);
         self.burst_timer.update(gaurd.check_second(Burst), time);
     }
-}
 
-impl Acceleration for FullCharacterTimers {
+    fn na_timer(&self) -> &LoopTimer {
+        &self.na.timer
+    }
+
+    fn ca_timer(&self) -> &HitsTimer {
+        &self.ca.timer
+    }
+
+    fn press_timer(&self) -> &DotTimer {
+        &self.skill.press
+    }
+
+    fn hold_timer(&self) -> &DotTimer {
+        &self.skill.hold
+    }
+
+    fn burst_timer(&self) -> &DotTimer {
+        &self.burst_timer
+    }
+
     fn reset_cd(&mut self) -> () {
-        self.press_timer.reset();
-        self.hold_timer.reset();
+        self.skill.reset_cd();
     }
 }
 
-// Actions: na, press, burst
-#[derive(Debug)]
-pub struct NaPressBurstTimers {
-    pub na_timer: LoopTimer,
-    pub na_icd: ICDTimer,
-
-    pub press_timer: DotTimer,
-    pub skill_icd: ICDTimer,
-
-    pub burst_timer: DotTimer,
-    pub burst_icd: ICDTimer,
-    // _pinned: PhantomPinned,
-}
-
-impl MainAttack for NaPressBurstTimers {
-    fn maybe_attack(&self, fc: &FieldCharacter, _ca: &dyn CharacterAbility) -> Option<AttackType> {
-        // na combo blocks other actions.
-        // println!("{:?} {:?}", fc.idx.0, self.na_timer);
-        // if self.na_timer.n() > 0 && self.na_timer.is_active() {
-        //     Some(Na)
-        // } else if fc.can_burst() && self.burst_timer.is_cd_off() {
-        if fc.can_burst() && self.burst_timer.is_cd_off() {
-            Some(Burst)
-        } else if self.press_timer.is_cd_off() {
-            Some(PressSkill)
-        } else if self.na_timer.is_cd_off() {
-            Some(Na)
-        } else {
-            None
-        }
-    }
-
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], fc: &FieldCharacter, time: f32) -> () {
-        let mut na = false;
-        let mut skill = false;
-        let mut burst = false;
-        unsafe {
-            for &a in attack {
-                match &(*a).kind {
-                    Na => na = true,
-                    PressSkill | HoldSkill | SkillDot => skill = true,
-                    Burst | BurstDot => burst = true,
-                    _ => (),
-                }
-            }
-        }
-        self.na_icd.update(na, time);
-        self.skill_icd.update(skill, time);
-        self.burst_icd.update(burst, time);
-        self.na_timer.update(gaurd.check_second(Na), time * (1.0 + fc.state.atk_spd / 100.0));
-        self.press_timer.update(gaurd.check_second(PressSkill), time);
-        self.burst_timer.update(gaurd.check_second(Burst), time);
-    }
-}
-
-impl Acceleration for NaPressBurstTimers {
-    fn reset_cd(&mut self) -> () {
-        self.press_timer.reset();
-    }
-}
-
-// Actions: na, burst
-#[derive(Debug)]
-pub struct NaBurstTimers {
-    pub na_timer: LoopTimer,
-    pub na_icd: ICDTimer,
-
-    pub burst_timer: DotTimer,
-    pub burst_icd: ICDTimer,
-    // _pinned: PhantomPinned,
-}
-
-impl MainAttack for NaBurstTimers {
-    fn maybe_attack(&self, fc: &FieldCharacter, _ca: &dyn CharacterAbility) -> Option<AttackType> {
-        // na combo blocks other actions.
-        if self.na_timer.n() > 0 && self.na_timer.is_active() {
-            Some(Na)
-        } else if fc.can_burst() && self.burst_timer.is_cd_off() {
-            Some(Burst)
-        } else if self.na_timer.is_cd_off() {
-            Some(Na)
-        } else {
-            None
-        }
-    }
-
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], fc: &FieldCharacter, time: f32) -> () {
-        let mut na = false;
-        let mut burst = false;
-        unsafe {
-            for &a in attack {
-                match &(*a).kind {
-                    Na => na = true,
-                    Burst | BurstDot => burst = true,
-                    _ => (),
-                }
-            }
-        }
-        self.na_icd.update(na, time);
-        self.burst_icd.update(burst, time);
-        self.na_timer.update(gaurd.check_second(Na), time * (1.0 + fc.state.atk_spd / 100.0));
-        self.burst_timer.update(gaurd.check_second(Burst), time);
-    }
-}
-
-impl Acceleration for NaBurstTimers {
-    fn reset_cd(&mut self) -> () {}
-}
-
-// Actions: na, ca, press, burst
-#[derive(Debug)]
-pub struct NaCaPressBurstTimers {
-    pub na_timer: LoopTimer,
-    pub na_icd: ICDTimer,
-
-    pub stamina: StaminaTimer,
-    pub ca_timer: HitsTimer,
-    pub ca_icd: ICDTimer,
-
-    pub press_timer: DotTimer,
-    pub skill_icd: ICDTimer,
-
-    pub burst_timer: DotTimer,
-    pub burst_icd: ICDTimer,
-}
-
-impl MainAttack for NaCaPressBurstTimers {
-    fn maybe_attack(&self, fc: &FieldCharacter, _ca: &dyn CharacterAbility) -> Option<AttackType> {
-        // na combo blocks other actions.
-        if self.na_timer.n() > 0 && self.na_timer.is_active() {
-            Some(Na)
-        } else if fc.can_burst() && self.burst_timer.is_cd_off() {
-            Some(Burst)
-        } else if self.press_timer.is_cd_off() {
-            Some(PressSkill)
-        } else if self.ca_timer.is_cd_off() && self.stamina.is_active() {
-            Some(Ca)
-        } else if self.na_timer.is_cd_off() {
-            Some(Na)
-        } else {
-            None
-        }
-    }
-
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], fc: &FieldCharacter, time: f32) -> () {
-        let mut na = false;
-        let mut ca = false;
-        let mut skill = false;
-        let mut burst = false;
-        unsafe {
-            for &a in attack {
-                match &(*a).kind {
-                    Na => na = true,
-                    Ca => ca = true,
-                    PressSkill | HoldSkill | SkillDot => skill = true,
-                    Burst | BurstDot => burst = true,
-                    _ => (),
-                }
-            }
-        }
-        self.na_icd.update(na, time);
-        self.ca_icd.update(ca, time);
-        self.skill_icd.update(skill, time);
-        self.burst_icd.update(burst, time);
-        self.na_timer.update(gaurd.check_second(Na), time * (1.0 + fc.state.atk_spd / 100.0));
-        self.ca_timer.update(gaurd.check_second(Ca), time);
-        self.stamina.update(gaurd, time);
-        self.press_timer.update(gaurd.check_second(PressSkill), time);
-        self.burst_timer.update(gaurd.check_second(Burst), time);
-    }
-}
-
-impl Acceleration for NaCaPressBurstTimers {
-    fn reset_cd(&mut self) -> () {
-        self.press_timer.reset();
-    }
-}
-
-// Actions: na, press, hold, burst
-#[derive(Debug)]
-pub struct NaPressHoldBurstTimers {
-    pub na_timer: LoopTimer,
-    pub na_icd: ICDTimer,
-
-    pub press_timer: DotTimer,
-    pub hold_timer:  DotTimer,
-    pub skill_icd: ICDTimer,
-
-    pub burst_timer: DotTimer,
-    pub burst_icd: ICDTimer,
-}
-
-impl MainAttack for NaPressHoldBurstTimers {
-    fn maybe_attack(&self, fc: &FieldCharacter, ca: &dyn CharacterAbility) -> Option<AttackType> {
-        // na combo blocks other actions.
-        if self.na_timer.n() > 0 && self.na_timer.is_active() {
-            Some(Na)
-        } else if fc.can_burst() && self.burst_timer.is_cd_off() {
-            Some(Burst)
-        } else if ca.use_hold() && self.hold_timer.is_cd_off() {
-            Some(HoldSkill)
-        // Because hold CD is longer than press CD, hold skill needs to be off to use press skill
-        } else if self.hold_timer.is_cd_off() && self.press_timer.is_cd_off() {
-            Some(PressSkill)
-        } else if self.na_timer.is_cd_off() {
-            Some(Na)
-        } else {
-            None
-        }
-    }
-
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], fc: &FieldCharacter, time: f32) -> () {
-        let mut na = false;
-        let mut skill = false;
-        let mut burst = false;
-        unsafe {
-            for &a in attack {
-                match &(*a).kind {
-                    Na => na = true,
-                    PressSkill | HoldSkill | SkillDot => skill = true,
-                    Burst | BurstDot => burst = true,
-                    _ => (),
-                }
-            }
-        }
-        self.na_icd.update(na, time);
-        self.skill_icd.update(skill, time);
-        self.burst_icd.update(burst, time);
-        self.na_timer.update(gaurd.check_second(Na), time * (1.0 + fc.state.atk_spd / 100.0));
-        self.press_timer.update(gaurd.check_second(PressSkill), time);
-        self.hold_timer.update(gaurd.check_second(HoldSkill), time);
-        self.burst_timer.update(gaurd.check_second(Burst), time);
-    }
-}
-
-impl Acceleration for NaPressHoldBurstTimers {
-    fn reset_cd(&mut self) -> () {
-        self.press_timer.reset();
-        self.hold_timer.reset();
-    }
-}
-
-// Actions: press, hold, burst
-#[derive(Debug)]
-pub struct PressHoldBurstTimers {
-    pub press_timer: DotTimer,
-    pub hold_timer:  DotTimer,
-    pub skill_icd: ICDTimer,
-
-    pub burst_timer: DotTimer,
-    pub burst_icd: ICDTimer,
-}
-
-impl MainAttack for PressHoldBurstTimers {
-    fn maybe_attack(&self, fc: &FieldCharacter, ca: &dyn CharacterAbility) -> Option<AttackType> {
-        if fc.can_burst() && self.burst_timer.is_cd_off() {
-            Some(Burst)
-        } else if ca.use_hold() && self.hold_timer.is_cd_off() {
-            Some(HoldSkill)
-        // Because hold CD is longer than press CD, hold skill needs to be off to use press skill
-        } else if self.hold_timer.is_cd_off() && self.press_timer.is_cd_off() {
-            Some(PressSkill)
-        } else {
-            None
-        }
-    }
-
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], _fc: &FieldCharacter, time: f32) -> () {
-        let mut skill = false;
-        let mut burst = false;
-        unsafe {
-            for &a in attack {
-                match &(*a).kind {
-                    PressSkill | HoldSkill | SkillDot => skill = true,
-                    Burst | BurstDot => burst = true,
-                    _ => (),
-                }
-            }
-        }
-        self.skill_icd.update(skill, time);
-        self.burst_icd.update(burst, time);
-        self.press_timer.update(gaurd.check_second(PressSkill), time);
-        self.hold_timer.update(gaurd.check_second(HoldSkill), time);
-        self.burst_timer.update(gaurd.check_second(Burst), time);
-    }
-}
-
-impl Acceleration for PressHoldBurstTimers {
-    fn reset_cd(&mut self) -> () {
-        self.press_timer.reset();
-        self.hold_timer.reset();
-    }
-}
-
-// Actions: press, burst
-#[derive(Debug)]
-pub struct PressBurstTimers {
-    pub press_timer: DotTimer,
-    pub skill_icd: ICDTimer,
-
-    pub burst_timer: DotTimer,
-    pub burst_icd: ICDTimer,
-}
-
-impl MainAttack for PressBurstTimers {
-    fn maybe_attack(&self, fc: &FieldCharacter, _ca: &dyn CharacterAbility) -> Option<AttackType> {
-        if fc.can_burst() && self.burst_timer.is_cd_off() {
-            Some(Burst)
-        } else if self.press_timer.is_cd_off() {
-            Some(PressSkill)
-        } else {
-            None
-        }
-    }
-
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[*const Attack], _fc: &FieldCharacter, time: f32) -> () {
-        let mut skill = false;
-        let mut burst = false;
-        unsafe {
-            for &a in attack {
-                match &(*a).kind {
-                    PressSkill | HoldSkill | SkillDot => skill = true,
-                    Burst | BurstDot => burst = true,
-                    _ => (),
-                }
-            }
-        }
-        self.skill_icd.update(skill, time);
-        self.burst_icd.update(burst, time);
-        self.press_timer.update(gaurd.check_second(PressSkill), time);
-        self.burst_timer.update(gaurd.check_second(Burst), time);
-    }
-}
-
-impl Acceleration for PressBurstTimers {
-    fn reset_cd(&mut self) -> () {
-        self.press_timer.reset();
-    }
-}
+// impl Acceleration for FullCharacterTimers {
+//     fn reset_cd(&mut self) -> () {
+//         self.press_timer.reset();
+//         self.hold_timer.reset();
+//     }
+// }
 
 #[derive(Debug)]
 pub struct CharacterTimersBuilder {
@@ -1252,121 +1231,7 @@ impl CharacterTimersBuilder {
         self
     }
 
-    pub fn na_press_burst(self) -> NaPressBurstTimers {
-        let CharacterTimersBuilder {
-            na_timer,
-            press_timer,
-            burst_timer,
-            ..
-        } = self;
-        NaPressBurstTimers {
-            na_timer: na_timer.unwrap(),
-            na_icd: ICDTimer::na(),
-
-            press_timer: press_timer.unwrap(),
-            skill_icd: ICDTimer::skill(),
-
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::burst(),
-            // _pinned: PhantomPinned,
-        }
-    }
-
-    pub fn press_burst(self) -> PressBurstTimers {
-        let CharacterTimersBuilder {
-            press_timer,
-            burst_timer,
-            ..
-        } = self;
-        PressBurstTimers {
-            press_timer: press_timer.unwrap(),
-            skill_icd: ICDTimer::skill(),
-
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::burst(),
-        }
-    }
-
-    pub fn press_hold_burst(self) -> PressHoldBurstTimers {
-        let CharacterTimersBuilder {
-            press_timer,
-            hold_timer,
-            burst_timer,
-            ..
-        } = self;
-        PressHoldBurstTimers {
-            press_timer: press_timer.unwrap(),
-            hold_timer: hold_timer.unwrap(),
-            skill_icd: ICDTimer::skill(),
-
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::burst(),
-        }
-    }
-
-    pub fn na_burst(self) -> NaBurstTimers {
-        let CharacterTimersBuilder {
-            na_timer,
-            burst_timer,
-            ..
-        } = self;
-        NaBurstTimers {
-            na_timer: na_timer.unwrap(),
-            na_icd: ICDTimer::na(),
-
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::burst(),
-            // _pinned: PhantomPinned,
-        }
-    }
-
-    pub fn na_ca_press_burst(self) -> NaCaPressBurstTimers {
-        let CharacterTimersBuilder {
-            na_timer,
-            ca_timer,
-            ca_stamina,
-            press_timer,
-            burst_timer,
-            ..
-        } = self;
-        NaCaPressBurstTimers {
-            na_timer: na_timer.unwrap(),
-            na_icd: ICDTimer::na(),
-
-            stamina: ca_stamina.unwrap(),
-            ca_timer: ca_timer.unwrap(),
-            ca_icd: ICDTimer::ca(),
-
-            press_timer: press_timer.unwrap(),
-            skill_icd: ICDTimer::skill(),
-
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::burst(),
-        }
-    }
-
-    pub fn na_press_hold_burst(self) -> NaPressHoldBurstTimers {
-        let CharacterTimersBuilder {
-            na_timer,
-            press_timer,
-            hold_timer,
-            burst_timer,
-            ..
-        } = self;
-        NaPressHoldBurstTimers {
-            na_timer: na_timer.unwrap(),
-            na_icd: ICDTimer::na(),
-
-            press_timer: press_timer.unwrap(),
-            hold_timer: hold_timer.unwrap(),
-            skill_icd: ICDTimer::skill(),
-
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::burst(),
-        }
-    }
-
-    pub fn full(self) -> FullCharacterTimers {
+    pub fn build_burst(self) -> FullCharacterTimers<false, false, 0> {
         let CharacterTimersBuilder {
             na_timer,
             ca_timer,
@@ -1376,19 +1241,155 @@ impl CharacterTimersBuilder {
             burst_timer,
         } = self;
         FullCharacterTimers {
-            na_timer: na_timer.unwrap(),
-            na_icd: ICDTimer::na(),
-
-            stamina: ca_stamina.unwrap(),
-            ca_timer: ca_timer.unwrap(),
-            ca_icd: ICDTimer::ca(),
-
-            press_timer: press_timer.unwrap(),
-            hold_timer: hold_timer.unwrap(),
-            skill_icd: ICDTimer::skill(),
-
+            na: NaTimers::<false>::new(),
+            ca: CaTimers::<false>::new(),
+            skill: SkillTimers::<0>::new(),
             burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::burst(),
+            burst_icd: ICDTimer::new(),
+        }
+    }
+
+    pub fn build_press(self) -> FullCharacterTimers<false, false, 1> {
+        let CharacterTimersBuilder {
+            na_timer,
+            ca_timer,
+            ca_stamina,
+            press_timer,
+            hold_timer,
+            burst_timer,
+        } = self;
+        FullCharacterTimers {
+            na: NaTimers::<false>::new(),
+            ca: CaTimers::<false>::new(),
+            skill: SkillTimers::<1>::new(press_timer.unwrap()),
+            burst_timer: burst_timer.unwrap(),
+            burst_icd: ICDTimer::new(),
+        }
+    }
+
+    pub fn build_hold(self) -> FullCharacterTimers<false, false, 2> {
+        let CharacterTimersBuilder {
+            na_timer,
+            ca_timer,
+            ca_stamina,
+            press_timer,
+            hold_timer,
+            burst_timer,
+        } = self;
+        FullCharacterTimers {
+            na: NaTimers::<false>::new(),
+            ca: CaTimers::<false>::new(),
+            skill: SkillTimers::<2>::new(press_timer.unwrap(), hold_timer.unwrap()),
+            burst_timer: burst_timer.unwrap(),
+            burst_icd: ICDTimer::new(),
+        }
+    }
+
+    pub fn build_na(self) -> FullCharacterTimers<true, false, 0> {
+        let CharacterTimersBuilder {
+            na_timer,
+            ca_timer,
+            ca_stamina,
+            press_timer,
+            hold_timer,
+            burst_timer,
+        } = self;
+        FullCharacterTimers {
+            na: NaTimers::<true>::new(na_timer.unwrap()),
+            ca: CaTimers::<false>::new(),
+            skill: SkillTimers::<0>::new(),
+            burst_timer: burst_timer.unwrap(),
+            burst_icd: ICDTimer::new(),
+        }
+    }
+
+    pub fn build_na_press(self) -> FullCharacterTimers<true, false, 1> {
+        let CharacterTimersBuilder {
+            na_timer,
+            ca_timer,
+            ca_stamina,
+            press_timer,
+            hold_timer,
+            burst_timer,
+        } = self;
+        FullCharacterTimers {
+            na: NaTimers::<true>::new(na_timer.unwrap()),
+            ca: CaTimers::<false>::new(),
+            skill: SkillTimers::<1>::new(press_timer.unwrap()),
+            burst_timer: burst_timer.unwrap(),
+            burst_icd: ICDTimer::new(),
+        }
+    }
+
+    pub fn build_na_hold(self) -> FullCharacterTimers<true, false, 2> {
+        let CharacterTimersBuilder {
+            na_timer,
+            ca_timer,
+            ca_stamina,
+            press_timer,
+            hold_timer,
+            burst_timer,
+        } = self;
+        FullCharacterTimers {
+            na: NaTimers::<true>::new(na_timer.unwrap()),
+            ca: CaTimers::<false>::new(),
+            skill: SkillTimers::<2>::new(press_timer.unwrap(), hold_timer.unwrap()),
+            burst_timer: burst_timer.unwrap(),
+            burst_icd: ICDTimer::new(),
+        }
+    }
+
+    pub fn build_na_ca(self) -> FullCharacterTimers<true, true, 0> {
+        let CharacterTimersBuilder {
+            na_timer,
+            ca_timer,
+            ca_stamina,
+            press_timer,
+            hold_timer,
+            burst_timer,
+        } = self;
+        FullCharacterTimers {
+            na: NaTimers::<true>::new(na_timer.unwrap()),
+            ca: CaTimers::<true>::new(ca_timer.unwrap(), ca_stamina.unwrap()),
+            skill: SkillTimers::<0>::new(),
+            burst_timer: burst_timer.unwrap(),
+            burst_icd: ICDTimer::new(),
+        }
+    }
+
+    pub fn build_na_ca_press(self) -> FullCharacterTimers<true, true, 1> {
+        let CharacterTimersBuilder {
+            na_timer,
+            ca_timer,
+            ca_stamina,
+            press_timer,
+            hold_timer,
+            burst_timer,
+        } = self;
+        FullCharacterTimers {
+            na: NaTimers::<true>::new(na_timer.unwrap()),
+            ca: CaTimers::<true>::new(ca_timer.unwrap(), ca_stamina.unwrap()),
+            skill: SkillTimers::<1>::new(press_timer.unwrap()),
+            burst_timer: burst_timer.unwrap(),
+            burst_icd: ICDTimer::new(),
+        }
+    }
+
+    pub fn build_full(self) -> FullCharacterTimers<true, true, 2> {
+        let CharacterTimersBuilder {
+            na_timer,
+            ca_timer,
+            ca_stamina,
+            press_timer,
+            hold_timer,
+            burst_timer,
+        } = self;
+        FullCharacterTimers {
+            na: NaTimers::<true>::new(na_timer.unwrap()),
+            ca: CaTimers::<true>::new(ca_timer.unwrap(), ca_stamina.unwrap()),
+            skill: SkillTimers::<2>::new(press_timer.unwrap(), hold_timer.unwrap()),
+            burst_timer: burst_timer.unwrap(),
+            burst_icd: ICDTimer::new(),
         }
     }
 }

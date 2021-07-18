@@ -8,6 +8,15 @@ use self::AttackType::*;
 use self::Vision::*;
 use self::ElementalReactionType::*;
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum WeaponType {
+    Sword,
+    Claymore,
+    Polearm,
+    Bow,
+    Catalyst,
+}
+
 // DOC https://doc.rust-lang.org/std/marker/trait.Copy.html
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum AttackType {
@@ -215,6 +224,43 @@ impl ElementalGaugeDecay {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
+pub struct BareElementalGauge {
+    pub unit: f32,
+    pub decay: ElementalGaugeDecay,
+}
+
+impl BareElementalGauge {
+    pub fn a1() -> Self {
+        Self {
+            unit: 1.0,
+            decay: ElementalGaugeDecay::A,
+        }
+    }
+
+    pub fn b2() -> Self {
+        Self {
+            unit: 2.0,
+            decay: ElementalGaugeDecay::B,
+        }
+    }
+
+    pub fn c4() -> Self {
+        Self {
+            unit: 4.0,
+            decay: ElementalGaugeDecay::C,
+        }
+    }
+
+    pub fn to_gauge(&self, aura: &Vision) -> ElementalGauge {
+        ElementalGauge {
+            aura: *aura,
+            unit: self.unit,
+            decay: self.decay,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct ElementalGauge {
     pub aura: Vision,
     pub unit: f32,
@@ -230,71 +276,9 @@ impl ElementalGauge {
         }
     }
 
-    pub fn physical() -> Self {
-        Self {
-            aura: Physical,
-            unit: 1.0,
-            decay: ElementalGaugeDecay::A,
-        }
-    }
-
-    pub fn na(fc: &FieldCharacter) -> Self {
-        Self {
-            aura: if fc.state.infusion { fc.vision } else { Physical },
-            unit: fc.cr.na_unit,
-            decay: fc.cr.na_decay,
-        }
-    }
-
-    pub fn ca(fc: &FieldCharacter) -> Self {
-        let element = if fc.state.infusion
-                      || fc.cr.weapon == "Bow" {
-            fc.vision
-        } else {
-            Physical
-        };
-        Self {
-            aura: element,
-            unit: fc.cr.ca_unit,
-            decay: fc.cr.ca_decay,
-        }
-    }
-
-    pub fn skill(fc: &FieldCharacter) -> Self {
-        Self {
-            aura: fc.vision,
-            unit: fc.cr.skill_unit,
-            decay: fc.cr.skill_decay,
-        }
-    }
-
-    pub fn skilldot(fc: &FieldCharacter) -> Self {
-        Self {
-            aura: fc.vision,
-            unit: fc.cr.skilldot_unit,
-            decay: fc.cr.skilldot_decay,
-        }
-    }
-
-    pub fn burst(fc: &FieldCharacter) -> Self {
-        Self {
-            aura: fc.vision,
-            unit: fc.cr.burst_unit,
-            decay: fc.cr.burst_decay,
-        }
-    }
-
-    pub fn burstdot(fc: &FieldCharacter) -> Self {
-        Self {
-            aura: fc.vision,
-            unit: fc.cr.burstdot_unit,
-            decay: fc.cr.burstdot_decay,
-        }
-    }
-
     pub fn trigger(&mut self, attack: &Attack, attack_element: &Vision) -> () {
         if attack.icd_cleared() {
-            let other = &attack.element;
+            let other = attack.gauge.to_gauge(attack_element);
             let er = ElementalReaction::new(self.aura, *attack_element);
             let before_negative = self.unit <= 0.0;
             self.unit += er.gauge_modifier() * other.unit;
