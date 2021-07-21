@@ -1,10 +1,8 @@
-use std::borrow::{Borrow, BorrowMut};
-use std::pin::Pin;
 use crate::types::AttackType;
 use crate::state::State;
 use crate::artifact::Artifact;
-use crate::action::{Attack, ElementalAttack, EffectTimer, TimerGuard, CharacterTimers, FullCharacterTimers, Acceleration};
-use crate::types::{Vision, WeaponType, Particle, ElementalGauge, ElementalGaugeDecay, ElementalReaction, ElementalReactionType};
+use crate::action::{Attack, ElementalAttack, TimerGuard, FullCharacterTimers};
+use crate::types::{Vision, WeaponType, Particle, ElementalGauge, ElementalReaction, ElementalReactionType};
 
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -19,7 +17,7 @@ pub trait SpecialAbility {
     // passive effect duration are up to date. The three methods of
     // `additional_attack`, `modify` and `accelerate` will depend on the data
     // mutated by this self.
-    fn update(&mut self, timers: &dyn CharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () { }
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () { }
 
     // `Vec::push` additional attacks created. The `atk_queue` is `Vec` because
     // some character (Eula's hold skill) deals many additional attacks of
@@ -29,7 +27,7 @@ pub trait SpecialAbility {
     // are another entities who take part in the battle. These entities
     // can also attack an enemy, so we need to know how strong their attacks
     // are, i.e. additional attack DMG (or `Attack.multiplier`).
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &dyn CharacterTimers, data: &CharacterData, enemy: &Enemy) -> () { }
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () { }
 
     // Apply own passive effects to `State`. This is the primary method that
     // "returns" passive effects to `FieldCharacter`. For example, suppose this
@@ -40,7 +38,7 @@ pub trait SpecialAbility {
     // 
     // The `Enemy` is mutable because some passive debuffs an enemy (e.g. DEF
     // down by Lisa).
-    fn modify(&self, modifiable_state: &mut [State], timers: &dyn CharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () { }
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () { }
 
     // This method can change the `State` of `Attack`. For example, Some abilities
     // increase CR of a specific action: Amber A1 (Every Arrow Finds Its
@@ -56,13 +54,15 @@ pub trait CharacterAbility : SpecialAbility {
     // utility methods. each struct implements the respective method.
     fn record(&self) -> CharacterRecord { Default::default() }
 
-    fn init_timers_and_attack(&mut self, timers: &mut Box<dyn CharacterTimers>) -> ();
+    fn timers(&self) -> FullCharacterTimers;
+
+    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> ();
 
     fn use_hold(&self) -> bool { false }
 
     // Change speed of normal attacks or reset the cool down time of skill and
     // burst.
-    fn accelerate(&self, timers: &mut dyn CharacterTimers) -> () { }
+    fn accelerate(&self, timers: &mut FullCharacterTimers) -> () { }
 }
 
 #[allow(unused_variables)]
@@ -70,9 +70,16 @@ pub trait WeaponAbility : SpecialAbility {
     // utility methods. each struct implements the respective method.
     fn record(&self) -> WeaponRecord { Default::default() }
 
+
+    // Although this method, `init_attack`, could be defined, because additional
+    // attacks created by weapons do not have ICD timers (all the attacks are
+    // physical), it always does nothing.
+
+    // fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> ();
+
     // Change speed of normal attacks or reset the cool down time of skill and
     // burst.
-    fn accelerate(&self, ac: &mut dyn CharacterTimers) -> () { }
+    fn accelerate(&self, ac: &mut FullCharacterTimers) -> () { }
 }
 
 #[allow(unused_variables)]
@@ -86,54 +93,61 @@ pub trait ArtifactAbility : SpecialAbility {
 }
 
 // #[derive(Debug)]
-pub struct FieldCharacter<'a, C: CharacterAbility, W: WeaponAbility, A: ArtifactAbility> {
-    pub character: C,
-    pub weapon: W,
-    pub artifact: A,
-    pub data: CharacterData,
-    pub timers: &'a mut Box<dyn CharacterTimers>,
+pub struct FieldCharacter<'a> {
+    pub character: &'a mut dyn CharacterAbility,
+    pub weapon: &'a mut dyn WeaponAbility,
+    pub artifact: &'a mut dyn ArtifactAbility,
+    pub data: CharacterData<'a>,
+    pub timers: &'a mut Box<FullCharacterTimers>,
 }
 
-impl<'a, C: CharacterAbility, W: WeaponAbility, A: ArtifactAbility> FieldCharacter<'a, C, W, A> {
-    pub fn new(timers: &'a mut Box<dyn CharacterTimers>, idx: FieldCharacterIndex, mut character: C, weapon: W, artifact: A) -> Self {
-        character.init_timers_and_attack(timers);
-        let cr = character.record();
-        let data = CharacterData::new(idx, cr, weapon.record(), artifact.record());
-        Self {
-            character,
-            weapon,
-            artifact,
-            data,
-            timers,
-        }
+impl<'a> FieldCharacter<'a> {
+    // pub fn new(timers: &'a mut Box<FullCharacterTimers>, idx: FieldCharacterIndex, character: &'a mut dyn CharacterAbility, weapon: &'a mut dyn WeaponAbility, artifact: &'a mut dyn ArtifactAbility) -> Self {
+    //     *(*timers) = character.timers();
+    //     character.init_attack(timers);
+    //     let cr = character.record();
+    //     let data = CharacterData::new(idx, cr, weapon.record(), artifact.record());
+    //     Self {
+    //         character,
+    //         weapon,
+    //         artifact,
+    //         data,
+    //         timers,
+    //     }
+    // }
+
+    pub fn init(&mut self) -> () {
+        // init FieldCharacter
+        *(*self.timers) = self.character.timers();
+        self.character.init_attack(self.timers);
     }
 
     pub fn maybe_attack(&self) -> Option<AttackType> {
-        self.timers.maybe_attack(&self.data, &self.character)
+        self.timers.maybe_attack(&self.data, self.character)
     }
 
-    pub fn update(&mut self, gaurd: &mut TimerGuard, attack: &[ElementalAttack], particles: &[Particle], enemy: &Enemy, time: f32) -> () {
-        self.timers.update(gaurd, attack, &self.data, time);
-        self.character.update((*self.timers).borrow(), attack, particles, &self.data, enemy, time);
-        self.weapon.update((*self.timers).borrow(), attack, particles, &self.data, enemy, time);
-        self.artifact.update((*self.timers).borrow(), attack, particles, &self.data, enemy, time);
+    pub fn update(&mut self, guard: &mut TimerGuard, attack: &[ElementalAttack], particles: &[Particle], enemy: &Enemy, time: f32) -> () {
+        self.timers.update(guard, attack, &self.data, time);
+        self.character.update(guard, &self.timers, attack, particles, &self.data, enemy, time);
+        self.weapon.update(guard, &self.timers, attack, particles, &self.data, enemy, time);
+        self.artifact.update(guard, &self.timers, attack, particles, &self.data, enemy, time);
     }
 
     pub fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, enemy: &Enemy) -> () {
-        self.character.additional_attack(atk_queue, particles, (*self.timers).borrow(), &self.data, enemy);
-        self.weapon.additional_attack(atk_queue, particles, (*self.timers).borrow(), &self.data, enemy);
-        self.artifact.additional_attack(atk_queue, particles, (*self.timers).borrow(), &self.data, enemy);
+        self.character.additional_attack(atk_queue, particles, &self.timers, &self.data, enemy);
+        self.weapon.additional_attack(atk_queue, particles, &self.timers, &self.data, enemy);
+        self.artifact.additional_attack(atk_queue, particles, &self.timers, &self.data, enemy);
     }
 
     pub fn modify(&self, modifiable_state: &mut [State], enemy: &mut Enemy) -> () {
-        self.character.modify(modifiable_state, (*self.timers).borrow(), &self.data, enemy);
-        self.weapon.modify(modifiable_state, (*self.timers).borrow(), &self.data, enemy);
-        self.artifact.modify(modifiable_state, (*self.timers).borrow(), &self.data, enemy);
+        self.character.modify(modifiable_state, &self.timers, &self.data, enemy);
+        self.weapon.modify(modifiable_state, &self.timers, &self.data, enemy);
+        self.artifact.modify(modifiable_state, &self.timers, &self.data, enemy);
     }
 
     pub fn accelerate(&mut self) -> () {
-        self.character.accelerate((*self.timers).borrow_mut());
-        self.weapon.accelerate((*self.timers).borrow_mut());
+        self.character.accelerate(self.timers);
+        self.weapon.accelerate(self.timers);
     }
 
     pub fn intensify(&self, attack: &Attack) -> (Option<State>, Option<State>, Option<State>) {
@@ -145,7 +159,11 @@ impl<'a, C: CharacterAbility, W: WeaponAbility, A: ArtifactAbility> FieldCharact
     }
 
     // just drop self?
-    // pub fn reset(&mut self) -> () {}
+    pub fn reset(&mut self) -> () {
+        self.character.reset();
+        self.weapon.reset();
+        self.artifact.reset();
+    }
 }
 
 #[derive(Debug)]
@@ -183,7 +201,7 @@ pub struct CharacterRecord {
 impl Default for CharacterRecord {
     fn default() -> Self {
         Self {
-            name: Self::NAME, vision: Vision::Pyro, weapon: WeaponType::Bow, release_date: Self::VERSION, version: 1.0,
+            name: "Amber", vision: Vision::Pyro, weapon: WeaponType::Bow, release_date: "2020-09-28", version: 1.0,
             base_hp: 0.0, base_atk: 0.0, base_def: 0.0,
             hp: 0.0, atk: 0.0, def: 0.0, cr: 5.0, cd: 50.0, er: 0.0, em: 0.0,
             dmg_na: 0.0, dmg_ca: 0.0, dmg_skill: 0.0, dmg_burst: 0.0,
@@ -195,13 +213,11 @@ impl Default for CharacterRecord {
 
 #[allow(dead_code)]
 impl CharacterRecord {
-    const NAME: &'static str = "Amber";
-    const VERSION: &'static str = "2020-09-28";
     pub fn name(mut self, name: &'static str) -> Self { self.name = name ; self }
     pub fn release_date(mut self, release_date: &'static str) -> Self { self.release_date = release_date ; self }
     pub fn version(mut self, version: f32) -> Self { self.version = version ; self }
-    pub fn vision(mut self, vision: &Vision) -> Self { self.vision = *vision ; self }
-    pub fn weapon(mut self, weapon: &WeaponType) -> Self { self.weapon = *weapon ; self }
+    pub fn vision(mut self, vision: Vision) -> Self { self.vision = vision ; self }
+    pub fn weapon(mut self, weapon: WeaponType) -> Self { self.weapon = weapon ; self }
     pub fn base_hp(mut self, base_hp: f32) -> Self { self.base_hp = base_hp ; self }
     pub fn base_atk(mut self, base_atk: f32) -> Self { self.base_atk = base_atk ; self }
     pub fn base_def(mut self, base_def: f32) -> Self { self.base_def = base_def ; self }
@@ -298,7 +314,7 @@ pub struct WeaponRecord {
 impl Default for WeaponRecord {
     fn default() -> Self {
         Self {
-            name: Self::NAME, type_: WeaponType::Sword, version: 0.0,
+            name: "", type_: WeaponType::Sword, version: 0.0,
             base_atk: 0.0,
             hp: 0.0, atk: 0.0, def: 0.0, cr: 0.0, cd: 0.0, er: 0.0, em: 0.0, atk_spd: 0.0,
             dmg_na: 0.0, dmg_ca: 0.0, dmg_skill: 0.0, dmg_burst: 0.0,
@@ -309,7 +325,6 @@ impl Default for WeaponRecord {
 
 #[allow(dead_code)]
 impl WeaponRecord {
-    const NAME: &'static str = "";
     pub fn state(&self) -> State {
         let mut state = State::new();
         state.base_atk = self.base_atk;
@@ -340,7 +355,7 @@ impl WeaponRecord {
     }
 
     pub fn name(mut self, name: &'static str) -> Self { self.name = name; self }
-    pub fn type_(mut self, type_: &WeaponType) -> Self { self.type_ = *type_; self }
+    pub fn type_(mut self, type_: WeaponType) -> Self { self.type_ = type_; self }
     pub fn version(mut self, version: f32) -> Self { self.version = version; self }
     pub fn base_atk(mut self, base_atk: f32) -> Self { self.base_atk = base_atk; self }
     pub fn hp(mut self, hp: f32) -> Self { self.hp = hp; self }
@@ -363,6 +378,41 @@ impl WeaponRecord {
     pub fn dmg_anemo(mut self, dmg_anemo: f32) -> Self { self.dmg_anemo = dmg_anemo; self }
     pub fn dmg_geo(mut self, dmg_geo: f32) -> Self { self.dmg_geo = dmg_geo; self }
     pub fn dmg_dendro(mut self, dmg_dendro: f32) -> Self { self.dmg_dendro = dmg_dendro; self }
+}
+
+// TODO remove or refine
+impl From<State> for WeaponRecord {
+    fn from(state: State) -> Self {
+        Self {
+            name: "",
+            type_: WeaponType::Sword,
+            version: 1.0,
+
+            base_atk: state.base_atk,
+            hp: state.hp,
+            atk: state.atk,
+            def: state.def,
+            cr: state.cr,
+            cd: state.cd,
+            er: state.er,
+            em: state.em,
+            atk_spd: state.atk_spd,
+
+            dmg_na: state.na_dmg,
+            dmg_ca: state.ca_dmg,
+            dmg_skill: state.skill_dmg,
+            dmg_burst: state.burst_dmg,
+
+            dmg_phy: state.physical_dmg,
+            dmg_pyro: state.pyro_dmg,
+            dmg_cryo: state.cryo_dmg,
+            dmg_hydro: state.hydro_dmg,
+            dmg_electro: state.electro_dmg,
+            dmg_anemo: state.anemo_dmg,
+            dmg_geo: state.geo_dmg,
+            dmg_dendro: state.dendro_dmg,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -516,8 +566,8 @@ impl Enemy {
 }
 
 // #[derive(Debug)]
-pub struct FieldCharacterData<'a, C: CharacterAbility, W: WeaponAbility, A: ArtifactAbility> {
-    pub fc: FieldCharacter<'a, C, W, A>,
+pub struct FieldCharacterData<'a> {
+    pub fc: FieldCharacter<'a>,
 
     // `Attack`s created by this `FieldAbility`
     pub atk_queue: Vec<ElementalAttack>,
@@ -525,18 +575,32 @@ pub struct FieldCharacterData<'a, C: CharacterAbility, W: WeaponAbility, A: Arti
     // by other characters.
 }
 
+impl<'a> FieldCharacterData<'a> {
+    pub fn new(timers: &'a mut Box<FullCharacterTimers>, character: &'a mut dyn CharacterAbility, weapon: &'a mut dyn WeaponAbility, artifact: &'a mut dyn ArtifactAbility, data: CharacterData<'a>) -> Self {
+        let mut fc = FieldCharacter {
+            character,
+            weapon,
+            artifact,
+            data,
+            timers,
+        };
+        fc.init();
+        Self { fc, atk_queue: Vec::new() }
+    }
+}
+
 // #[derive(Debug)]
-pub struct CharacterData {
+pub struct CharacterData<'a> {
     pub idx: FieldCharacterIndex,
-    pub cr: CharacterRecord,
-    pub wr: WeaponRecord,
-    pub ar: Artifact,
+    pub cr: &'a CharacterRecord,
+    pub wr: &'a WeaponRecord,
+    pub ar: &'a Artifact,
     pub state: State,
     pub vision: Vision,
 }
 
-impl CharacterData {
-    pub fn new(idx: FieldCharacterIndex, cr: CharacterRecord, wr: WeaponRecord, ar: Artifact) -> Self {
+impl<'a> CharacterData<'a> {
+    pub fn new(idx: FieldCharacterIndex, cr: &'a CharacterRecord, wr: &'a WeaponRecord, ar: &'a Artifact) -> Self {
         let mut state = State::new();
         state.merge(&cr.state());
         state.merge(&wr.state());
@@ -567,7 +631,7 @@ impl CharacterData {
         self.state.energy.0 >= self.cr.energy_cost
     }
 
-    pub fn infused_element<'a>(&'a self, attack: &'a ElementalAttack) -> &'a Vision {
+    pub fn infused_element<'b>(&'b self, attack: &'b ElementalAttack) -> &'b Vision {
         if self.state.infusion {
             &self.vision
         } else {

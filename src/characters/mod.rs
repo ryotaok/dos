@@ -1,147 +1,439 @@
 pub mod pyro;
 pub mod hydro;
 pub mod electro;
-pub mod cryo;
-pub mod anemo;
-pub mod geo;
-pub mod version_1_1;
-pub mod version_1_2;
-pub mod version_1_3;
-pub mod version_1_4;
-pub mod version_1_5;
-pub mod version_1_6;
-pub mod version_2_0;
+// pub mod cryo;
+// pub mod anemo;
+// pub mod geo;
+// pub mod version_1_1;
+// pub mod version_1_2;
+// pub mod version_1_3;
+// pub mod version_1_4;
+// pub mod version_1_5;
+// pub mod version_1_6;
+// pub mod version_2_0;
 
-use crate::fc::{SpecialAbility, CharacterRecord};
-use crate::types::Vision;
-use crate::cli::Args;
+use crate::fc::{FieldCharacterIndex, CharacterRecord, CharacterAbility};
 use pyro::*;
 use hydro::*;
 use electro::*;
-use cryo::*;
-use anemo::*;
-use geo::*;
-use version_1_1::*;
-use version_1_2::*;
-use version_1_3::*;
-use version_1_4::*;
-use version_1_5::*;
-use version_1_6::*;
-use version_2_0::*;
+// use cryo::*;
+// use anemo::*;
+// use geo::*;
+// use version_1_1::*;
+// use version_1_2::*;
+// use version_1_3::*;
+// use version_1_4::*;
+// use version_1_5::*;
+// use version_1_6::*;
+// use version_2_0::*;
 
-pub fn all() -> Vec<Box<dyn SpecialAbility>> {
-    vec![
-// pyro
-Box::new(Amber::new()),
-Box::new(Bennett::new()),
-Box::new(Xiangling::new()),
-Box::new(Diluc::new()),
-Box::new(Klee::new()),
-// hydro
-Box::new(Barbara),
-Box::new(Xingqiu::new()),
-Box::new(Mona::new()),
-// electro
-Box::new(Beidou::new()),
-Box::new(Fischl::new()),
-Box::new(Lisa::new()),
-Box::new(Razor::new()),
-Box::new(Keqing::new()),
-// cryo
-Box::new(Chongyun::new()),
-Box::new(Kaeya::new()),
-Box::new(Qiqi::new()),
-// anemo
-Box::new(Sucrose::new()),
-Box::new(TravelerAnemo::new()),
-Box::new(Jean::new()),
-Box::new(Venti::new()),
-// geo
-Box::new(Ningguang::new()),
-Box::new(Noelle::new()),
-Box::new(TravelerGeo::new()),
-// version_1_1
-Box::new(Tartaglia::new()),
-Box::new(Diona::new()),
-Box::new(Zhongli::new()),
-Box::new(Xinyan::new()),
-// version_1_2
-Box::new(Albedo::new()),
-Box::new(Ganyu::new()),
-// version_1_3
-Box::new(Xiao::new()),
-Box::new(HuTao::new()),
-// version_1_4
-Box::new(Rosaria::new()),
-// version_1_5
-Box::new(Yanfei::new()),
-Box::new(Eula::new()),
-// version_1_6
-Box::new(Kazuha::new()),
-// version_2_0
-Box::new(Ayaka::new()),
-Box::new(Yoimiya::new()),
-Box::new(Sayu::new()),
-    ]
+fn field<T: CharacterAbility>(ca: T) -> (CharacterRecord, T) {
+    let a = ca.record();
+    (a, ca)
 }
 
-pub fn setup(args: &Args) -> Vec<(CharacterRecord, Vision, Box<dyn SpecialAbility>)> {
-    let all = all();
-    let mut result: Vec<(CharacterRecord, Vision, Box<dyn SpecialAbility>)> = Vec::with_capacity(all.len());
-    for ca in all {
-        let r = ca.character();
-        if r.version <= args.character_version {
-            let vision = Vision::from(&r.vision);
-            result.push((r, vision, ca));
-        }
-    }
-    result
+pub struct AllCharacters {
+    // pyro
+    amber: (CharacterRecord, Amber),
+    bennett: (CharacterRecord, Bennett),
+    xiangling: (CharacterRecord, Xiangling),
+    diluc: (CharacterRecord, Diluc),
+    klee: (CharacterRecord, Klee),
+    // hydro
+    barbara: (CharacterRecord, Barbara),
+    xingqiu: (CharacterRecord, Xingqiu),
+    mona: (CharacterRecord, Mona),
+    // electro
+    beidou: (CharacterRecord, Beidou),
+    fischl: (CharacterRecord, Fischl),
+    lisa: (CharacterRecord, Lisa),
+    razor: (CharacterRecord, Razor),
+    keqing: (CharacterRecord, Keqing),
+    // // cryo
+    // chongyun: (CharacterRecord, Chongyun),
+    // kaeya: (CharacterRecord, Kaeya),
+    // qiqi: (CharacterRecord, Qiqi),
+    // // anemo
+    // sucrose: (CharacterRecord, Sucrose),
+    // traveleranemo: (CharacterRecord, TravelerAnemo),
+    // jean: (CharacterRecord, Jean),
+    // venti: (CharacterRecord, Venti),
+    // // geo
+    // ningguang: (CharacterRecord, Ningguang),
+    // noelle: (CharacterRecord, Noelle),
+    // travelergeo: (CharacterRecord, TravelerGeo),
+    // // version_1_1
+    // tartaglia: (CharacterRecord, Tartaglia),
+    // diona: (CharacterRecord, Diona),
+    // zhongli: (CharacterRecord, Zhongli),
+    // xinyan: (CharacterRecord, Xinyan),
+    // // version_1_2
+    // albedo: (CharacterRecord, Albedo),
+    // ganyu: (CharacterRecord, Ganyu),
+    // // version_1_3
+    // xiao: (CharacterRecord, Xiao),
+    // hutao: (CharacterRecord, HuTao),
+    // // version_1_4
+    // rosaria: (CharacterRecord, Rosaria),
+    // // version_1_5
+    // yanfei: (CharacterRecord, Yanfei),
+    // eula: (CharacterRecord, Eula),
+    // // version_1_6
+    // kazuha: (CharacterRecord, Kazuha),
+    // // version_2_0
+    // ayaka: (CharacterRecord, Ayaka),
+    // yoimiya: (CharacterRecord, Yoimiya),
+    // sayu: (CharacterRecord, Sayu),
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use crate::state::State;
-    use crate::simulate::simulate;
-    use crate::testutil::{TestEnvironment, TestWeapon, TestArtifact, TestAbility};
-
-    #[test]
-    fn eula_0() {
-        let mut members = vec![TestEnvironment::no_skill(
-            Box::new(TestAbility(Eula::new())),
-            Box::new(TestWeapon),
-            Box::new(TestArtifact(State::new()))
-        )];
-        let mut enemy = TestEnvironment::enemy();
-        let mut total_dmg = 0.0;
-        let mut current_time = 0.0;
-        while current_time < 8.0 {
-            total_dmg += simulate(&mut members, &mut enemy, 0.1);
-            current_time += 0.1;
+impl AllCharacters {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            // pyro
+            amber: field(Amber::new(idx)),
+            bennett: field(Bennett::new(idx)),
+            xiangling: field(Xiangling::new(idx)),
+            diluc: field(Diluc::new(idx)),
+            klee: field(Klee::new(idx)),
+            // hydro
+            barbara: field(Barbara::new(idx)),
+            xingqiu: field(Xingqiu::new(idx)),
+            mona: field(Mona::new(idx)),
+            // electro
+            beidou: field(Beidou::new(idx)),
+            fischl: field(Fischl::new(idx)),
+            lisa: field(Lisa::new(idx)),
+            razor: field(Razor::new(idx)),
+            keqing: field(Keqing::new(idx)),
+            // // cryo
+            // chongyun: field(Chongyun::new(idx)),
+            // kaeya: field(Kaeya::new(idx)),
+            // qiqi: field(Qiqi::new(idx)),
+            // // anemo
+            // sucrose: field(Sucrose::new(idx)),
+            // traveleranemo: field(TravelerAnemo::new(idx)),
+            // jean: field(Jean::new(idx)),
+            // venti: field(Venti::new(idx)),
+            // // geo
+            // ningguang: field(Ningguang::new(idx)),
+            // noelle: field(Noelle::new(idx)),
+            // travelergeo: field(TravelerGeo::new(idx)),
+            // // version_1_1
+            // tartaglia: field(Tartaglia::new(idx)),
+            // diona: field(Diona::new(idx)),
+            // zhongli: field(Zhongli::new(idx)),
+            // xinyan: field(Xinyan::new(idx)),
+            // // version_1_2
+            // albedo: field(Albedo::new(idx)),
+            // ganyu: field(Ganyu::new(idx)),
+            // // version_1_3
+            // xiao: field(Xiao::new(idx)),
+            // hutao: field(HuTao::new(idx)),
+            // // version_1_4
+            // rosaria: field(Rosaria::new(idx)),
+            // // version_1_5
+            // yanfei: field(Yanfei::new(idx)),
+            // eula: field(Eula::new(idx)),
+            // // version_1_6
+            // kazuha: field(Kazuha::new(idx)),
+            // // version_2_0
+            // ayaka: field(Ayaka::new(idx)),
+            // yoimiya: field(Yoimiya::new(idx)),
+            // sayu: field(Sayu::new(idx)),
         }
-        // 12 times na
-        let expect = 0.5 * (100.0 * 12.0);
-        assert_eq!(total_dmg, expect);
     }
 
-    #[test]
-    fn eula_1() {
-        let mut members = vec![TestEnvironment::no_skill(
-            Box::new(TestAbility(Eula::new())),
-            Box::new(TestWeapon),
-            Box::new(TestArtifact(State::new()))
-        )];
-        members[0].0.state.energy.0 += members[0].0.state.energy_cost;
-        let mut enemy = TestEnvironment::enemy();
-        let mut total_dmg = 0.0;
-        let mut current_time = 0.0;
-        while current_time < 8.0 {
-            total_dmg += simulate(&mut members, &mut enemy, 0.1);
-            current_time += 0.1;
+    // #![feature(unsized_tuple_coercion)]
+    pub fn find<'a>(&'a mut self, name: &CharacterName) -> &'a mut (CharacterRecord, dyn CharacterAbility) {
+        use CharacterName::*;
+        match name {
+            // pyro
+            Amber => &mut self.amber,
+            Bennett => &mut self.bennett,
+            Xiangling => &mut self.xiangling,
+            Diluc => &mut self.diluc,
+            Klee => &mut self.klee,
+            // hydro
+            Barbara => &mut self.barbara,
+            Xingqiu => &mut self.xingqiu,
+            Mona => &mut self.mona,
+            // electro
+            Beidou => &mut self.beidou,
+            Fischl => &mut self.fischl,
+            Lisa => &mut self.lisa,
+            Razor => &mut self.razor,
+            Keqing => &mut self.keqing,
+            _ => unimplemented!(),
+            // // cryo
+            // Chongyun => &mut self.chongyun,
+            // Kaeya => &mut self.kaeya,
+            // Qiqi => &mut self.qiqi,
+            // // anemo
+            // Sucrose => &mut self.sucrose,
+            // TravelerAnemo => &mut self.traveleranemo,
+            // Jean => &mut self.jean,
+            // Venti => &mut self.venti,
+            // // geo
+            // Ningguang => &mut self.ningguang,
+            // Noelle => &mut self.noelle,
+            // TravelerGeo => &mut self.travelergeo,
+            // // version_1_1
+            // Tartaglia => &mut self.tartaglia,
+            // Diona => &mut self.diona,
+            // Zhongli => &mut self.zhongli,
+            // Xinyan => &mut self.xinyan,
+            // // version_1_2
+            // Albedo => &mut self.albedo,
+            // Ganyu => &mut self.ganyu,
+            // // version_1_3
+            // Xiao => &mut self.xiao,
+            // HuTao => &mut self.hutao,
+            // // version_1_4
+            // Rosaria => &mut self.rosaria,
+            // // version_1_5
+            // Yanfei => &mut self.yanfei,
+            // Eula => &mut self.eula,
+            // // version_1_6
+            // Kazuha => &mut self.kazuha,
+            // // version_2_0
+            // Ayaka => &mut self.ayaka,
+            // Yoimiya => &mut self.yoimiya,
+            // Sayu => &mut self.sayu,
         }
-        // hit 10 times nas and 1 burst before lightfall sword epires
-        let expect = 0.5 * (300.0 + 100.0 * 12.0 + 2356.2);
-        assert_eq!(total_dmg, expect);
     }
 }
+
+#[derive(Debug)]
+pub enum CharacterName {
+    // pyro
+    Amber,
+    Bennett,
+    Xiangling,
+    Diluc,
+    Klee,
+    // hydro
+    Barbara,
+    Xingqiu,
+    Mona,
+    // electro
+    Beidou,
+    Fischl,
+    Lisa,
+    Razor,
+    Keqing,
+    // cryo
+    Chongyun,
+    Kaeya,
+    Qiqi,
+    // anemo
+    Sucrose,
+    TravelerAnemo,
+    Jean,
+    Venti,
+    // geo
+    Ningguang,
+    Noelle,
+    TravelerGeo,
+    // version_1_1
+    Tartaglia,
+    Diona,
+    Zhongli,
+    Xinyan,
+    // version_1_2
+    Albedo,
+    Ganyu,
+    // version_1_3
+    Xiao,
+    HuTao,
+    // version_1_4
+    Rosaria,
+    // version_1_5
+    Yanfei,
+    Eula,
+    // version_1_6
+    Kazuha,
+    // version_2_0
+    Ayaka,
+    Yoimiya,
+    Sayu,
+}
+
+impl CharacterName {
+    pub fn vec() -> Vec<CharacterName> {
+        use CharacterName::*;
+        vec![
+    // pyro
+    Amber,
+    Bennett,
+    Xiangling,
+    Diluc,
+    Klee,
+    // hydro
+    Barbara,
+    Xingqiu,
+    Mona,
+    // electro
+    Beidou,
+    Fischl,
+    Lisa,
+    Razor,
+    Keqing,
+    // cryo
+    Chongyun,
+    Kaeya,
+    Qiqi,
+    // anemo
+    Sucrose,
+    TravelerAnemo,
+    Jean,
+    Venti,
+    // geo
+    Ningguang,
+    Noelle,
+    TravelerGeo,
+    // version_1_1
+    Tartaglia,
+    Diona,
+    Zhongli,
+    Xinyan,
+    // version_1_2
+    Albedo,
+    Ganyu,
+    // version_1_3
+    Xiao,
+    HuTao,
+    // version_1_4
+    Rosaria,
+    // version_1_5
+    Yanfei,
+    Eula,
+    // version_1_6
+    Kazuha,
+    // version_2_0
+    Ayaka,
+    Yoimiya,
+    Sayu,
+        ]
+    }
+}
+
+impl<'a> From<&'a str> for CharacterName {
+    fn from(name: &'a str) -> Self {
+        use CharacterName::*;
+        match name {
+            // pyro
+            "Amber" => Amber,
+            "Bennett" => Bennett,
+            "Xiangling" => Xiangling,
+            "Diluc" => Diluc,
+            "Klee" => Klee,
+            // hydro
+            "Barbara" => Barbara,
+            "Xingqiu" => Xingqiu,
+            "Mona" => Mona,
+            // electro
+            "Beidou" => Beidou,
+            "Fischl" => Fischl,
+            "Lisa" => Lisa,
+            "Razor" => Razor,
+            "Keqing" => Keqing,
+            // cryo
+            "Chongyun" => Chongyun,
+            "Kaeya" => Kaeya,
+            "Qiqi" => Qiqi,
+            // anemo
+            "Sucrose" => Sucrose,
+            "TravelerAnemo" => TravelerAnemo,
+            "Jean" => Jean,
+            "Venti" => Venti,
+            // geo
+            "Ningguang" => Ningguang,
+            "Noelle" => Noelle,
+            "TravelerGeo" => TravelerGeo,
+            // version_1_1
+            "Tartaglia" => Tartaglia,
+            "Diona" => Diona,
+            "Zhongli" => Zhongli,
+            "Xinyan" => Xinyan,
+            // version_1_2
+            "Albedo" => Albedo,
+            "Ganyu" => Ganyu,
+            // version_1_3
+            "Xiao" => Xiao,
+            "HuTao" => HuTao,
+            // version_1_4
+            "Rosaria" => Rosaria,
+            // version_1_5
+            "Yanfei" => Yanfei,
+            "Eula" => Eula,
+            // version_1_6
+            "Kazuha" => Kazuha,
+            // version_2_0
+            "Ayaka" => Ayaka,
+            "Yoimiya" => Yoimiya,
+            "Sayu" => Sayu,
+            _ => unimplemented!(),
+        }
+    }
+}
+
+// pub fn setup(args: &Args) -> Vec<(CharacterRecord, Vision, Box<dyn SpecialAbility>)> {
+//     let all = all();
+//     let mut result: Vec<(CharacterRecord, Vision, Box<dyn SpecialAbility>)> = Vec::with_capacity(all.len());
+//     for ca in all {
+//         let r = ca.character();
+//         if r.version <= args.character_version {
+//             let vision = Vision::from(&r.vision);
+//             result.push((r, vision, ca));
+//         }
+//     }
+//     result
+// }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+
+//     use crate::state::State;
+//     use crate::simulate::simulate;
+//     use crate::testutil::{TestEnvironment, TestWeapon, TestArtifact, TestAbility};
+
+//     #[test]
+//     fn eula_0() {
+//         let mut members = vec![TestEnvironment::no_skill(
+//             Box::new(TestAbility(Eula::new())),
+//             Box::new(TestWeapon),
+//             Box::new(TestArtifact(State::new()))
+//         )];
+//         let mut enemy = TestEnvironment::enemy();
+//         let mut total_dmg = 0.0;
+//         let mut current_time = 0.0;
+//         while current_time < 8.0 {
+//             total_dmg += simulate(&mut members, &mut enemy, 0.1);
+//             current_time += 0.1;
+//         }
+//         // 12 times na
+//         let expect = 0.5 * (100.0 * 12.0);
+//         assert_eq!(total_dmg, expect);
+//     }
+
+//     #[test]
+//     fn eula_1() {
+//         let mut members = vec![TestEnvironment::no_skill(
+//             Box::new(TestAbility(Eula::new())),
+//             Box::new(TestWeapon),
+//             Box::new(TestArtifact(State::new()))
+//         )];
+//         members[0].0.state.energy.0 += members[0].0.state.energy_cost;
+//         let mut enemy = TestEnvironment::enemy();
+//         let mut total_dmg = 0.0;
+//         let mut current_time = 0.0;
+//         while current_time < 8.0 {
+//             total_dmg += simulate(&mut members, &mut enemy, 0.1);
+//             current_time += 0.1;
+//         }
+//         // hit 10 times nas and 1 burst before lightfall sword epires
+//         let expect = 0.5 * (300.0 + 100.0 * 12.0 + 2356.2);
+//         assert_eq!(total_dmg, expect);
+//     }
+// }

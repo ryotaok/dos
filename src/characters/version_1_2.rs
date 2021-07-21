@@ -27,7 +27,7 @@ impl Albedo {
 impl SpecialAbility for Albedo {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Albedo").vision("Geo").weapon("Sword").release_date("2020-12-23").version(1.2)
+            .name("Albedo").vision(Geo).weapon(Sword).release_date("2020-12-23").version(1.2)
             .base_hp(13226.0).base_atk(251.0).base_def(876.0)
             .dmg_geo(28.8)
             .na_1(72.62).na_2(72.62).na_3(93.81).na_4(98.35).na_5(122.7).na_6(0.0).na_time(2.667)
@@ -36,12 +36,12 @@ impl SpecialAbility for Albedo {
             .burst_cd(12.0).energy_cost(40.0).burst_dmg(660.96 + 129.6 * 3.0)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.burst_timer.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
-        self.skill_aa.update(gaurd.second(attack.iter().any(|a| a.kind == Skill)), time);
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.burst_timer.update(guard.second(attack.iter().any(|a| a.kind == Burst)), time);
+        self.skill_aa.update(guard.second(attack.iter().any(|a| a.kind == Skill)), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.skill_aa.is_active() {
             atk_queue.push(Attack {
                 kind: SkillDot,
@@ -50,13 +50,13 @@ impl SpecialAbility for Albedo {
                 particle: Some(0.8),
                 state: None,
                 icd_cleared: fa.burst.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         // a4
         if self.burst_timer.is_active() {
             for s in modifiable_state.iter_mut() {
@@ -86,7 +86,7 @@ impl Ganyu {
 impl SpecialAbility for Ganyu {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Ganyu").vision("Cryo").weapon("Bow").release_date("2021-01-12").version(1.2)
+            .name("Ganyu").vision(Cryo).weapon(Bow).release_date("2021-01-12").version(1.2)
             .base_hp(9797.0).base_atk(335.0).base_def(630.0)
             .cd(88.4)
             .na_1(0.0).na_2(0.0).na_3(0.0).na_4(0.0).na_5(0.0).na_6(0.0).na_time(2.1)
@@ -95,11 +95,11 @@ impl SpecialAbility for Ganyu {
             .burst_cd(15.0).energy_cost(60.0).burst_dmg(0.0)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.burst_aa.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.burst_aa.update(guard.second(attack.iter().any(|a| a.kind == Burst)), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.burst_aa.is_active() {
             atk_queue.push(Attack {
                 kind: BurstDot,
@@ -108,13 +108,13 @@ impl SpecialAbility for Ganyu {
                 particle: None,
                 state: None,
                 icd_cleared: fa.burst.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         // a4
         if self.burst_aa.is_active() {
             for s in modifiable_state.iter_mut() {
@@ -124,7 +124,7 @@ impl SpecialAbility for Ganyu {
     }
 
     // a1
-    fn intensify(&self, attack: &mut Attack, _owner_fc: &FieldCharacter, _enemy: &Enemy) -> () {
+    fn intensify(&self, attack: &Attack) -> Option<State> {
         if attack.kind == Ca {
             let mut state: Option<State> = None;
             mem::swap(&mut state, &mut attack.state);

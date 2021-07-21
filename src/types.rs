@@ -1,10 +1,9 @@
 use std::ops::{Add, AddAssign};
 use std::cmp::PartialEq;
 
-use crate::fc::{FieldCharacter};
 use crate::action::Attack;
 
-use self::AttackType::*;
+// use self::AttackType::*;
 use self::Vision::*;
 use self::ElementalReactionType::*;
 
@@ -108,14 +107,14 @@ impl PartialEq<Vision> for Preference {
     }
 }
 
-impl PartialEq<String> for Preference {
-    fn eq(&self, other: &String) -> bool {
-        match (&self, other.as_str()) {
-            (Preference::Melee, "Sword") => true,
-            (Preference::Melee, "Claymore") => true,
-            (Preference::Melee, "Polearm") => true,
-            (Preference::Ranged, "Bow") => true,
-            (Preference::Ranged, "Catalyst") => true,
+impl PartialEq<WeaponType> for Preference {
+    fn eq(&self, other: &WeaponType) -> bool {
+        match (&self, other) {
+            (Preference::Melee, WeaponType::Sword) => true,
+            (Preference::Melee, WeaponType::Claymore) => true,
+            (Preference::Melee, WeaponType::Polearm) => true,
+            (Preference::Ranged, WeaponType::Bow) => true,
+            (Preference::Ranged, WeaponType::Catalyst) => true,
             _ => false,
         }
     }
@@ -229,28 +228,22 @@ pub struct BareElementalGauge {
     pub decay: ElementalGaugeDecay,
 }
 
+pub const GAUGE1A: BareElementalGauge = BareElementalGauge {
+    unit: 1.0,
+    decay: ElementalGaugeDecay::A,
+};
+
+pub const GAUGE2B: BareElementalGauge = BareElementalGauge {
+    unit: 2.0,
+    decay: ElementalGaugeDecay::B,
+};
+
+pub const GAUGE4C: BareElementalGauge = BareElementalGauge {
+    unit: 4.0,
+    decay: ElementalGaugeDecay::C,
+};
+
 impl BareElementalGauge {
-    pub fn a1() -> Self {
-        Self {
-            unit: 1.0,
-            decay: ElementalGaugeDecay::A,
-        }
-    }
-
-    pub fn b2() -> Self {
-        Self {
-            unit: 2.0,
-            decay: ElementalGaugeDecay::B,
-        }
-    }
-
-    pub fn c4() -> Self {
-        Self {
-            unit: 4.0,
-            decay: ElementalGaugeDecay::C,
-        }
-    }
-
     pub fn to_gauge(&self, aura: &Vision) -> ElementalGauge {
         ElementalGauge {
             aura: *aura,

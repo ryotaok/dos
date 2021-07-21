@@ -1,6 +1,6 @@
 
 use crate::fc::{CharacterData, FieldCharacterIndex, CharacterAbility, Enemy, Debuff};
-use crate::types::{AttackType, Vision, ElementalGauge, BareElementalGauge, ElementalReactionType, ElementalReaction};
+use crate::types::{AttackType, Vision, BareElementalGauge, ElementalReactionType, ElementalReaction};
 use crate::state::State;
 
 use AttackType::*;
@@ -108,7 +108,74 @@ impl ElementalAttack {
         let atk = unsafe { &(*self.atk) };
         atk.incoming_damage(attack_element, outgoing_damage, fc, enemy)
     }
+}
 
+pub trait ElementalAttackVector {
+    fn push_pyro(&mut self, data: &CharacterData, attack: *const Attack) -> ();
+    fn push_hydro(&mut self, data: &CharacterData, attack: *const Attack) -> ();
+    fn push_electro(&mut self, data: &CharacterData, attack: *const Attack) -> ();
+    fn push_cryo(&mut self, data: &CharacterData, attack: *const Attack) -> ();
+    fn push_anemo(&mut self, data: &CharacterData, attack: *const Attack) -> ();
+    fn push_geo(&mut self, data: &CharacterData, attack: *const Attack) -> ();
+    fn push_dendro(&mut self, data: &CharacterData, attack: *const Attack) -> ();
+}
+
+impl ElementalAttackVector for Vec<ElementalAttack> {
+    fn push_pyro(&mut self, data: &CharacterData, attack: *const Attack) -> () {
+        self.push(if data.state.infusion {
+            ElementalAttack::pyro(attack)
+        } else {
+            ElementalAttack::physical(attack)
+        });
+    }
+
+    fn push_hydro(&mut self, data: &CharacterData, attack: *const Attack) -> () {
+        self.push(if data.state.infusion {
+            ElementalAttack::hydro(attack)
+        } else {
+            ElementalAttack::physical(attack)
+        });
+    }
+
+    fn push_electro(&mut self, data: &CharacterData, attack: *const Attack) -> () {
+        self.push(if data.state.infusion {
+            ElementalAttack::electro(attack)
+        } else {
+            ElementalAttack::physical(attack)
+        });
+    }
+
+    fn push_cryo(&mut self, data: &CharacterData, attack: *const Attack) -> () {
+        self.push(if data.state.infusion {
+            ElementalAttack::cryo(attack)
+        } else {
+            ElementalAttack::physical(attack)
+        });
+    }
+
+    fn push_anemo(&mut self, data: &CharacterData, attack: *const Attack) -> () {
+        self.push(if data.state.infusion {
+            ElementalAttack::anemo(attack)
+        } else {
+            ElementalAttack::physical(attack)
+        });
+    }
+
+    fn push_geo(&mut self, data: &CharacterData, attack: *const Attack) -> () {
+        self.push(if data.state.infusion {
+            ElementalAttack::geo(attack)
+        } else {
+            ElementalAttack::physical(attack)
+        });
+    }
+
+    fn push_dendro(&mut self, data: &CharacterData, attack: *const Attack) -> () {
+        self.push(if data.state.infusion {
+            ElementalAttack::dendro(attack)
+        } else {
+            ElementalAttack::physical(attack)
+        });
+    }
 }
 
 impl PartialEq<Vision> for ElementalAttack {
@@ -125,7 +192,7 @@ pub struct Attack {
     pub kind: AttackType,
 
     // elemental gauge of this `Attack`.
-    pub gauge: BareElementalGauge,
+    pub gauge: &'static BareElementalGauge,
 
     pub multiplier: f32,
 
@@ -203,7 +270,8 @@ impl Attack {
         use ElementalReactionType::*;
         let mut total_dmg = 0.0;
         for _ in 0..self.hits {
-            if self.icd_cleared() {
+            // weapons do not have ICD timers.
+            if self.kind != AdditionalAttack && self.icd_cleared() {
                 let elemental_reaction = ElementalReaction::new(enemy.aura.aura, *attack_element);
                 total_dmg += match elemental_reaction {
                     Overloaded(ref er) |
@@ -226,11 +294,15 @@ impl Attack {
                 if let Superconduct(_) = elemental_reaction {
                     enemy.physical_res_debuff.push(Debuff::superconduct());
                 }
+                let icd_timer = unsafe { &mut *self.icd_timer };
+                icd_timer.count_hit();
             } else {
+                if self.kind != AdditionalAttack {
+                    let icd_timer = unsafe { &mut *self.icd_timer };
+                    icd_timer.count_hit();
+                }
                 total_dmg += outgoing_damage;
             }
-            let icd_timer = unsafe { &mut *self.icd_timer };
-            icd_timer.count_hit();
         }
         total_dmg
     }
@@ -240,8 +312,19 @@ pub trait EffectTimer {
     fn is_cd_off(&self) -> bool;
     fn is_active(&self) -> bool;
     fn n(&self) -> usize;
-    fn update(&mut self, gaurd: &TimerGuard, time: f32) -> ();
+    fn update(&mut self, guard: &TimerGuard, time: f32) -> ();
     fn reset(&mut self) -> ();
+}
+
+#[derive(Debug)]
+pub struct NoopTimer;
+
+impl EffectTimer for NoopTimer {
+    fn is_cd_off(&self) -> bool { false }
+    fn is_active(&self) -> bool { false }
+    fn n(&self) -> usize { 0 }
+    fn update(&mut self, _guard: &TimerGuard, _time: f32) -> () {}
+    fn reset(&mut self) -> () {}
 }
 
 // cool_down == duration
@@ -252,9 +335,9 @@ pub struct CDTimer {
 }
 
 impl CDTimer {
-    pub fn new(cool_down: f32) -> Self {
-        Self { cool_down, cd: 0.0 }
-    }
+    // pub fn new(cool_down: f32) -> Self {
+    //     Self { cool_down, cd: 0.0 }
+    // }
 }
 
 impl EffectTimer for CDTimer {
@@ -274,11 +357,11 @@ impl EffectTimer for CDTimer {
         }
     }
 
-    fn update(&mut self, gaurd: &TimerGuard, time: f32) -> () {
-        if !gaurd.check(&*self) {
+    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
+        if !guard.check(&*self) {
             return;
         }
-        if gaurd.second && self.is_cd_off() {
+        if guard.second && self.is_cd_off() {
             self.cd = self.cool_down;
         }
         self.cd -= time;
@@ -321,15 +404,16 @@ impl EffectTimer for DurationTimer {
         }
     }
 
-    fn update(&mut self, gaurd: &TimerGuard, time: f32) -> () {
-        if !gaurd.check(&*self) {
+    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
+        if !guard.check(&*self) {
             return;
         }
-        self.cd -= time;
-        self.dr -= time;
-        if gaurd.second && self.is_cd_off() {
-            self.cd = self.cool_down;
-            self.dr = self.duration;
+        if guard.second && self.is_cd_off() {
+            self.cd = self.cool_down - time;
+            self.dr = self.duration - time;
+        } else {
+            self.cd -= time;
+            self.dr -= time;
         }
     }
 
@@ -375,17 +459,18 @@ impl EffectTimer for HitsTimer {
         self.n
     }
 
-    fn update(&mut self, gaurd: &TimerGuard, time: f32) -> () {
-        if !gaurd.check(&*self) {
+    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
+        if !guard.check(&*self) {
             return;
         }
-        self.cd -= time;
         if self.n > 0 {
             self.n -= 1;
         }
-        if gaurd.second && self.is_cd_off() {
-            self.cd = self.cool_down;
+        if guard.second && self.is_cd_off() {
+            self.cd = self.cool_down - time;
             self.n = self.n_hits;
+        } else {
+            self.cd -= time;
         }
     }
 
@@ -462,22 +547,25 @@ impl EffectTimer for DotTimer {
         }
     }
 
-    fn update(&mut self, gaurd: &TimerGuard, time: f32) -> () {
-        if !gaurd.check(&*self) {
+    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
+        if !guard.check(&*self) {
             return;
         }
-        self.cd -= time;
-        self.dcd -= time;
-        self.dcd_cleared = self.dcd <= 0.0;
-        if self.n > 0 && self.dcd_cleared {
-            self.n -= 1;
+        if 0 < self.n && self.n < self.n_hits && self.dcd_cleared {
+            self.n += 1;
             self.dcd = self.dot_cd;
+        } else if self.n == self.n_hits {
+            self.n = 0;
         }
-        if gaurd.second && self.is_cd_off() {
-            self.cd = self.cool_down;
-            self.dcd = self.dot_cd;
-            self.n = self.n_hits;
+        if guard.second && self.is_cd_off() {
+            self.cd = self.cool_down - time;
+            self.dcd = self.dot_cd - time;
+            self.n = 1;
             self.dcd_cleared = true;
+        } else {
+            self.cd -= time;
+            self.dcd -= time;
+            self.dcd_cleared = self.dcd <= 0.0;
         }
     }
 
@@ -522,22 +610,23 @@ impl EffectTimer for StackTimer {
         }
     }
 
-    fn update(&mut self, gaurd: &TimerGuard, time: f32) -> () {
-        if !gaurd.check(&*self) {
+    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
+        if !guard.check(&*self) {
             return;
         }
-        self.cd -= time;
-        self.dr -= time;
-        if self.dr <= 0.0 {
-            self.n = 0;
-        }
-        if gaurd.second && self.is_cd_off() {
-            self.cd = self.cool_down;
-            self.dr = self.duration;
+        if guard.second && self.is_cd_off() {
+            self.cd = self.cool_down - time;
+            self.dr = self.duration - time;
             self.n += 1;
             if self.n > self.level {
                 self.n = self.level;
             }
+        } else {
+            self.cd -= time;
+            self.dr -= time;
+        }
+        if self.dr <= 0.0 {
+            self.n = 0;
         }
     }
 
@@ -561,7 +650,15 @@ pub struct SigilTimer {
 
 impl SigilTimer {
     pub fn new(cool_down: f32, effect_cd: f32, effect_duration: f32, max_level: usize) -> Self {
-        Self { cool_down, effect_cd, effect_duration, max_level, cd: 0.0, n: 0, dr: 0.0, }
+        Self {
+            cool_down,
+            effect_cd,
+            effect_duration,
+            max_level,
+            cd: 0.0,
+            n: 0,
+            dr: 0.0,
+        }
     }
 }
 
@@ -578,27 +675,33 @@ impl EffectTimer for SigilTimer {
         self.n
     }
 
-    fn update(&mut self, gaurd: &TimerGuard, time: f32) -> () {
-        if !gaurd.check(&*self) {
+    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
+        if !guard.check(&*self) {
             return;
         }
-        self.cd -= time;
-        if self.is_active() {
-            self.dr -= time;
-        }
-        // expire
-        if self.is_active() && self.dr <= 0.0 {
-            self.n = 0;
-        }
-        if gaurd.second && self.cd <= 0.0 {
-            self.cd = self.cool_down;
-            self.n += 1;
+        if guard.second && self.cd <= 0.0 {
+            self.cd = self.cool_down - time;
+            // expire
+            if self.is_active() && self.dr <= 0.0 {
+                self.n = 0;
+            } else {
+                self.n += 1;
+            }
             if self.is_active() {
-                self.cd = self.effect_cd;
-                self.dr = self.effect_duration;
+                self.cd = self.effect_cd - time;
+                self.dr = self.effect_duration - time;
             }
             if self.n > self.max_level {
                 self.n = self.max_level;
+            }
+        } else {
+            self.cd -= time;
+            // expire
+            if self.is_active() {
+                self.dr -= time;
+            }
+            if self.is_active() && self.dr <= 0.0 {
+                self.n = 0;
             }
         }
     }
@@ -645,24 +748,27 @@ impl EffectTimer for LoopTimer {
     }
 
     fn is_active(&self) -> bool {
-        self.cd == self.cool_down
+        // self.cd == self.cool_down
+        self.is_cd_off() && self.n > 0
+        // self.is_cd_off()
     }
 
     fn n(&self) -> usize {
         self.n
     }
 
-    fn update(&mut self, gaurd: &TimerGuard, time: f32) -> () {
-        if !gaurd.check(&*self) {
+    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
+        if !guard.check(&*self) {
             return;
         }
-        self.cd -= time;
-        if gaurd.second && self.is_cd_off() {
-            self.cd = self.cool_down;
+        if guard.second && self.is_cd_off() {
+            self.cd = self.cool_down - time;
             self.n += 1;
             if self.n > self.steps {
-                self.n = 0;
+                self.n = 1;
             }
+        } else {
+            self.cd -= time;
         }
     }
 
@@ -694,13 +800,15 @@ impl ICDTimer {
     }
 
     pub fn count_hit(&mut self) -> () {
+        // TODO counter increases if attack is infused (dont function on physical attack)
+        self.counting = true;
         self.n_hits += 1;
         if self.n_hits >= 3 {
             self.n_hits = 0;
         }
     }
 
-    pub fn update(&mut self, should_update: bool, time: f32) -> () {
+    pub fn update(&mut self, time: f32) -> () {
         if self.counting {
             self.cd += time;
         }
@@ -709,13 +817,68 @@ impl ICDTimer {
             self.cd = 0.0;
             self.counting = false;
         }
-        if self.n_hits >= 3 {
-            self.n_hits = 0;
+    }
+}
+
+#[derive(Debug)]
+pub struct StaminaTimer {
+    stamina: f32,
+    recovery: bool,
+    consumption: f32,
+}
+
+impl StaminaTimer {
+    pub fn new(consumption: f32) -> Self {
+        Self {
+            stamina: 240.0,
+            recovery: false,
+            consumption,
         }
-        // TODO counter increases if attack is infused (dont function on physical attack)
-        if should_update {
-            self.counting = true;
+    }
+
+    pub fn noop() -> Self {
+        Self {
+            stamina: 240.0,
+            recovery: false,
+            consumption: 0.0,
         }
+    }
+}
+
+impl EffectTimer for StaminaTimer {
+    fn is_cd_off(&self) -> bool {
+        !self.recovery && 0.0 < self.stamina
+    }
+
+    fn is_active(&self) -> bool {
+        !self.recovery && 0.0 < self.stamina
+    }
+
+    fn n(&self) -> usize {
+        self.stamina as usize
+    }
+
+    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
+        if !guard.check(&*self) {
+            return;
+        }
+        if self.stamina >= 240.0 {
+            self.recovery = false;
+        }
+        if guard.second && self.is_cd_off() {
+            // TODO recovery rate of energy
+            self.stamina -= self.consumption + time * 10.0;
+        } else {
+            self.stamina += time * 10.0;
+        }
+        if self.stamina <= 0.0 {
+            self.recovery = true;
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.stamina = 240.0;
+        self.recovery = false;
     }
 }
 
@@ -800,390 +963,172 @@ impl TimerGuard {
 
 impl<T: EffectTimer> TimerGuardCheck<&T> for TimerGuard {
     fn check(&self, timer: &T) -> bool {
-        self.first && self.second || !timer.is_cd_off()
+        (self.first && self.second) || !timer.is_cd_off() || timer.is_active()
     }
 }
 
 // for ad-hoc types which cannot implement `EffectTimer`
 impl TimerGuardCheck<()> for TimerGuard {
     fn check(&self, _timer: ()) -> bool {
-        self.first && self.second || self.third
+        (self.first && self.second) || self.third
     }
 }
 
 #[derive(Debug)]
-pub struct StaminaTimer {
-    stamina: f32,
-    recovery: bool,
-    consumption: f32,
-}
+pub struct FullCharacterTimers {
+    noop: NoopTimer,
 
-impl StaminaTimer {
-    pub fn new(consumption: f32) -> Self {
-        Self {
-            stamina: 240.0,
-            recovery: false,
-            consumption,
-        }
-    }
+    define_na: bool,
+    na: LoopTimer,
+    pub na_icd: ICDTimer,
 
-    pub fn noop() -> Self {
-        Self {
-            stamina: 240.0,
-            recovery: false,
-            consumption: 0.0,
-        }
-    }
-}
+    define_ca: bool,
+    stamina: StaminaTimer,
+    ca: HitsTimer,
+    pub ca_icd: ICDTimer,
 
-impl EffectTimer for StaminaTimer {
-    fn is_cd_off(&self) -> bool {
-        !self.recovery && 0.0 < self.stamina
-    }
+    define_press: bool,
+    define_hold: bool,
+    press: DotTimer,
+    hold: DotTimer,
+    pub skill_icd: ICDTimer,
 
-    fn is_active(&self) -> bool {
-        !self.recovery && 0.0 < self.stamina
-    }
-
-    fn n(&self) -> usize {
-        self.stamina as usize
-    }
-
-    fn update(&mut self, gaurd: &TimerGuard, time: f32) -> () {
-        if !gaurd.check(&*self) {
-            return;
-        }
-        self.stamina += time * 10.0; // TODO recovery rate of energy
-        if self.stamina >= 240.0 {
-            self.recovery = false;
-        }
-        if gaurd.second && self.is_cd_off() {
-            self.stamina -= self.consumption;
-        }
-        if self.stamina <= 0.0 {
-            self.recovery = true;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.stamina = 240.0;
-        self.recovery = false;
-    }
-}
-
-
-pub trait CharacterTimers {
-    fn maybe_attack(&self, fc: &CharacterData, ca: &dyn CharacterAbility) -> Option<AttackType>;
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[ElementalAttack], fc: &CharacterData, time: f32) -> ();
-    fn na_timer(&self) -> &LoopTimer;
-    fn ca_timer(&self) -> &HitsTimer;
-    fn press_timer(&self) -> &DotTimer;
-    fn hold_timer(&self) -> &DotTimer;
-    fn burst_timer(&self) -> &DotTimer;
-    fn reset_cd(&mut self) -> ();
-}
-
-pub trait Acceleration {
-    fn reset_cd(&mut self) -> ();
-}
-
-#[derive(Debug)]
-pub struct NaTimers<const B: bool> {
-    pub timer: LoopTimer,
-    pub icd: ICDTimer,
-}
-
-impl NaTimers<true> {
-    pub fn new(timer: LoopTimer) -> Self {
-        Self {
-            timer,
-            icd: ICDTimer::new()
-        }
-    }
-
-    pub fn should_attack(&self) -> bool {
-        self.timer.is_cd_off()
-    }
-
-    pub fn is_active(&self) -> bool {
-        self.timer.is_active()
-    }
-
-    pub fn n(&self) -> usize {
-        self.timer.n()
-    }
-
-    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () {
-        self.timer.update(gaurd.check_second(Na), time);
-        self.icd.update(icd_should_update, time);
-    }
-}
-
-impl NaTimers<false> {
-    pub fn new() -> Self {
-        Self {
-            timer: LoopTimer::noop(),
-            icd: ICDTimer::new()
-        }
-    }
-
-    pub fn should_attack(&self) -> bool { false }
-    pub fn is_active(&self) -> bool { false }
-    pub fn n(&self) -> usize { 0 }
-    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () { }
-}
-
-#[derive(Debug)]
-pub struct CaTimers<const B: bool> {
-    pub stamina: StaminaTimer,
-    pub timer: HitsTimer,
-    pub icd: ICDTimer,
-}
-
-impl CaTimers<true> {
-    pub fn new(timer: HitsTimer, stamina: StaminaTimer) -> Self {
-        Self {
-            stamina,
-            timer,
-            icd: ICDTimer::new()
-        }
-    }
-
-    pub fn should_attack(&self) -> bool {
-        self.timer.is_cd_off() && self.stamina.is_active()
-    }
-
-    pub fn is_active(&self) -> bool {
-        self.timer.is_active() && self.stamina.is_active()
-    }
-
-    pub fn n(&self) -> usize {
-        self.timer.n()
-    }
-
-    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () {
-        self.stamina.update(gaurd.check_second(Ca), time);
-        self.timer.update(gaurd, time);
-        self.icd.update(icd_should_update, time);
-    }
-}
-
-impl CaTimers<false> {
-    pub fn new() -> Self {
-        Self {
-            stamina: StaminaTimer::noop(),
-            timer: HitsTimer::noop(),
-            icd: ICDTimer::new()
-        }
-    }
-
-    pub fn should_attack(&self) -> bool { false }
-    pub fn is_active(&self) -> bool { false }
-    pub fn n(&self) -> usize { 0 }
-    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () { }
-}
-
-// N = 1: only press skill is used
-// N = 2: both press and hold skills are used
-// N = _: for any other values, `SkillTimers` are disabled
-#[derive(Debug)]
-pub struct SkillTimers<const N: usize> {
-    pub press: DotTimer,
-    pub hold: DotTimer,
-    pub icd: ICDTimer,
-}
-
-impl SkillTimers<1> {
-    pub fn new(press: DotTimer) -> Self {
-        Self {
-            press,
-            hold: DotTimer::noop(),
-            icd: ICDTimer::new()
-        }
-    }
-
-    pub fn should_press(&self) -> bool {
-        self.press.is_cd_off()
-    }
-
-    pub fn should_hold(&self) -> bool {
-        false
-    }
-
-    pub fn is_active(&self) -> bool {
-        self.press.is_active()
-    }
-
-    pub fn n(&self) -> usize {
-        self.press.n()
-    }
-
-    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () {
-        self.press.update(gaurd.check_second(PressSkill), time);
-        self.icd.update(icd_should_update, time);
-    }
-
-    pub fn reset_cd(&mut self) -> () {
-        self.press.reset();
-    }
-}
-
-impl SkillTimers<2> {
-    pub fn new(press: DotTimer, hold: DotTimer) -> Self {
-        Self {
-            press,
-            hold,
-            icd: ICDTimer::new()
-        }
-    }
-
-    pub fn should_press(&self) -> bool {
-        // TODO Because hold CD is longer than press CD, hold skill needs to be off to use press skill
-        self.press.is_cd_off() && self.hold.is_cd_off()
-    }
-
-    pub fn should_hold(&self) -> bool {
-        self.hold.is_cd_off()
-    }
-
-    pub fn is_active(&self) -> bool {
-        self.press.is_active() || self.hold.is_active()
-    }
-
-    pub fn n(&self) -> usize {
-        self.hold.n()
-    }
-
-    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () {
-        self.press.update(gaurd.check_second(PressSkill), time);
-        self.hold.update(gaurd.check_second(HoldSkill), time);
-        self.icd.update(icd_should_update, time);
-    }
-
-    pub fn reset_cd(&mut self) -> () {
-        self.press.reset();
-        self.hold.reset();
-    }
-}
-
-impl SkillTimers<0> {
-    pub fn new() -> Self {
-        Self {
-            press: DotTimer::noop(),
-            hold: DotTimer::noop(),
-            icd: ICDTimer::new()
-        }
-    }
-
-    pub fn should_press(&self) -> bool { false }
-    pub fn should_hold(&self) -> bool { false }
-    pub fn is_active(&self) -> bool { false }
-    pub fn n(&self) -> usize { 0 }
-    pub fn update(&mut self, gaurd: &mut TimerGuard, icd_should_update: bool, time: f32) -> () {}
-    pub fn reset_cd(&mut self) -> () {}
-}
-
-#[derive(Debug)]
-pub struct FullCharacterTimers<const N: bool, const C: bool, const S: usize> {
-    pub na: NaTimers<N>,
-
-    pub ca: CaTimers<C>,
-
-    pub skill: SkillTimers<S>,
-
-    pub burst_timer: DotTimer,
+    burst: DotTimer,
     pub burst_icd: ICDTimer,
 }
 
-impl<const N: bool, const C: bool, const S: usize> CharacterTimers for FullCharacterTimers<N, C, S> {
-    fn maybe_attack(&self, fc: &CharacterData, ca: &dyn CharacterAbility) -> Option<AttackType> {
+impl FullCharacterTimers {
+    pub fn maybe_attack(&self, fc: &CharacterData, ca: &dyn CharacterAbility) -> Option<AttackType> {
         // na combo blocks other actions.
-        if self.na.n() > 0 && self.na.is_active() {
-            Some(Na)
-        } else if fc.can_burst() && self.burst_timer.is_cd_off() {
+        // if self.define_na && self.na.n() > 0 && self.na.is_active() {
+        //     Some(Na)
+        // } else if fc.can_burst() && self.burst.is_cd_off() {
+        if fc.can_burst() && self.burst.is_cd_off() {
             Some(Burst)
-        } else if ca.use_hold() && self.skill.should_hold() {
+        } else if self.define_hold && ca.use_hold() && self.should_hold() {
             Some(HoldSkill)
-        } else if self.skill.should_press() {
+        } else if self.define_press && self.should_press() {
             Some(PressSkill)
-        } else if self.ca.should_attack() {
+        } else if self.define_ca && self.should_ca() {
             Some(Ca)
-        } else if self.na.should_attack() {
+        } else if self.define_na && self.should_na() {
             Some(Na)
         } else {
             None
         }
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[ElementalAttack], fc: &CharacterData, time: f32) -> () {
-        let mut na = false;
-        let mut ca = false;
-        let mut skill = false;
-        let mut burst = false;
-        unsafe {
-            for &a in attack {
-                match &(*(a.atk)).kind {
-                    Na => na = true,
-                    Ca => ca = true,
-                    PressSkill | HoldSkill | SkillDot => skill = true,
-                    Burst | BurstDot => burst = true,
-                    _ => (),
-                }
-            }
+    pub fn update(&mut self, guard: &mut TimerGuard, _attack: &[ElementalAttack], fc: &CharacterData, time: f32) -> () {
+        if self.define_na {
+            self.na.update(guard.check_second(Na), time * (1.0 + fc.state.atk_spd / 100.0));
+            self.na_icd.update(time);
         }
-        self.na.update(gaurd, na, time * (1.0 + fc.state.atk_spd / 100.0));
-        self.ca.update(gaurd, ca, time);
-        self.skill.update(gaurd, skill, time);
-        // 
-        // self.na_icd.update(na, time);
-        // self.ca_icd.update(ca, time);
-        // self.skill_icd.update(skill, time);
-        self.burst_icd.update(burst, time);
-        // self.na_timer.update();
-        // self.ca_timer.update(gaurd.check_second(Ca), time);
-        // self.stamina.update(gaurd, time);
-        // self.press_timer.update(gaurd.check_second(PressSkill), time);
-        // self.hold_timer.update(gaurd.check_second(HoldSkill), time);
-        self.burst_timer.update(gaurd.check_second(Burst), time);
+
+        if self.define_ca {
+            self.ca.update(guard.check_second(Ca), time);
+            self.stamina.update(guard, time);
+            self.ca_icd.update(time);
+        }
+
+        if self.define_press && self.define_hold {
+            self.hold.update(guard.check_second(HoldSkill), time);
+            self.press.update(guard.check_second(PressSkill), time);
+            self.skill_icd.update(time);
+        } else if self.define_press {
+            self.press.update(guard.check_second(PressSkill), time);
+            self.skill_icd.update(time);
+        }
+
+        self.burst.update(guard.check_second(Burst), time);
+        self.burst_icd.update(time);
     }
 
-    fn na_timer(&self) -> &LoopTimer {
-        &self.na.timer
+    fn should_hold(&self) -> bool {
+        if self.define_hold {
+            self.hold.is_cd_off()
+        } else {
+            false
+        }
     }
 
-    fn ca_timer(&self) -> &HitsTimer {
-        &self.ca.timer
+    fn should_press(&self) -> bool {
+        if self.define_press && self.define_hold {
+            // TODO Because hold CD is longer than press CD, hold skill needs to be off to use press skill
+            self.press.is_cd_off() && self.hold.is_cd_off()
+        } else if self.define_press {
+            self.press.is_cd_off()
+        } else {
+            false
+        }
     }
 
-    fn press_timer(&self) -> &DotTimer {
-        &self.skill.press
+    fn should_ca(&self) -> bool {
+        if self.define_ca {
+            self.ca.is_cd_off() && self.stamina.is_active()
+        } else {
+            false
+        }
     }
 
-    fn hold_timer(&self) -> &DotTimer {
-        &self.skill.hold
+    fn should_na(&self) -> bool {
+        if self.define_na {
+            self.na.is_cd_off()
+        } else {
+            false
+        }
     }
 
-    fn burst_timer(&self) -> &DotTimer {
-        &self.burst_timer
+    pub fn na_timer(&self) -> &dyn EffectTimer {
+        if self.define_na {
+            &self.na
+        } else {
+            &self.noop
+        }
     }
 
-    fn reset_cd(&mut self) -> () {
-        self.skill.reset_cd();
+    pub fn ca_timer(&self) -> &dyn EffectTimer {
+        if self.define_ca {
+            &self.ca
+        } else {
+            &self.noop
+        }
+    }
+
+    pub fn press_timer(&self) -> &dyn EffectTimer {
+        if self.define_press {
+            &self.press
+        } else {
+            &self.noop
+        }
+    }
+
+    pub fn hold_timer(&self) -> &dyn EffectTimer {
+        if self.define_hold {
+            &self.hold
+        } else {
+            &self.noop
+        }
+    }
+
+    pub fn burst_timer(&self) -> &dyn EffectTimer {
+        &self.burst
+    }
+
+    pub fn reset_cd(&mut self) -> () {
+        if self.define_press {
+            self.press.reset();
+        }
+        if self.define_hold {
+            self.hold.reset();
+        }
     }
 }
-
-// impl Acceleration for FullCharacterTimers {
-//     fn reset_cd(&mut self) -> () {
-//         self.press_timer.reset();
-//         self.hold_timer.reset();
-//     }
-// }
 
 #[derive(Debug)]
 pub struct CharacterTimersBuilder {
     na_timer: Option<LoopTimer>,
     ca_timer: Option<HitsTimer>,
-    ca_stamina: Option<StaminaTimer>,
+    stamina: Option<StaminaTimer>,
     press_timer: Option<DotTimer>,
     hold_timer:  Option<DotTimer>,
     burst_timer: Option<DotTimer>,
@@ -1194,7 +1139,7 @@ impl CharacterTimersBuilder {
         Self {
             na_timer: None,
             ca_timer: None,
-            ca_stamina: None,
+            stamina: None,
             press_timer: None,
             hold_timer:  None,
             burst_timer: None,
@@ -1211,8 +1156,8 @@ impl CharacterTimersBuilder {
         self
     }
 
-    pub fn ca_stamina(mut self, t: StaminaTimer) -> Self {
-        self.ca_stamina = Some(t);
+    pub fn stamina(mut self, t: StaminaTimer) -> Self {
+        self.stamina = Some(t);
         self
     }
 
@@ -1231,164 +1176,59 @@ impl CharacterTimersBuilder {
         self
     }
 
-    pub fn build_burst(self) -> FullCharacterTimers<false, false, 0> {
+    pub fn build(self) -> FullCharacterTimers {
         let CharacterTimersBuilder {
             na_timer,
             ca_timer,
-            ca_stamina,
+            stamina,
             press_timer,
             hold_timer,
             burst_timer,
         } = self;
+        let mut define_na = false;
+        let mut define_ca = false;
+        let mut define_press = false;
+        let mut define_hold = false;
+        let na = if let Some(x) = na_timer {
+            define_na = true;
+            x
+        } else {
+            LoopTimer::noop()
+        };
+        let (ca, stamina) = match (ca_timer, stamina) {
+            (Some(ca), Some(stamina)) => {
+                define_ca = true;
+                (ca, stamina)
+            },
+            _ => (HitsTimer::noop(), StaminaTimer::noop()),
+        };
+        let press = if let Some(x) = press_timer {
+            define_press = true;
+            x
+        } else {
+            DotTimer::noop()
+        };
+        let hold = if let Some(x) = hold_timer {
+            define_hold = true;
+            x
+        } else {
+            DotTimer::noop()
+        };
         FullCharacterTimers {
-            na: NaTimers::<false>::new(),
-            ca: CaTimers::<false>::new(),
-            skill: SkillTimers::<0>::new(),
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::new(),
-        }
-    }
-
-    pub fn build_press(self) -> FullCharacterTimers<false, false, 1> {
-        let CharacterTimersBuilder {
-            na_timer,
-            ca_timer,
-            ca_stamina,
-            press_timer,
-            hold_timer,
-            burst_timer,
-        } = self;
-        FullCharacterTimers {
-            na: NaTimers::<false>::new(),
-            ca: CaTimers::<false>::new(),
-            skill: SkillTimers::<1>::new(press_timer.unwrap()),
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::new(),
-        }
-    }
-
-    pub fn build_hold(self) -> FullCharacterTimers<false, false, 2> {
-        let CharacterTimersBuilder {
-            na_timer,
-            ca_timer,
-            ca_stamina,
-            press_timer,
-            hold_timer,
-            burst_timer,
-        } = self;
-        FullCharacterTimers {
-            na: NaTimers::<false>::new(),
-            ca: CaTimers::<false>::new(),
-            skill: SkillTimers::<2>::new(press_timer.unwrap(), hold_timer.unwrap()),
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::new(),
-        }
-    }
-
-    pub fn build_na(self) -> FullCharacterTimers<true, false, 0> {
-        let CharacterTimersBuilder {
-            na_timer,
-            ca_timer,
-            ca_stamina,
-            press_timer,
-            hold_timer,
-            burst_timer,
-        } = self;
-        FullCharacterTimers {
-            na: NaTimers::<true>::new(na_timer.unwrap()),
-            ca: CaTimers::<false>::new(),
-            skill: SkillTimers::<0>::new(),
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::new(),
-        }
-    }
-
-    pub fn build_na_press(self) -> FullCharacterTimers<true, false, 1> {
-        let CharacterTimersBuilder {
-            na_timer,
-            ca_timer,
-            ca_stamina,
-            press_timer,
-            hold_timer,
-            burst_timer,
-        } = self;
-        FullCharacterTimers {
-            na: NaTimers::<true>::new(na_timer.unwrap()),
-            ca: CaTimers::<false>::new(),
-            skill: SkillTimers::<1>::new(press_timer.unwrap()),
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::new(),
-        }
-    }
-
-    pub fn build_na_hold(self) -> FullCharacterTimers<true, false, 2> {
-        let CharacterTimersBuilder {
-            na_timer,
-            ca_timer,
-            ca_stamina,
-            press_timer,
-            hold_timer,
-            burst_timer,
-        } = self;
-        FullCharacterTimers {
-            na: NaTimers::<true>::new(na_timer.unwrap()),
-            ca: CaTimers::<false>::new(),
-            skill: SkillTimers::<2>::new(press_timer.unwrap(), hold_timer.unwrap()),
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::new(),
-        }
-    }
-
-    pub fn build_na_ca(self) -> FullCharacterTimers<true, true, 0> {
-        let CharacterTimersBuilder {
-            na_timer,
-            ca_timer,
-            ca_stamina,
-            press_timer,
-            hold_timer,
-            burst_timer,
-        } = self;
-        FullCharacterTimers {
-            na: NaTimers::<true>::new(na_timer.unwrap()),
-            ca: CaTimers::<true>::new(ca_timer.unwrap(), ca_stamina.unwrap()),
-            skill: SkillTimers::<0>::new(),
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::new(),
-        }
-    }
-
-    pub fn build_na_ca_press(self) -> FullCharacterTimers<true, true, 1> {
-        let CharacterTimersBuilder {
-            na_timer,
-            ca_timer,
-            ca_stamina,
-            press_timer,
-            hold_timer,
-            burst_timer,
-        } = self;
-        FullCharacterTimers {
-            na: NaTimers::<true>::new(na_timer.unwrap()),
-            ca: CaTimers::<true>::new(ca_timer.unwrap(), ca_stamina.unwrap()),
-            skill: SkillTimers::<1>::new(press_timer.unwrap()),
-            burst_timer: burst_timer.unwrap(),
-            burst_icd: ICDTimer::new(),
-        }
-    }
-
-    pub fn build_full(self) -> FullCharacterTimers<true, true, 2> {
-        let CharacterTimersBuilder {
-            na_timer,
-            ca_timer,
-            ca_stamina,
-            press_timer,
-            hold_timer,
-            burst_timer,
-        } = self;
-        FullCharacterTimers {
-            na: NaTimers::<true>::new(na_timer.unwrap()),
-            ca: CaTimers::<true>::new(ca_timer.unwrap(), ca_stamina.unwrap()),
-            skill: SkillTimers::<2>::new(press_timer.unwrap(), hold_timer.unwrap()),
-            burst_timer: burst_timer.unwrap(),
+            noop: NoopTimer,
+            define_na,
+            na,
+            na_icd: ICDTimer::new(),
+            define_ca,
+            stamina,
+            ca,
+            ca_icd: ICDTimer::new(),
+            define_press,
+            press,
+            define_hold,
+            hold,
+            skill_icd: ICDTimer::new(),
+            burst: if let Some(x) = burst_timer { x } else { DotTimer::noop() },
             burst_icd: ICDTimer::new(),
         }
     }
@@ -1405,17 +1245,17 @@ mod tests {
     #[test]
     fn durationtimer_0() {
         let mut timer = durationtimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.0);
         assert_eq!(timer.is_active(), true);
     }
 
     #[test]
     fn durationtimer_1() {
         let mut timer = durationtimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
-        timer.update(gaurd.second(false), 2.0);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.0);
+        timer.update(guard.second(false), 2.0);
         assert_eq!(timer.is_active(), false);
     }
 
@@ -1426,27 +1266,27 @@ mod tests {
     #[test]
     fn hitstimer_0() {
         let mut timer = hitstimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.0);
         assert_eq!(timer.is_active(), true);
     }
 
     #[test]
     fn hitstimer_1() {
         let mut timer = hitstimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
-        timer.update(gaurd.second(true), 0.3);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.0);
+        timer.update(guard.second(true), 0.3);
         assert_eq!(timer.is_active(), true);
     }
 
     #[test]
     fn hitstimer_2() {
         let mut timer = hitstimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
-        timer.update(gaurd.second(true), 0.3);
-        timer.update(gaurd.second(true), 0.3);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.0);
+        timer.update(guard.second(true), 0.3);
+        timer.update(guard.second(true), 0.3);
         assert_eq!(timer.is_active(), false);
     }
 
@@ -1457,18 +1297,18 @@ mod tests {
     #[test]
     fn dottimer_0() {
         let mut timer = dottimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.0);
         assert_eq!(timer.is_active(), true);
-        assert_eq!(timer.n, 2);
+        assert_eq!(timer.n, 1);
     }
 
     #[test]
     fn dottimer_1() {
         let mut timer = dottimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
-        timer.update(gaurd.second(false), 0.2);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.0);
+        timer.update(guard.second(false), 0.2);
         assert_eq!(timer.is_active(), false);
         assert_eq!(timer.n, 2);
     }
@@ -1476,20 +1316,20 @@ mod tests {
     #[test]
     fn dottimer_2() {
         let mut timer = dottimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
-        timer.update(gaurd.second(false), 0.5);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.0);
+        timer.update(guard.second(false), 0.5);
         assert_eq!(timer.is_active(), true);
-        assert_eq!(timer.n, 1);
+        assert_eq!(timer.n, 2);
     }
 
     #[test]
     fn dottimer_3() {
         let mut timer = dottimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
-        timer.update(gaurd.second(false), 0.5);
-        timer.update(gaurd.second(false), 0.5);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.0);
+        timer.update(guard.second(false), 0.5);
+        timer.update(guard.second(false), 0.5);
         assert_eq!(timer.is_active(), false);
         assert_eq!(timer.n, 0);
     }
@@ -1497,11 +1337,11 @@ mod tests {
     #[test]
     fn dottimer_4() {
         let mut timer = dottimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
-        timer.update(gaurd.second(false), 0.5);
-        timer.update(gaurd.second(false), 0.5);
-        timer.update(gaurd.second(false), 0.5);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.0);
+        timer.update(guard.second(false), 0.5);
+        timer.update(guard.second(false), 0.5);
+        timer.update(guard.second(false), 0.5);
         assert_eq!(timer.is_active(), false);
         assert_eq!(timer.n, 0);
     }
@@ -1513,42 +1353,47 @@ mod tests {
     #[test]
     fn stacktimer_0() {
         let mut timer = stacktimer();
-        let mut gaurd = TimerGuard::first_ok();
+        let mut guard = TimerGuard::first_ok();
         // too fast to get stacks
-        timer.update(gaurd.second(true), 0.1);
-        timer.update(gaurd.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        assert!(timer.is_active());
         assert_eq!(timer.n, 1);
     }
 
     #[test]
     fn stacktimer_1() {
         let mut timer = stacktimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.3);
-        timer.update(gaurd.second(true), 0.3);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.3);
+        timer.update(guard.second(true), 0.3);
+        assert!(timer.is_active());
         assert_eq!(timer.n, 2);
     }
 
     #[test]
     fn stacktimer_2() {
         let mut timer = stacktimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.3);
-        timer.update(gaurd.second(true), 0.3);
-        timer.update(gaurd.second(true), 0.3);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.3);
+        timer.update(guard.second(true), 0.3);
+        timer.update(guard.second(true), 0.3);
         // cannot exceed the max level
+        assert!(timer.is_active());
         assert_eq!(timer.n, 2);
     }
 
     #[test]
     fn stacktimer_3() {
         let mut timer = stacktimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.3);
-        timer.update(gaurd.second(true), 0.3);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.3);
+        timer.update(guard.second(true), 0.3);
+        assert!(timer.is_active());
         assert_eq!(timer.n, 2);
         // expire
-        timer.update(gaurd.second(false), 3.0);
+        timer.update(guard.second(false), 3.0);
+        assert!(!timer.is_active());
         assert_eq!(timer.n, 0);
     }
 
@@ -1559,91 +1404,145 @@ mod tests {
     #[test]
     fn sigiltimer_1() {
         let mut timer = sigiltimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.1);
-        timer.update(gaurd.second(true), 0.1);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
         // sigil enterd effect CD
-        timer.update(gaurd.second(true), 2.0);
+        assert!(timer.is_active());
         assert_eq!(timer.n, 3);
     }
 
     #[test]
     fn sigiltimer_2() {
         let mut timer = sigiltimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.1);
-        timer.update(gaurd.second(true), 0.1);
-        timer.update(gaurd.second(true), 0.1);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
         // sigil expired effect duration
-        timer.update(gaurd.second(true), 3.0);
+        timer.update(guard.second(true), 3.0);
+        assert_eq!(timer.n, 0);
+    }
+
+    #[test]
+    fn sigiltimer_2_() {
+        let mut timer = sigiltimer();
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        // sigil expired effect duration
+        timer.update(guard.second(false), 3.0);
         assert_eq!(timer.n, 0);
     }
 
     #[test]
     fn sigiltimer_3() {
         let mut timer = sigiltimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.1);
-        timer.update(gaurd.second(true), 0.1);
-        timer.update(gaurd.second(true), 0.1);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
         // cannot gain another sigil because it is in CD
-        timer.update(gaurd.second(true), 4.0);
-        timer.update(gaurd.second(true), 0.1);
-        timer.update(gaurd.second(true), 0.1);
+        timer.update(guard.second(true), 4.0);
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        assert_eq!(timer.n, 0);
+    }
+
+    #[test]
+    fn sigiltimer_3_() {
+        let mut timer = sigiltimer();
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        // cannot gain another sigil because it is in CD
+        timer.update(guard.second(false), 4.0);
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
         assert_eq!(timer.n, 0);
     }
 
     #[test]
     fn sigiltimer_4() {
         let mut timer = sigiltimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.1);
-        timer.update(gaurd.second(true), 0.1);
-        timer.update(gaurd.second(true), 0.1);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
         // can gain another sigil
         // note the last stack only takes effect
-        timer.update(gaurd.second(true), 5.0);
+        timer.update(guard.second(true), 5.0);
+        timer.update(guard.second(true), 0.1);
         assert_eq!(timer.n, 1);
-        timer.update(gaurd.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
         assert_eq!(timer.n, 2);
     }
 
-    fn looptimer() -> LoopTimer {
-        LoopTimer::new(3.0, 3)
-    }
-
     #[test]
-    fn looptimer_1() {
-        let mut timer = looptimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
+    fn sigiltimer_4_() {
+        let mut timer = sigiltimer();
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        timer.update(guard.second(true), 0.1);
+        // can gain another sigil
+        // note the last stack only takes effect
+        timer.update(guard.second(false), 5.0);
+        timer.update(guard.second(true), 0.1);
         assert_eq!(timer.n, 1);
-    }
-
-    #[test]
-    fn looptimer_too_early_1() {
-        let mut timer = looptimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
-        timer.update(gaurd.second(false), 0.3);
-        assert_eq!(timer.n, 1);
-    }
-
-    #[test]
-    fn looptimer_too_early_2() {
-        let mut timer = looptimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
-        timer.update(gaurd.second(true), 0.3);
-        assert_eq!(timer.n, 1);
-    }
-
-    #[test]
-    fn looptimer_2() {
-        let mut timer = looptimer();
-        let mut gaurd = TimerGuard::first_ok();
-        timer.update(gaurd.second(true), 0.0);
-        timer.update(gaurd.second(true), 1.0);
+        timer.update(guard.second(true), 0.1);
         assert_eq!(timer.n, 2);
     }
+
+    // fn looptimer() -> LoopTimer {
+    //     LoopTimer::new(3.0, 3)
+    // }
+
+    // #[test]
+    // fn looptimer_1() {
+    //     let mut timer = looptimer();
+    //     let mut guard = TimerGuard::first_ok();
+    //     timer.update(guard.second(true), 0.0);
+    //     assert_eq!(timer.n, 1);
+    // }
+
+    // #[test]
+    // fn looptimer_too_early_1() {
+    //     let mut timer = looptimer();
+    //     let mut guard = TimerGuard::first_ok();
+    //     timer.update(guard.second(true), 0.0);
+    //     timer.update(guard.second(false), 0.3);
+    //     assert_eq!(timer.n, 1);
+    // }
+
+    // #[test]
+    // fn looptimer_too_early_2() {
+    //     let mut timer = looptimer();
+    //     let mut guard = TimerGuard::first_ok();
+    //     timer.update(guard.second(true), 0.0);
+    //     timer.update(guard.second(true), 0.3);
+    //     assert_eq!(timer.n, 1);
+    // }
+
+    // #[test]
+    // fn looptimer_2() {
+    //     let mut timer = looptimer();
+    //     let mut guard = TimerGuard::first_ok();
+    //     timer.update(guard.second(true), 0.0);
+    //     timer.update(guard.second(true), 1.0);
+    //     assert_eq!(timer.n, 1);
+    // }
+
+    // #[test]
+    // fn looptimer_3() {
+    //     let mut timer = looptimer();
+    //     let mut guard = TimerGuard::first_ok();
+    //     timer.update(guard.second(true), 0.0);
+    //     timer.update(guard.second(true), 1.0);
+    //     timer.update(guard.second(true), 0.0);
+    //     assert_eq!(timer.n, 2);
+    // }
 }

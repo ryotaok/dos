@@ -24,7 +24,7 @@ impl Ningguang {
 impl SpecialAbility for Ningguang {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Ningguang").vision("Geo").weapon("Catalyst").release_date("2020-09-28").version(1.0)
+            .name("Ningguang").vision(Geo).weapon(Catalyst).release_date("2020-09-28").version(1.0)
             .base_hp(9787.0).base_atk(212.0).base_def(573.0)
             .dmg_geo(24.0)
             // .na_1(0.0).na_2(0.0).na_3(0.0).na_4(0.0).na_5(0.0).na_6(0.0).na_time(1.67)
@@ -33,11 +33,11 @@ impl SpecialAbility for Ningguang {
             .burst_cd(12.0).energy_cost(40.0).burst_dmg(156.53 * 5.0)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.skill_timer.update(gaurd.second(attack.iter().any(|a| a.kind == Skill)), time);
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.skill_timer.update(guard.second(attack.iter().any(|a| a.kind == Skill)), time);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         // a4
         if self.skill_timer.is_active() {
             for s in modifiable_state.iter_mut() {
@@ -68,7 +68,7 @@ impl Noelle {
 impl SpecialAbility for Noelle {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Noelle").vision("Geo").weapon("Claymore").release_date("2020-09-28").version(1.0)
+            .name("Noelle").vision(Geo).weapon(Claymore).release_date("2020-09-28").version(1.0)
             .base_hp(12071.0).base_atk(191.0).base_def(799.0)
             .def(30.0)
             .na_1(156.4).na_2(145.01).na_3(170.51).na_4(224.23).na_time(2.616)
@@ -78,15 +78,15 @@ impl SpecialAbility for Noelle {
             .skill_unit(2.0).skill_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.burst_timer.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
-        self.na_a4.update(gaurd.second(attack.iter().any(|a| a.kind == Na || a.kind == Ca)), time);
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.burst_timer.update(guard.second(attack.iter().any(|a| a.kind == Burst)), time);
+        self.na_a4.update(guard.second(attack.iter().any(|a| a.kind == Na || a.kind == Ca)), time);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         if self.burst_timer.is_active() {
-            modifiable_state[owner_fc.idx.0].flat_atk += owner_fc.state.DEF() * 0.72;
-            modifiable_state[owner_fc.idx.0].infusion = true;
+            modifiable_state[data.idx.0].flat_atk += data.state.DEF() * 0.72;
+            modifiable_state[data.idx.0].infusion = true;
         }
     }
 
@@ -118,7 +118,7 @@ impl TravelerGeo {
 impl SpecialAbility for TravelerGeo {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Traveler (Geo)").vision("Geo").weapon("Sword").release_date("2020-09-28").version(1.0)
+            .name("Traveler (Geo)").vision(Geo).weapon(Sword).release_date("2020-09-28").version(1.0)
             .base_hp(10875.0).base_atk(212.0).base_def(683.0)
             .atk(24.0)
             .na_1(87.89).na_2(85.85).na_3(104.72).na_4(115.26).na_5(139.91).na_6(0.0).na_time(2.55)
@@ -129,11 +129,11 @@ impl SpecialAbility for TravelerGeo {
             .skill_unit(2.0).skill_decay(B).burst_unit(2.0).burst_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.na_1.update(gaurd.second(attack.iter().any(|a| a.kind == Na)), time);
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.na_1.update(guard.second(attack.iter().any(|a| a.kind == Na)), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.na_1.is_active() {
             atk_queue.push(Attack {
                 kind: Na,
@@ -142,8 +142,8 @@ impl SpecialAbility for TravelerGeo {
                 particle: None,
                 state: None,
                 icd_cleared: fa.na.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
     }

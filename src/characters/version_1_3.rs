@@ -24,7 +24,7 @@ impl Xiao {
 impl SpecialAbility for Xiao {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Xiao").vision("Anemo").weapon("Polearm").release_date("2020-12-23").version(1.3)
+            .name("Xiao").vision(Anemo).weapon(Polearm).release_date("2020-12-23").version(1.3)
             .base_hp(12736.0).base_atk(349.0).base_def(799.0)
             .cr(24.2)
             .na_1(49.14*2.0).na_2(101.58).na_3(122.3).na_4(67.2*2.0).na_5(127.64).na_6(170.97).na_time(4.1)
@@ -34,20 +34,20 @@ impl SpecialAbility for Xiao {
             .skill_unit(2.0).skill_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.burst_timer.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
-        self.skill_a1.update(gaurd.second(true), time);
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.burst_timer.update(guard.second(attack.iter().any(|a| a.kind == Burst)), time);
+        self.skill_a1.update(guard.second(true), time);
     }
 
     // TODO a4 is disabled for now
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         if self.burst_timer.is_active() {
-            modifiable_state[owner_fc.idx.0].infusion = true;
-            modifiable_state[owner_fc.idx.0].na_dmg += 95.2;
-            modifiable_state[owner_fc.idx.0].ca_dmg += 95.2;
+            modifiable_state[data.idx.0].infusion = true;
+            modifiable_state[data.idx.0].na_dmg += 95.2;
+            modifiable_state[data.idx.0].ca_dmg += 95.2;
         }
         if self.burst_timer.is_active() && self.skill_a1.is_active() {
-            modifiable_state[owner_fc.idx.0].all_dmg += 5.0 * self.skill_a1.n as f32;
+            modifiable_state[data.idx.0].all_dmg += 5.0 * self.skill_a1.n as f32;
         }
     }
 
@@ -76,7 +76,7 @@ impl HuTao {
 impl SpecialAbility for HuTao {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Hu Tao").vision("Pyro").weapon("Polearm").release_date("2021-01-12").version(1.3)
+            .name("Hu Tao").vision(Pyro).weapon(Polearm).release_date("2021-01-12").version(1.3)
             .base_hp(15552.0).base_atk(106.0).base_def(876.0)
             .cd(88.4)
             // a4
@@ -88,15 +88,15 @@ impl SpecialAbility for HuTao {
             .burst_unit(2.0).burst_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         let before = self.skill_timer.is_active();
-        self.skill_timer.update(gaurd.second(attack.iter().any(|a| a.kind == Skill)), time);
+        self.skill_timer.update(guard.second(attack.iter().any(|a| a.kind == Skill)), time);
         let after = self.skill_timer.is_active();
-        self.skill_aa.update(gaurd, time);
-        self.skill_expire.update(gaurd.second(before && !after), time);
+        self.skill_aa.update(guard, time);
+        self.skill_expire.update(guard.second(before && !after), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.skill_aa.is_active() {
             atk_queue.push(Attack {
                 kind: SkillDot,
@@ -105,21 +105,21 @@ impl SpecialAbility for HuTao {
                 particle: None,
                 state: None,
                 icd_cleared: fa.burst.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         if self.skill_timer.is_active() {
-            modifiable_state[owner_fc.idx.0].infusion = true;
-            modifiable_state[owner_fc.idx.0].flat_atk += owner_fc.state.HP() * 0.0626;
+            modifiable_state[data.idx.0].infusion = true;
+            modifiable_state[data.idx.0].flat_atk += data.state.HP() * 0.0626;
         }
         // a1
         if self.skill_expire.is_active() {
             for (i, s) in modifiable_state.iter_mut().enumerate() {
-                if i != owner_fc.idx.0 {
+                if i != data.idx.0 {
                     s.cr += 12.0;
                 }
             }

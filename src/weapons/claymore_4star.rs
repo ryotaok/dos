@@ -1,48 +1,56 @@
+use std::ptr;
+
 use crate::state::State;
-use crate::types::{AttackType, Vision};
-use crate::fc::{SpecialAbility, FieldCharacter, FieldAction, WeaponRecord, Enemy};
-use crate::action::{Attack, TimerGuard, EffectTimer, HitsTimer, StackTimer};
+use crate::types::{AttackType, WeaponType, Particle, Vision, GAUGE1A};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, HitsTimer, StackTimer};
 use crate::testutil;
 
 use AttackType::*;
-use Vision::*;
+use WeaponType::*;
+// use Vision::*;
 
 // version 1.0
 
 pub struct PrototypeArchaicR5 {
     timer: HitsTimer,
+    aa: Attack,
 }
 
 impl PrototypeArchaicR5 {
-    pub fn new() -> Self {
-        Self { timer: HitsTimer::new(15.0, 1) }
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            timer: HitsTimer::new(15.0, 1),
+            aa: Attack {
+                kind: AdditionalAttack,
+                gauge: &GAUGE1A,
+                multiplier: 480.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }
+        }
+    }
+}
+
+impl WeaponAbility for PrototypeArchaicR5 {
+    fn record(&self) -> WeaponRecord {
+        WeaponRecord::default()
+            .name("Prototype Archaic R5").type_(Claymore).version(1.0)
+            .base_atk(566.0)
+            .atk(27.6)
     }
 }
 
 impl SpecialAbility for PrototypeArchaicR5 {
-    fn weapon(&self) -> WeaponRecord {
-        WeaponRecord::default()
-            .name("Prototype Archaic R5").type_("Claymore").version(1.0)
-            .base_atk(566.0)
-            .atk(27.6)
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+        let should_update = timers.na_timer().is_active() || timers.ca_timer().is_active();
+        self.timer.update(guard.second(testutil::chance() < 0.5 && should_update), time);
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(testutil::chance() < 0.5 && attack.iter().any(|a| a.is_naca())), time);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, _fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
-            atk_queue.push(Attack {
-                kind: AdditionalAttack,
-                element: Physical,
-                multiplier: 480.0,
-                particle: None,
-                state: None,
-                icd_cleared: false,
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
-            })
+            atk_queue.push(ElementalAttack::physical(&self.aa))
         }
     }
 
@@ -61,22 +69,26 @@ impl WhiteblindR5 {
     }
 }
 
-impl SpecialAbility for WhiteblindR5 {
-    fn weapon(&self) -> WeaponRecord {
+impl WeaponAbility for WhiteblindR5 {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Whiteblind R5").type_("Claymore").version(1.0)
+            .name("Whiteblind R5").type_(Claymore).version(1.0)
             .base_atk(510.0)
             .def(51.7)
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(attack.iter().any(|a| a.is_naca())), time);
+impl SpecialAbility for WhiteblindR5 {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+        let should_update = timers.na_timer().is_active() || timers.ca_timer().is_active();
+        self.timer.update(guard.second(should_update), time);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
         if self.timer.is_active() {
-            modifiable_state[owner_fc.idx.0].atk += 12.0 * self.timer.n as f32;
-            modifiable_state[owner_fc.idx.0].def += 12.0 * self.timer.n as f32;
+            let mut state = &mut modifiable_state[data.idx.0];
+            state.atk += 12.0 * self.timer.n as f32;
+            state.def += 12.0 * self.timer.n as f32;
         }
     }
 
@@ -95,22 +107,24 @@ impl SerpentSpineR5 {
     }
 }
 
-impl SpecialAbility for SerpentSpineR5 {
-    fn weapon(&self) -> WeaponRecord {
+impl WeaponAbility for SerpentSpineR5 {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Serpent Spine R5").type_("Claymore").version(1.0)
+            .name("Serpent Spine R5").type_(Claymore).version(1.0)
             .base_atk(510.0)
             .cr(27.6)
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, _attack: &[Attack], owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+impl SpecialAbility for SerpentSpineR5 {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         // only the attacker can activate the passive
-        self.timer.update(gaurd.second(owner_fc.idx.0 == 0), time);
+        self.timer.update(guard.second(data.idx.0 == 0), time);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
         if self.timer.is_active() {
-            modifiable_state[owner_fc.idx.0].all_dmg += 10.0 * self.timer.n as f32;
+            modifiable_state[data.idx.0].all_dmg += 10.0 * self.timer.n as f32;
         }
     }
 
@@ -122,10 +136,12 @@ impl SpecialAbility for SerpentSpineR5 {
 // one stack is always active
 pub struct BlackcliffSlasherR5;
 
-impl SpecialAbility for BlackcliffSlasherR5 {
-    fn weapon(&self) -> WeaponRecord {
+impl SpecialAbility for BlackcliffSlasherR5 {}
+
+impl WeaponAbility for BlackcliffSlasherR5 {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Blackcliff Slasher R5").type_("Claymore").version(1.0)
+            .name("Blackcliff Slasher R5").type_(Claymore).version(1.0)
             .base_atk(510.0)
             .atk(24.0).cd(55.1)
     }
@@ -133,10 +149,12 @@ impl SpecialAbility for BlackcliffSlasherR5 {
 
 pub struct RoyalGreatswordR5;
 
-impl SpecialAbility for RoyalGreatswordR5 {
-    fn weapon(&self) -> WeaponRecord {
+impl SpecialAbility for RoyalGreatswordR5 {}
+
+impl WeaponAbility for RoyalGreatswordR5 {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Royal Greatsword R5").type_("Claymore").version(1.0)
+            .name("Royal Greatsword R5").type_(Claymore).version(1.0)
             .base_atk(565.0)
             .atk(27.6)
     }
@@ -144,18 +162,20 @@ impl SpecialAbility for RoyalGreatswordR5 {
 
 pub struct RainslasherR5;
 
-impl SpecialAbility for RainslasherR5 {
-    fn weapon(&self) -> WeaponRecord {
+impl WeaponAbility for RainslasherR5 {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Rainslasher R5").type_("Claymore").version(1.0)
+            .name("Rainslasher R5").type_(Claymore).version(1.0)
             .base_atk(510.0)
             .em(165.0)
     }
+}
 
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
+impl SpecialAbility for RainslasherR5 {
+    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         match &enemy.aura.aura {
             Vision::Electro |
-            Vision::Hydro => modifiable_state[owner_fc.idx.0].all_dmg += 36.0,
+            Vision::Hydro => modifiable_state[data.idx.0].all_dmg += 36.0,
             _ => (),
         }
     }

@@ -26,7 +26,7 @@ impl Kazuha {
 impl SpecialAbility for Kazuha {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Kazuha").vision("Anemo").weapon("Sword").release_date("2021-06-29").version(1.6)
+            .name("Kazuha").vision(Anemo).weapon(Sword).release_date("2021-06-29").version(1.6)
             .base_hp(13348.0).base_atk(297.0).base_def(807.0)
             .em(115.2)
             .na_1(88.91).na_2(89.42).na_3(51.0 + 61.2).na_4(120.02).na_5(50.15 * 3.0).na_6(0.0).na_time(2.066)
@@ -36,14 +36,14 @@ impl SpecialAbility for Kazuha {
             .skill_unit(2.0).skill_decay(B).burst_unit(2.0).burst_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.skill_aa.update(gaurd.second(attack.iter().any(|a| a.kind == Skill)), time);
-        self.burst_aa.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.skill_aa.update(guard.second(attack.iter().any(|a| a.kind == Skill)), time);
+        self.burst_aa.update(guard.second(attack.iter().any(|a| a.kind == Burst)), time);
         // TODO remember the specific element on the enemy
-        self.swirl_a4.update(gaurd.second(attack.iter().any(|a| enemy.trigger_er(&a.element).is_swirl())), time);
+        self.swirl_a4.update(guard.second(attack.iter().any(|a| enemy.trigger_er(&a.element).is_swirl())), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.skill_aa.is_active() {
             // a1
             if enemy.aura.aura != Physical {
@@ -54,8 +54,8 @@ impl SpecialAbility for Kazuha {
                     particle: None,
                     state: None,
                     icd_cleared: fa.na.icd.clear(),
-                    on_field_character_index: owner_fc.idx.0,
-                    fc_ptr: owner_fc,
+                    on_field_character_index: data.idx.0,
+                    fc_ptr: data,
                 });
             }
             atk_queue.push(Attack {
@@ -65,8 +65,8 @@ impl SpecialAbility for Kazuha {
                 particle: None,
                 state: None,
                 icd_cleared: fa.na.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             });
         }
         if self.burst_aa.is_active() {
@@ -78,8 +78,8 @@ impl SpecialAbility for Kazuha {
                     particle: None,
                     state: None,
                     icd_cleared: fa.burst.icd.clear(),
-                    on_field_character_index: owner_fc.idx.0,
-                    fc_ptr: owner_fc,
+                    on_field_character_index: data.idx.0,
+                    fc_ptr: data,
                 });
             }
             atk_queue.push(Attack {
@@ -89,16 +89,16 @@ impl SpecialAbility for Kazuha {
                 particle: None,
                 state: None,
                 icd_cleared: fa.burst.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             });
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         if self.swirl_a4.is_active() {
             for s in modifiable_state.iter_mut() {
-                s.elemental_dmg += owner_fc.state.em * 0.04;
+                s.elemental_dmg += data.state.em * 0.04;
             }
         }
     }

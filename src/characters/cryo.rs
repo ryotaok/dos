@@ -28,7 +28,7 @@ impl Chongyun {
 impl SpecialAbility for Chongyun {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Chongyun").vision("Cryo").weapon("Claymore").release_date("2020-09-28").version(1.0)
+            .name("Chongyun").vision(Cryo).weapon(Claymore).release_date("2020-09-28").version(1.0)
             .base_hp(10984.0).base_atk(223.0).base_def(648.0)
             .atk(24.0)
             .na_1(138.38).na_2(124.78).na_3(158.78).na_4(200.09).na_time(2.983)
@@ -38,15 +38,15 @@ impl SpecialAbility for Chongyun {
             .skill_unit(2.0).skill_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.skill_infusion.update(gaurd.second(attack.iter().any(|a| a.kind == Skill)), time);
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.skill_infusion.update(guard.second(attack.iter().any(|a| a.kind == Skill)), time);
         let before = self.skill_timer.is_active();
-        self.skill_timer.update(gaurd, time);
+        self.skill_timer.update(guard, time);
         let after = self.skill_timer.is_active();
         self.skill_expire = before && !after;
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.skill_expire {
             atk_queue.push(Attack {
                 kind: SkillDot,
@@ -55,13 +55,13 @@ impl SpecialAbility for Chongyun {
                 particle: None,
                 state: None,
                 icd_cleared: fa.skill.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         // a1
         if self.skill_timer.is_active() {
             for s in modifiable_state.iter_mut() {
@@ -102,7 +102,7 @@ impl Kaeya {
 impl SpecialAbility for Kaeya {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Kaeya").vision("Cryo").weapon("Sword").release_date("2020-09-28").version(1.0)
+            .name("Kaeya").vision(Cryo).weapon(Sword).release_date("2020-09-28").version(1.0)
             .base_hp(11636.0).base_atk(223.0).base_def(792.0)
             .er(26.7)
             .na_1(106.25).na_2(102.17).na_3(129.03).na_4(140.08).na_5(174.42).na_time(2.734)
@@ -112,12 +112,12 @@ impl SpecialAbility for Kaeya {
             .skill_unit(2.0).skill_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.burst_aa.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.burst_aa.update(guard.second(attack.iter().any(|a| a.kind == Burst)), time);
         self.skill_a4 = attack.iter().any(|a| a.kind == Skill && a.element == Cryo) && enemy.aura.aura == Hydro;
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.burst_aa.is_active() {
             atk_queue.push(Attack {
                 kind: BurstDot,
@@ -126,8 +126,8 @@ impl SpecialAbility for Kaeya {
                 particle: None,
                 state: None,
                 icd_cleared: fa.burst.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
         if self.skill_a4 {
@@ -138,8 +138,8 @@ impl SpecialAbility for Kaeya {
                 particle: Some(2.0),
                 state: None,
                 icd_cleared: false,
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
     }
@@ -165,7 +165,7 @@ impl Qiqi {
 impl SpecialAbility for Qiqi {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Qiqi").vision("Cryo").weapon("Sword").release_date("2020-09-28").version(1.0)
+            .name("Qiqi").vision(Cryo).weapon(Sword).release_date("2020-09-28").version(1.0)
             .base_hp(12368.0).base_atk(287.0).base_def(922.0)
             .na_1(74.63).na_2(76.84).na_3(47.77*2.0).na_4(48.79*2.0).na_5(124.61).na_time(2.25)
             // .na_0(0.0).ca_1(0.0).ca_2(0.0).ca_time(0.0)
@@ -174,11 +174,11 @@ impl SpecialAbility for Qiqi {
             .burst_unit(2.0).burst_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.skill_aa.update(gaurd.second(attack.iter().any(|a| a.kind == Skill)), time);
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.skill_aa.update(guard.second(attack.iter().any(|a| a.kind == Skill)), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.skill_aa.is_active() {
             atk_queue.push(Attack {
                 kind: SkillDot,
@@ -187,8 +187,8 @@ impl SpecialAbility for Qiqi {
                 particle: None,
                 state: None,
                 icd_cleared: fa.skill.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
     }

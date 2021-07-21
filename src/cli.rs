@@ -59,9 +59,9 @@ impl Default for Args {
     fn default() -> Self {
         Self {
             n_members: 1,
-            character_version: 1.6,
-            weapon_version: 1.6,
-            artifact_version: 1.6,
+            character_version: 2.0,
+            weapon_version: 2.0,
+            artifact_version: 2.0,
             unit_time: 0.2,
             emulation_time: 20.0,
             truncate: false,

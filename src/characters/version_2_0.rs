@@ -24,7 +24,7 @@ impl Ayaka {
 impl SpecialAbility for Ayaka {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Ayaka").vision("Cryo").weapon("Sword").release_date("2021-07-20").version(2.0)
+            .name("Ayaka").vision(Cryo).weapon(Sword).release_date("2021-07-20").version(2.0)
             .base_hp(12858.0).base_atk(342.0).base_def(784.0)
             .cd(88.4)
             .na_1(90.39).na_2(96.24).na_3(123.79).na_4(44.77 * 3.0).na_5(154.55).na_6(0.0).na_time(2.017)
@@ -34,7 +34,7 @@ impl SpecialAbility for Ayaka {
             .skill_unit(2.0).skill_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         let mut skill = false;
         let mut burst = false;
         for a in attack {
@@ -44,11 +44,11 @@ impl SpecialAbility for Ayaka {
                 _ => (),
             }
         }
-        self.skill_a1.update(gaurd.second(skill), time);
-        self.burst_timer.update(gaurd.second(burst), time);
+        self.skill_a1.update(guard.second(skill), time);
+        self.burst_timer.update(guard.second(burst), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.burst_timer.is_active() {
             atk_queue.push(Attack {
                 kind: BurstDot,
@@ -57,14 +57,14 @@ impl SpecialAbility for Ayaka {
                 particle: None,
                 state: None,
                 icd_cleared: fa.burst.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
-        let s = &mut modifiable_state[owner_fc.idx.0];
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
+        let s = &mut modifiable_state[data.idx.0];
         // Alternate Sprint (Kamisato Art: Senho)
         s.infusion = true;
         if self.skill_a1.is_active() {
@@ -102,7 +102,7 @@ impl Yoimiya {
 impl SpecialAbility for Yoimiya {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Yoimiya").vision("Pyro").weapon("Bow").release_date("2021-08-10").version(2.0)
+            .name("Yoimiya").vision(Pyro).weapon(Bow).release_date("2021-08-10").version(2.0)
             .base_hp(10164.0).base_atk(323.0).base_def(615.0)
             .cr(24.2)
             .na_1(63.59*2.0).na_2(121.99).na_3(158.59).na_4(82.82*2.0).na_5(188.87).na_6(0.0).na_time(2.0)
@@ -111,7 +111,7 @@ impl SpecialAbility for Yoimiya {
             .burst_cd(15.0).energy_cost(60.0).burst_dmg(228.96)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         let mut skill_and_na = false;
         let mut skill = false;
         let mut burst = false;
@@ -123,14 +123,14 @@ impl SpecialAbility for Yoimiya {
                 _ => (),
             }
         }
-        self.skill_timer.update(gaurd.second(skill), time);
-        // self.skill_aa.update(gaurd.second(skill_and_na), time);
-        self.skill_a1.update(gaurd.second(skill_and_na), time);
-        self.burst_aa.update(gaurd.second(burst), time);
-        self.burst_a4.update(gaurd.second(burst), time);
+        self.skill_timer.update(guard.second(skill), time);
+        // self.skill_aa.update(guard.second(skill_and_na), time);
+        self.skill_a1.update(guard.second(skill_and_na), time);
+        self.burst_aa.update(guard.second(burst), time);
+        self.burst_a4.update(guard.second(burst), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         // if self.skill_aa.is_active() {
         //     atk_queue.push(Attack {
         //         kind: Na,
@@ -139,8 +139,8 @@ impl SpecialAbility for Yoimiya {
         //         particle: None,
         //         state: None,
         //         icd_cleared: fa.na.icd.clear(),
-        //         on_field_character_index: owner_fc.idx.0,
-        //         fc_ptr: owner_fc,
+        //         on_field_character_index: data.idx.0,
+        //         fc_ptr: data,
         //     })
         // }
         if self.burst_aa.is_active() {
@@ -151,21 +151,21 @@ impl SpecialAbility for Yoimiya {
                 particle: None,
                 state: None,
                 icd_cleared: fa.burst.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         if self.burst_a4.is_active() {
             for (i, s) in modifiable_state.iter_mut().enumerate() {
-                if i != owner_fc.idx.0 {
+                if i != data.idx.0 {
                     s.atk += 10.0 + self.skill_a1.n as f32;
                 }
             }
         }
-        let state = &mut modifiable_state[owner_fc.idx.0];
+        let state = &mut modifiable_state[data.idx.0];
         if self.skill_a1.is_active() {
             state.pyro_dmg += 2.0 * self.skill_a1.n as f32;
         }
@@ -201,7 +201,7 @@ impl Sayu {
 impl SpecialAbility for Sayu {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Sayu").vision("Anemo").weapon("Claymore").release_date("2021-08-10").version(2.0)
+            .name("Sayu").vision(Anemo).weapon(Claymore).release_date("2021-08-10").version(2.0)
             .base_hp(11854.0).base_atk(244.0).base_def(745.0)
             .em(96.0)
             .na_1(142.8).na_2(141.1).na_3(85.85*2.0).na_4(193.97).na_5(0.0).na_6(0.0).na_time(2.616)
@@ -211,7 +211,7 @@ impl SpecialAbility for Sayu {
             // .skill_unit(2.0).skill_decay(B).burst_unit(4.0).burst_decay(C)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         let mut burst = false;
         for a in attack {
             match a.kind {
@@ -219,10 +219,10 @@ impl SpecialAbility for Sayu {
                 _ => (),
             }
         }
-        self.burst_aa.update(gaurd.second(burst), time);
+        self.burst_aa.update(guard.second(burst), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.burst_aa.is_active() {
             atk_queue.push(Attack {
                 kind: BurstDot,
@@ -231,8 +231,8 @@ impl SpecialAbility for Sayu {
                 particle: None,
                 state: None,
                 icd_cleared: fa.burst.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             })
         }
     }

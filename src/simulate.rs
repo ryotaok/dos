@@ -1,9 +1,7 @@
-use std::borrow::Borrow;
-
 use crate::state::State;
-use crate::fc::{CharacterData, Enemy, FieldCharacterData, CharacterAbility, WeaponAbility, ArtifactAbility};
+use crate::fc::{CharacterData, Enemy, FieldCharacterData};
 use crate::types::{AttackType, Particle};
-use crate::action::{Attack, ElementalAttack, AttackEvent, TimerGuard};
+use crate::action::{ElementalAttack, AttackEvent, TimerGuard};
 
 use AttackType::*;
 
@@ -11,7 +9,7 @@ use AttackType::*;
 //     0 = the main DPS character who does normal attacks frequently
 // later = support characters whose skills and bursts are prioritized higher
 //         than the 0 member's. They never do normal attacks or charge attacks.
-pub fn simulate<C: CharacterAbility, W: WeaponAbility, A: ArtifactAbility>(members: &mut [FieldCharacterData<C, W, A>], enemy: &mut Enemy, time: f32) -> f32 {
+pub fn simulate(members: &mut [FieldCharacterData], enemy: &mut Enemy, time: f32) -> f32 {
     // TODO cache it
     let mut particles: Vec<Particle> = Vec::new();
     let mut maybe_attack: Vec<Option<AttackEvent>> = Vec::with_capacity(members.len());
@@ -35,7 +33,7 @@ pub fn simulate<C: CharacterAbility, W: WeaponAbility, A: ArtifactAbility>(membe
             }
         }
     }
-    println!("{:?}", attack_event);
+    // println!("{:?}", attack_event);
     // collect attacks
     for FieldCharacterData { fc, atk_queue } in members.iter_mut() {
         fc.additional_attack(atk_queue, &mut particles, &enemy);
@@ -46,13 +44,13 @@ pub fn simulate<C: CharacterAbility, W: WeaponAbility, A: ArtifactAbility>(membe
         modifiable_state.push(State::new());
     }
     for FieldCharacterData { fc, atk_queue } in members.iter_mut() {
-        let mut guard = TimerGuard::with_first_2(&attack_event, &fc.data);
-        fc.update(&mut guard, &atk_queue, &particles, &enemy, time);
         // TODO review how to use TimerGuard; it has prevented CD from starting
         // even if the character does nothing.
-        guard.first = true;
+        // guard.first = true;
         fc.modify(&mut modifiable_state, enemy);
         fc.accelerate();
+        let mut guard = TimerGuard::with_first_2(&attack_event, &fc.data);
+        fc.update(&mut guard, &atk_queue, &particles, &enemy, time);
         // weapon.accelerate(character.timer_mut());
         // artifact.accelerate(character.timer_mut());
     }
@@ -119,7 +117,8 @@ pub fn calculate(attack: &ElementalAttack, state: Option<State>, fc: &CharacterD
     let mut dmg = attack.outgoing_damage(attack_element, state, fc);
     dmg = attack.incoming_damage(attack_element, dmg, fc, enemy);
     let atk = unsafe { &(*attack.atk) };
-    println!("  dmg = {:?}: {:?}({:?})", dmg, &atk.kind, atk.idx.0);
+    // println!("  dmg = {:?}: {:?}({:?})", dmg, &atk.kind, atk.idx.0);
+    // println!("{:?}\t{:?}", dmg, &atk.kind);
     // println!("{:?} {:?}", &attack.kind, dmg);
     dmg
 }
@@ -130,272 +129,308 @@ mod tests {
     use crate::testutil::{TestEnvironment};
     use crate::types::{Vision, ElementalGauge, ElementalGaugeDecay};
     use crate::fc::FieldCharacterIndex;
-    use crate::action::{CharacterTimersBuilder, CharacterTimers};
 
     use Vision::*;
 
-    fn boxtimer() -> Box<dyn CharacterTimers> {
-        Box::new(CharacterTimersBuilder::new().build_burst())
-    }
-
     #[test]
     fn simple_setup() {
-        let mut timers = boxtimer();
+        let mut env = TestEnvironment::new();
         let mut members = vec![
-            TestEnvironment::vision(&mut timers, FieldCharacterIndex(0), State::new(), Pyro)
+            env.vision(FieldCharacterIndex(0), State::new(), Pyro)
         ];
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
-        for _ in 0..11 {
+        for _ in 0..10 {
             total_dmg += simulate(&mut members, &mut enemy, 0.2);
         }
-        // skill na na na
-        let expect = 200.0 + 100.0 + 100.0 + 100.0 ;
+        // Na CD is 0.4 seconds. If 2 seconds passed in this simulation, there
+        // would be 5 Na attacks. Since the first attack is a skill, there are
+        // 1.8 seconds for Na attacks, so only 4 Na attacks.
+
+        // skill na na na na
+        let expect = 200.0 + 4.0 * 100.0;
         assert_eq!(total_dmg, 0.5 * expect);
     }
 
-    // #[test]
-    // fn ca() {
-    //     let mut members = vec![TestEnvironment::ca(FieldCharacterIndex(0), State::new(), Pyro)];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..11 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     // skill (na ca) na na na
-    //     let expect = 200.0 + (100.0 + 150.0) + 3.0 * 100.0;
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    // }
+    #[test]
+    fn ca() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.ca(FieldCharacterIndex(0), State::new(), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        for _ in 0..10 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // skill (na ca) na na na
+        let expect = 200.0 + (100.0 + 150.0) + 3.0 * 100.0;
+        assert_eq!(total_dmg, 0.5 * expect);
+    }
 
-    // #[test]
-    // fn hold() {
-    //     let mut members = vec![TestEnvironment::hold(FieldCharacterIndex(0), State::new(), Pyro)];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..11 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     // hold na na skill na
-    //     let expect = 250.0 + 200.0 + 3.0 * 100.0;
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    // }
+    #[test]
+    fn hold() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.hold(FieldCharacterIndex(0), State::new(), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        for _ in 0..10 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // hold na na skill na
+        let expect = 250.0 + 200.0 + 4.0 * 100.0;
+        assert_eq!(total_dmg, 0.5 * expect);
+    }
 
-    // #[test]
-    // fn hold_and_recharge() {
-    //     let mut members = vec![TestEnvironment::hold(FieldCharacterIndex(0), State::new(), Pyro)];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     let mut _total_dmg = 0.0;
-    //     for _ in 0..11 {
-    //         _total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     // hold na na skill na
-    //     let energy = members[0].fc.state.energy.0;
-    //     assert_eq!(energy, 15.0);
-    // }
+    #[test]
+    fn hold_and_recharge() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.hold(FieldCharacterIndex(0), State::new(), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut _total_dmg = 0.0;
+        for _ in 0..10 {
+            _total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // hold na na skill na
+        let energy = members[0].fc.data.state.energy.0;
+        assert_eq!(energy, 15.0);
+    }
 
-    // #[test]
-    // fn burst() {
-    //     let mut timers = boxtimer();
-    //     let mut members = vec![
-    //         TestEnvironment::vision(&mut timers, FieldCharacterIndex(0), State::new(), Pyro)
-    //     ];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     let mut total_dmg = 0.0;
-    //     members[0].fc.data.state.energy.0 = members[0].fc.data.cr.energy_cost;
-    //     for _ in 0..11 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     // burst skill na na na
-    //     let expect = 300.0 + 200.0 + 3.0 * 100.0;
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    // }
+    #[test]
+    fn dot_skill() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.dot(FieldCharacterIndex(0), State::new(), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        for _ in 0..10 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // dot (3 * 50), 4 na
+        let expect = 150.0 + 4.0 * 100.0;
+        let energy = members[0].fc.data.state.energy.0;
+        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(energy, 9.0);
+    }
 
-    // #[test]
-    // fn burst_and_recharge() {
-    //     let mut timers = boxtimer();
-    //     let mut members = vec![
-    //         TestEnvironment::vision(&mut timers, FieldCharacterIndex(0), State::new(), Pyro)
-    //     ];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     let mut _total_dmg = 0.0;
-    //     members[0].fc.data.state.energy.0 = members[0].fc.data.cr.energy_cost;
-    //     for _ in 0..11 {
-    //         _total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     let energy = members[0].fc.data.state.energy.0;
-    //     // the skill was used once.
-    //     assert_eq!(energy, 6.0);
-    // }
+    #[test]
+    fn burst() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.vision(FieldCharacterIndex(0), State::new(), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        members[0].fc.data.state.energy.0 = members[0].fc.data.cr.energy_cost;
+        for _ in 0..10 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // burst skill na na na na
+        let expect = 300.0 + 200.0 + 3.0 * 100.0;
+        assert_eq!(total_dmg, 0.5 * expect);
+    }
 
-    // #[test]
-    // fn infuse_goblet() {
-    //     let mut timers = boxtimer();
-    //     let mut members = vec![
-    //         TestEnvironment::vision(&mut timers, FieldCharacterIndex(0), State::new().pyro_dmg(46.6), Pyro)
-    //     ];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..11 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     // skill na na na
-    //     let expect = 200.0 * 1.466 + 100.0 + 100.0 + 100.0;
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    // }
+    #[test]
+    fn burst_and_recharge() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.vision(FieldCharacterIndex(0), State::new(), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut _total_dmg = 0.0;
+        members[0].fc.data.state.energy.0 = members[0].fc.data.cr.energy_cost;
+        for _ in 0..10 {
+            _total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        let energy = members[0].fc.data.state.energy.0;
+        // the skill was used once.
+        assert_eq!(energy, 6.0);
+    }
 
-    // #[test]
-    // fn attack_infusion() {
-    //     let mut timers = boxtimer();
-    //     let mut members = vec![
-    //         TestEnvironment::vision(&mut timers, FieldCharacterIndex(0), State::new().pyro_dmg(46.6).infusion(true), Pyro)
-    //     ];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..11 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     // skill na na na
-    //     let expect = 1.466 * (200.0 + 100.0 + 100.0 + 100.0);
-    //     let differnce = (total_dmg - 0.5 * expect).abs();
-    //     assert!(differnce <= 0.001);
-    // }
+    #[test]
+    fn infuse_goblet() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.vision(FieldCharacterIndex(0), State::new().pyro_dmg(46.6), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        for _ in 0..10 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // skill na na na na
+        let expect = 200.0 * 1.466 + 4.0 * 100.0;
+        assert_eq!(total_dmg, 0.5 * expect);
+    }
 
-    // #[test]
-    // fn vaporize() {
-    //     let mut timers = boxtimer();
-    //     let mut members = vec![
-    //         TestEnvironment::vision(&mut timers, FieldCharacterIndex(0), State::new(), Pyro)
-    //     ];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     enemy.aura = ElementalGauge {
-    //         aura: Hydro,
-    //         unit: 1.0,
-    //         decay: ElementalGaugeDecay::A,
-    //     };
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..11 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     // skill na na na
-    //     let expect = 200.0 * 1.5 + 100.0 + 100.0 + 100.0;
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    //     assert_eq!(enemy.aura.aura, Hydro);
-    //     assert!(0.0 < enemy.aura.unit && enemy.aura.unit < 1.0);
-    // }
+    #[test]
+    fn attack_infusion() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.vision(FieldCharacterIndex(0), State::new().pyro_dmg(46.6).infusion(true), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        for _ in 0..10 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // skill na na na na
+        let expect = 1.466 * (200.0 + 4.0 * 100.0);
+        let differnce = (total_dmg - 0.5 * expect).abs();
+        assert!(differnce <= 0.001);
+    }
 
-    // #[test]
-    // fn icd_of_reaction_1_hit_counter() {
-    //     let mut timers = boxtimer();
-    //     let mut members = vec![
-    //         TestEnvironment::no_skill(&mut timers, FieldCharacterIndex(0), State::new().infusion(true), Pyro)
-    //         // TestEnvironment::no_skill(FieldCharacterIndex(0), State::new().infusion(true), Pyro)
-    //     ];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     enemy.aura = ElementalGauge {
-    //         aura: Hydro,
-    //         unit: 1.0,
-    //         decay: ElementalGaugeDecay::A,
-    //     };
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..11 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     // vaporize na na vaporize
-    //     let expect = 2.0 * 150.0 + 2.0 * 100.0;
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    //     assert_eq!(enemy.aura, ElementalGauge::default());
-    // }
+    #[test]
+    fn vaporize() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.vision(FieldCharacterIndex(0), State::new(), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        enemy.aura = ElementalGauge {
+            aura: Hydro,
+            unit: 1.0,
+            decay: ElementalGaugeDecay::A,
+        };
+        let mut total_dmg = 0.0;
+        for _ in 0..10 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // skill na na na na
+        let expect = 200.0 * 1.5 + 4.0 * 100.0;
+        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(enemy.aura.aura, Hydro);
+        assert!(0.0 < enemy.aura.unit && enemy.aura.unit < 1.0);
+    }
 
-    // #[test]
-    // fn icd_of_reaction_2_timer() {
-    //     let mut members = vec![
-    //         TestEnvironment::no_skill(FieldCharacterIndex(0), State::new().infusion(true), Pyro)
-    //     ];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     enemy.aura = ElementalGauge {
-    //         aura: Hydro,
-    //         unit: 99.0,
-    //         decay: ElementalGaugeDecay::A,
-    //     };
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..4 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 3.0);
-    //     }
-    //     // vaporize vaporize vaporize
-    //     let expect = 3.0 * 150.0;
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    //     assert_eq!(enemy.aura.aura, Hydro);
-    // }
+    #[test]
+    fn icd_of_reaction_1_hit_counter() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.no_skill(FieldCharacterIndex(0), State::new().infusion(true), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        enemy.aura = ElementalGauge {
+            aura: Hydro,
+            unit: 1.0,
+            decay: ElementalGaugeDecay::A,
+        };
+        let mut total_dmg = 0.0;
+        for _ in 0..10 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // vaporize na na vaporize
+        let expect = 2.0 * 150.0 + 2.0 * 100.0;
+        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(enemy.aura, ElementalGauge::default());
+    }
 
-    // #[test]
-    // fn melt() {
-    //     let mut members = vec![
-    //         TestEnvironment::vision(FieldCharacterIndex(0), State::new(), Pyro)
-    //     ];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     enemy.aura = ElementalGauge {
-    //         aura: Cryo,
-    //         unit: 1.0,
-    //         decay: ElementalGaugeDecay::A,
-    //     };
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..11 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     // skill na na na
-    //     let expect = 200.0 * 2.0 + 100.0 + 100.0 + 100.0;
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    //     assert_eq!(enemy.aura, ElementalGauge::default());
-    // }
+    #[test]
+    fn icd_of_reaction_2_timer() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.no_skill(FieldCharacterIndex(0), State::new().infusion(true), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        enemy.aura = ElementalGauge {
+            aura: Hydro,
+            unit: 99.0,
+            decay: ElementalGaugeDecay::A,
+        };
+        let mut total_dmg = 0.0;
+        for _ in 0..4 {
+            total_dmg += simulate(&mut members, &mut enemy, 3.0);
+        }
+        // Because the current simulator needs 1 iteration for its internal
+        // state, we iterate 3 times and one more.
 
-    // #[test]
-    // fn superconduct() {
-    //     let mut members = vec![
-    //         TestEnvironment::vision(FieldCharacterIndex(0), State::new(), Cryo)
-    //     ];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     enemy.aura = ElementalGauge {
-    //         aura: Electro,
-    //         unit: 1.0,
-    //         decay: ElementalGaugeDecay::A,
-    //     };
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..11 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     }
-    //     // (skill superconduct) na na na
-    //     // TODO transformative_reaction ignores enemy resistance
-    //     let expect = 200.0 + 725.36 * 2.0 + 120.0 + 120.0 + 120.0;
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    //     assert_eq!(enemy.aura, ElementalGauge::default());
-    // }
+        // vaporize vaporize vaporize
+        let expect = 3.0 * 150.0;
+        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(enemy.aura.aura, Hydro);
+    }
 
-    // #[test]
-    // fn atk_spd() {
-    //     let mut members = vec![TestEnvironment::fc(State::new().atk_spd(100.0))];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..21 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.1);
-    //     }
-    //     // skill na na na (na na na)
-    //     let expect = 200.0 + 6.0 * 100.0 ;
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    // }
+    #[test]
+    fn melt() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.vision(FieldCharacterIndex(0), State::new(), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        enemy.aura = ElementalGauge {
+            aura: Cryo,
+            unit: 1.0,
+            decay: ElementalGaugeDecay::A,
+        };
+        let mut total_dmg = 0.0;
+        for _ in 0..10 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // skill na na na na
+        let expect = 200.0 * 2.0 + 4.0 * 100.0;
+        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(enemy.aura, ElementalGauge::default());
+    }
 
-    // #[test]
-    // fn two_members() {
-    //     let mut members = vec![
-    //         TestEnvironment::fc(State::new()),
-    //         TestEnvironment::fc1(State::new()),
-    //         ];
-    //     let mut enemy = TestEnvironment::enemy();
-    //     let mut total_dmg = 0.0;
-    //     for _ in 0..21 {
-    //         total_dmg += simulate(&mut members, &mut enemy, 0.1);
-    //     }
-    //     // twice (skill na na na)
-    //     let expect = 2.0 * (200.0 + 100.0 + 100.0 + 100.0 );
-    //     assert_eq!(total_dmg, 0.5 * expect);
-    // }
+    #[test]
+    fn superconduct() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.vision(FieldCharacterIndex(0), State::new(), Cryo)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        enemy.aura = ElementalGauge {
+            aura: Electro,
+            unit: 1.0,
+            decay: ElementalGaugeDecay::A,
+        };
+        let mut total_dmg = 0.0;
+        for _ in 0..10 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // (skill superconduct) na na na na
+        // TODO transformative_reaction ignores enemy resistance
+        let expect = 200.0 + 725.36 * 2.0 + 4.0 * 120.0;
+        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(enemy.aura, ElementalGauge::default());
+    }
+
+    #[test]
+    fn atk_spd() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.vision(FieldCharacterIndex(0), State::new().atk_spd(50.0), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        for _ in 0..20 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.1);
+        }
+        // skill na na na (na na)
+        let expect = 200.0 + 6.0 * 100.0 ;
+        assert_eq!(total_dmg, 0.5 * expect);
+    }
+
+    #[test]
+    fn two_members() {
+        let mut env1 = TestEnvironment::new();
+        let mut env2 = TestEnvironment::new();
+        let mut members = vec![
+            env1.vision(FieldCharacterIndex(0), State::new(), Pyro),
+            env2.vision(FieldCharacterIndex(1), State::new(), Pyro),
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        for _ in 0..20 {
+            total_dmg += simulate(&mut members, &mut enemy, 0.1);
+        }
+        // twice (skill na na na na)
+        let expect = 2.0 * (200.0 + 3.0 * 100.0);
+        assert_eq!(total_dmg, 0.5 * expect);
+    }
 }

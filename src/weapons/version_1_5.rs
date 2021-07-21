@@ -1,9 +1,10 @@
 use crate::state::State;
-use crate::types::{AttackType, UnstackableBuff};
-use crate::fc::{SpecialAbility, FieldCharacter, WeaponRecord, Enemy};
-use crate::action::{Attack, TimerGuard, EffectTimer, SigilTimer};
+use crate::types::{AttackType, WeaponType, Particle, UnstackableBuff};
+use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, SigilTimer};
 
 use AttackType::*;
+use WeaponType::*;
 // use Vision::*;
 
 pub struct SongOfBrokenPines {
@@ -18,20 +19,23 @@ impl SongOfBrokenPines {
     }
 }
 
-impl SpecialAbility for SongOfBrokenPines {
-    fn weapon(&self) -> WeaponRecord {
+impl WeaponAbility for SongOfBrokenPines {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Song of Broken Pines").type_("Claymore").version(1.5)
+            .name("Song of Broken Pines").type_(Claymore).version(1.5)
             .base_atk(741.0)
-            .atk(0.0 + 16.0)
+            .atk(16.0)
             .dmg_phy(20.7)
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(attack.iter().any(|a| a.kind == Na || a.kind == Ca)), time);
+impl SpecialAbility for SongOfBrokenPines {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+        let should_update = guard.kind == Na || guard.kind == Ca;
+        self.timer.update(guard.second(should_update), time);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &mut Enemy) -> () {
         if self.timer.is_active() {
             for s in modifiable_state.iter_mut() {
                 if s.stacked_buff != UnstackableBuff::MillennialMovementSeries() {

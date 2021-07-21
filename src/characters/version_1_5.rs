@@ -26,7 +26,7 @@ impl Yanfei {
 impl SpecialAbility for Yanfei {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Yanfei").vision("Pyro").weapon("Catalyst").release_date("2020-12-23").version(1.5)
+            .name("Yanfei").vision(Pyro).weapon(Catalyst).release_date("2020-12-23").version(1.5)
             .base_hp(9352.0).base_atk(240.0).base_def(587.0)
             .dmg_pyro(24.0)
             .na_1(105.01).na_2(93.83).na_3(136.82).na_4(0.0).na_5(0.0).na_6(0.0).na_time(1.34)
@@ -36,29 +36,29 @@ impl SpecialAbility for Yanfei {
             .burst_unit(2.0).burst_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         for a in attack {
             match &a.kind {
-                Na    => self.scarlet_seal.update(gaurd.second(true), time),
+                Na    => self.scarlet_seal.update(guard.second(true), time),
                 Skill => {
                     // gain 3 scarlet seals on skill
                     for _ in 0..3 {
                         if self.scarlet_seal.n != 3 {
-                            self.scarlet_seal.update(gaurd.second(true), 0.0);
+                            self.scarlet_seal.update(guard.second(true), 0.0);
                         }
                     }
                 },
-                _ => self.scarlet_seal.update(gaurd.second(false), time),
+                _ => self.scarlet_seal.update(guard.second(false), time),
             };
         }
-        self.burst_duration.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
-        self.burst_grant_interval.update(gaurd, time);
+        self.burst_duration.update(guard.second(attack.iter().any(|a| a.kind == Burst)), time);
+        self.burst_grant_interval.update(guard, time);
         if self.burst_grant_interval.is_active() && self.scarlet_seal.n != 3 {
-            self.scarlet_seal.update(gaurd.second(true), 0.0);
+            self.scarlet_seal.update(guard.second(true), 0.0);
         }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.scarlet_seal.is_active() {
             atk_queue.push(Attack {
                 kind: Ca,
@@ -67,15 +67,15 @@ impl SpecialAbility for Yanfei {
                 particle: None,
                 state: None,
                 icd_cleared: fa.na.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             });
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         if self.burst_duration.is_active() {
-            modifiable_state[owner_fc.idx.0].ca_dmg += 54.4;
+            modifiable_state[data.idx.0].ca_dmg += 54.4;
         }
     }
 
@@ -108,7 +108,7 @@ impl Eula {
 impl SpecialAbility for Eula {
     fn character(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Eula").vision("Cryo").weapon("Claymore").release_date("2021-01-12").version(1.5)
+            .name("Eula").vision(Cryo).weapon(Claymore).release_date("2021-01-12").version(1.5)
             .base_hp(13226.0).base_atk(342.0).base_def(751.0)
             .cd(88.4)
             .na_1(117.38).na_2(184.93).na_3(112.28*2.0).na_4(222.67).na_5(142.0*2.0).na_time(3.85)
@@ -118,10 +118,10 @@ impl SpecialAbility for Eula {
             .burst_unit(2.0).burst_decay(B)
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], _owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         // update lightfall_sword_timer
         let before = self.lightfall_sword_timer.is_active();
-        self.lightfall_sword_timer.update(gaurd.second(attack.iter().any(|a| a.kind == Burst)), time);
+        self.lightfall_sword_timer.update(guard.second(attack.iter().any(|a| a.kind == Burst)), time);
         let after  = self.lightfall_sword_timer.is_active();
         self.lightfall_sword_expire = before && !after;
 
@@ -139,14 +139,14 @@ impl SpecialAbility for Eula {
         }
 
         // a4
-        self.grimheart.update(gaurd.second(attack.iter().any(|a| a.kind == Skill || a.kind == Burst)), time);
+        self.grimheart.update(guard.second(attack.iter().any(|a| a.kind == Skill || a.kind == Burst)), time);
         // assume consuming two stacks of `grimheart` and a1
         if self.grimheart.is_active() {
             self.lightfall_sword_stack += 3.0;
         }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if self.lightfall_sword_expire {
             atk_queue.push(Attack {
                 kind: BurstDot,
@@ -155,8 +155,8 @@ impl SpecialAbility for Eula {
                 particle: None,
                 state: None,
                 icd_cleared: false,
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             });
         }
         if self.grimheart.is_active() {
@@ -167,8 +167,8 @@ impl SpecialAbility for Eula {
                 particle: None,
                 state: None,
                 icd_cleared: fa.skill.icd.clear(),
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             });
             atk_queue.push(Attack {
                 kind: SkillDot,
@@ -177,13 +177,13 @@ impl SpecialAbility for Eula {
                 particle: None,
                 state: None,
                 icd_cleared: false,
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
+                on_field_character_index: data.idx.0,
+                fc_ptr: data,
             });
         }
     }
 
-    fn modify(&self, _modifiable_state: &mut [State], _owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         if self.grimheart.is_active() {
             enemy.element_res_debuff.push(Debuff::eula_cryo());
             enemy.physical_res_debuff.push(Debuff::eula_physical());

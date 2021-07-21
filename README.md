@@ -13,6 +13,10 @@ Characters:
 - All talent levels are 10.
 - Constellations are limited to 0 for now.
 
+When a player presses some button to do a certain action, it does not always mean that the enemy takes damage. There are differences between character's actions and their attack entities (which have a hit box in the game). The player interactions to character's actions are considered as `AttackEvent`, and attack entities that can damage enemies are considered as `Attack`.
+
+In this program, most of `Attack` are crated by characters at the same time as `AttackEvent` is triggered but some are not, especially those have DoT damage over times. Normal and charge attacks are simultaneous.
+
 Weapons:
 
 - Most weapons up to version 2.0 are implemented (you can choose a preferable version for simulation).
