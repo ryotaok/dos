@@ -13,6 +13,7 @@ pub mod version_1_4;
 pub mod version_1_5;
 pub mod version_1_6;
 pub mod version_2_0;
+pub mod version_2_1;
 
 use crate::fc::{FieldCharacterIndex, WeaponAbility, WeaponRecord};
 use sword_4star::*;
@@ -30,6 +31,7 @@ use version_1_4::*;
 use version_1_5::*;
 use version_1_6::*;
 use version_2_0::*;
+use version_2_1::*;
 
 fn field<T: WeaponAbility>(wa: T) -> (WeaponRecord, T) {
     let a = wa.record();
@@ -132,6 +134,9 @@ pub struct AllWeapons {
     // version_2_0
     mistsplitterreforged: (WeaponRecord, MistsplitterReforged),
     thunderingpulse: (WeaponRecord, ThunderingPulse),
+    // version_2_1
+    grasscutterslight: (WeaponRecord, GrasscuttersLight),
+    fumetsugekka: (WeaponRecord, FumetsuGekka),
 }
 
 impl AllWeapons {
@@ -232,6 +237,9 @@ impl AllWeapons {
             // version_2_0
             mistsplitterreforged: field(MistsplitterReforged::new()),
             thunderingpulse: field(ThunderingPulse::new()),
+            // version_2_1
+            grasscutterslight: field(GrasscuttersLight::new()),
+            fumetsugekka: field(FumetsuGekka::new()),
         }
     }
 
@@ -333,6 +341,9 @@ impl AllWeapons {
             // version_2_0
             MistsplitterReforged => &mut self.mistsplitterreforged,
             ThunderingPulse => &mut self.thunderingpulse,
+            // version_2_1
+            GrasscuttersLight => &mut self.grasscutterslight,
+            FumetsuGekka => &mut self.fumetsugekka,
         }
     }
 }
@@ -434,6 +445,9 @@ pub enum WeaponName {
     // version_2_0
     MistsplitterReforged,
     ThunderingPulse,
+    // version_2_1
+    GrasscuttersLight,
+    FumetsuGekka,
 }
 
 impl WeaponName {
@@ -535,6 +549,9 @@ impl WeaponName {
     // version_2_0
     MistsplitterReforged,
     ThunderingPulse,
+    // version_2_1
+    GrasscuttersLight,
+    FumetsuGekka,
         ]
     }
 }
@@ -638,6 +655,9 @@ impl<'a> From<&'a str> for WeaponName {
             // version_2_0
             "MistsplitterReforged" => MistsplitterReforged,
             "ThunderingPulse" => ThunderingPulse,
+            // version_2_1
+            "GrasscuttersLight" => GrasscuttersLight,
+            "FumetsuGekka" => FumetsuGekka,
             _ => unimplemented!(),
         }
     }

@@ -1,5 +1,5 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Particle, UnstackableBuff};
+use crate::types::{AttackType, WeaponType, Particle, MILLENNIAL_MOVEMENT_SERIES};
 use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, DurationTimer, SigilTimer};
 
@@ -37,11 +37,11 @@ impl SpecialAbility for FreedomSworn {
     fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &mut Enemy) -> () {
         if self.timer.is_active() {
             for s in modifiable_state.iter_mut() {
-                if s.stacked_buff != UnstackableBuff::MillennialMovementSeries() {
+                if s.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
                     s.atk += 20.0;
                     s.na_dmg += 16.0;
                     s.ca_dmg += 16.0;
-                    s.stacked_buff += UnstackableBuff::MillennialMovementSeries();
+                    s.stacked_buff += MILLENNIAL_MOVEMENT_SERIES;
                 }
             }
         }

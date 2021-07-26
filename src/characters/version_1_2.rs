@@ -1,58 +1,171 @@
-use std::mem;
+use std::ptr;
+
 use crate::state::State;
-use crate::types::{AttackType, Vision, ElementalGaugeDecay};
-use crate::fc::{SpecialAbility, FieldCharacter, FieldAction, CharacterRecord, Enemy};
-use crate::action::{Attack, TimerGuard, EffectTimer, DurationTimer, DotTimer};
+use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B, GAUGE4C};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
+use crate::action::{Attack, ElementalAttack, ElementalAttackVector, ElementalAbsorption, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
+use crate::testutil;
 
 use AttackType::*;
+use WeaponType::*;
 use Vision::*;
-// use ElementalGaugeDecay::*;
 
 // version 1.2
 
 pub struct Albedo {
     burst_timer: DurationTimer,
-    skill_aa: DotTimer,
+    na_1: Attack,
+    na_2: Attack,
+    na_3: Attack,
+    na_4: Attack,
+    na_5: Attack,
+    press: Attack,
+    press_dot: Attack,
+    burst: Attack,
+    burst_dot: Attack,
 }
 
 impl Albedo {
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
             burst_timer: DurationTimer::new(12.0, 10.0),
-            skill_aa: DotTimer::new(30.0, 2.0, 15),
+            na_1: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 72.62,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            na_2: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 72.62,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            na_3: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 93.81,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            na_4: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 98.35,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            na_5: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 122.7,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            press: Attack {
+                kind: AttackType::PressSkill,
+                gauge: &GAUGE1A,
+                multiplier: 234.72,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            press_dot: Attack {
+                kind: AttackType::SkillDot,
+                gauge: &GAUGE1A,
+                multiplier: 240.48,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            burst: Attack {
+                kind: AttackType::Burst,
+                gauge: &GAUGE1A,
+                multiplier: 660.96,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            burst_dot: Attack {
+                kind: AttackType::BurstDot,
+                gauge: &GAUGE1A,
+                multiplier: 129.6,
+                hits: 3,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
         }
     }
 }
 
-impl SpecialAbility for Albedo {
-    fn character(&self) -> CharacterRecord {
+impl CharacterAbility for Albedo {
+    fn record(&self) -> CharacterRecord {
         CharacterRecord::default()
             .name("Albedo").vision(Geo).weapon(Sword).release_date("2020-12-23").version(1.2)
             .base_hp(13226.0).base_atk(251.0).base_def(876.0)
             .dmg_geo(28.8)
-            .na_1(72.62).na_2(72.62).na_3(93.81).na_4(98.35).na_5(122.7).na_6(0.0).na_time(2.667)
-            // .na_0(0.0).ca_1(0.0).ca_2(0.0).ca_time(0.0)
-            .press_cd(4.0).press_particle(0.0).press_dmg(234.73)
-            .burst_cd(12.0).energy_cost(40.0).burst_dmg(660.96 + 129.6 * 3.0)
+            .energy_cost(40.0)
     }
 
+    fn timers(&self) -> FullCharacterTimers {
+        CharacterTimersBuilder::new()
+            .na(LoopTimer::new(2.567, 5))
+            .press(DotTimer::new(8.0, 2.0, 4))
+            .burst(DotTimer::single_hit(12.0))
+            .build()
+    }
+
+    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
+        self.na_1.icd_timer = &mut timers.na_icd;
+        self.na_2.icd_timer = &mut timers.na_icd;
+        self.na_3.icd_timer = &mut timers.na_icd;
+        self.na_4.icd_timer = &mut timers.na_icd;
+        self.na_5.icd_timer = &mut timers.na_icd;
+        self.press.icd_timer = &mut timers.skill_icd;
+        self.press_dot.icd_timer = &mut timers.skill_icd;
+        self.burst.icd_timer = &mut timers.burst_icd;
+        self.burst_dot.icd_timer = &mut timers.burst_icd;
+    }
+}
+
+impl SpecialAbility for Albedo {
     fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.burst_timer.update(guard.second(attack.iter().any(|a| a.kind == Burst)), time);
-        self.skill_aa.update(guard.second(attack.iter().any(|a| a.kind == Skill)), time);
+        self.burst_timer.update(guard.check_second(Burst), time);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
-        if self.skill_aa.is_active() {
-            atk_queue.push(Attack {
-                kind: SkillDot,
-                element: Geo,
-                multiplier: 234.72,
-                particle: Some(0.8),
-                state: None,
-                icd_cleared: fa.burst.icd.clear(),
-                on_field_character_index: data.idx.0,
-                fc_ptr: data,
-            })
+        if timers.burst_timer().is_active() {
+            atk_queue.push(ElementalAttack::geo(&self.burst));
+            atk_queue.push(ElementalAttack::geo(&self.burst_dot));
+        }
+        let press = timers.press_timer();
+        if press.is_active() {
+            if press.n() == 1 {
+                atk_queue.push(ElementalAttack::geo(&self.press));
+                atk_queue.push(ElementalAttack::geo(&self.press_dot));
+                particles.push(Particle::new(Geo, 0.8));
+            } else {
+                atk_queue.push(ElementalAttack::geo(&self.press_dot));
+                particles.push(Particle::new(Geo, 0.8));
+            }
+        }
+        let na = timers.na_timer();
+        if na.is_active() {
+            match na.n() {
+                1 => atk_queue.push_geo(data, &self.na_1),
+                2 => atk_queue.push_geo(data, &self.na_2),
+                3 => atk_queue.push_geo(data, &self.na_3),
+                4 => atk_queue.push_geo(data, &self.na_4),
+                5 => atk_queue.push_geo(data, &self.na_5),
+                _ => (),
+            };
         }
     }
 
@@ -67,56 +180,113 @@ impl SpecialAbility for Albedo {
 
     fn reset(&mut self) -> () {
         self.burst_timer.reset();
-        self.skill_aa.reset();
     }
 }
 
 pub struct Ganyu {
-    burst_aa: DotTimer,
+    burst_timer: DurationTimer,
+    frostflake_arrow: Attack,
+    frostflake_bloom: Attack,
+    press: Attack,
+    burst: Attack,
 }
 
 impl Ganyu {
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
-            burst_aa: DotTimer::new(15.0, 1.0, 18),
+            burst_timer: DurationTimer::new(15.0, 15.0),
+            frostflake_arrow: Attack {
+                kind: AttackType::Ca,
+                gauge: &GAUGE1A,
+                multiplier: 230.4,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            frostflake_bloom: Attack {
+                kind: AttackType::Ca,
+                gauge: &GAUGE1A,
+                multiplier: 391.68,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            press: Attack {
+                kind: AttackType::PressSkill,
+                gauge: &GAUGE1A,
+                multiplier: 237.6,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            burst: Attack {
+                kind: AttackType::Burst,
+                gauge: &GAUGE1A,
+                multiplier: 126.49,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
         }
     }
 }
 
-impl SpecialAbility for Ganyu {
-    fn character(&self) -> CharacterRecord {
+impl CharacterAbility for Ganyu {
+    fn record(&self) -> CharacterRecord {
         CharacterRecord::default()
             .name("Ganyu").vision(Cryo).weapon(Bow).release_date("2021-01-12").version(1.2)
             .base_hp(9797.0).base_atk(335.0).base_def(630.0)
             .cd(88.4)
-            .na_1(0.0).na_2(0.0).na_3(0.0).na_4(0.0).na_5(0.0).na_6(0.0).na_time(2.1)
-            .na_0(0.0).ca_1(230.4).ca_2(391.68).ca_time(2.466)
-            .press_cd(10.0).press_particle(4.0).press_dmg(237.6*2.0)
-            .burst_cd(15.0).energy_cost(60.0).burst_dmg(0.0)
+            .energy_cost(60.0)
     }
 
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.burst_aa.update(guard.second(attack.iter().any(|a| a.kind == Burst)), time);
+    fn timers(&self) -> FullCharacterTimers {
+        CharacterTimersBuilder::new()
+            .ca(HitsTimer::new(2.466, 2))
+            .stamina(StaminaTimer::new(0.0))
+            .press(DotTimer::new(10.0, 5.0, 2))
+            .burst(DotTimer::new(15.0, 0.83, 18))
+            .build()
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
-        if self.burst_aa.is_active() {
-            atk_queue.push(Attack {
-                kind: BurstDot,
-                element: Cryo,
-                multiplier: 126.49,
-                particle: None,
-                state: None,
-                icd_cleared: fa.burst.icd.clear(),
-                on_field_character_index: data.idx.0,
-                fc_ptr: data,
-            })
+    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
+        self.frostflake_arrow.icd_timer = &mut timers.ca_icd;
+        self.frostflake_bloom.icd_timer = &mut timers.ca_icd;
+        self.press.icd_timer = &mut timers.skill_icd;
+        self.burst.icd_timer = &mut timers.burst_icd;
+    }
+
+    fn use_ca(&self) -> bool {
+        true
+    }
+}
+
+impl SpecialAbility for Ganyu {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+        self.burst_timer.update(guard.check_second(Burst), time);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+        if timers.burst_timer().is_active() {
+            atk_queue.push(ElementalAttack::cryo(&self.burst));
+        }
+        if timers.press_timer().is_active() {
+            atk_queue.push(ElementalAttack::cryo(&self.press));
+            particles.push(Particle::new(Cryo, 2.0)); // cast and explosion
+        }
+        let ca = timers.ca_timer();
+        if ca.is_active() {
+            if ca.n() == 1 {
+                atk_queue.push(ElementalAttack::cryo(&self.frostflake_arrow));
+            } else {
+                atk_queue.push(ElementalAttack::cryo(&self.frostflake_bloom));
+            }
         }
     }
 
     fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
         // a4
-        if self.burst_aa.is_active() {
+        if self.burst_timer.is_active() {
             for s in modifiable_state.iter_mut() {
                 s.cryo_dmg += 20.0;
             }
@@ -126,18 +296,13 @@ impl SpecialAbility for Ganyu {
     // a1
     fn intensify(&self, attack: &Attack) -> Option<State> {
         if attack.kind == Ca {
-            let mut state: Option<State> = None;
-            mem::swap(&mut state, &mut attack.state);
-            attack.state = if let Some(mut state) = state {
-                state.cr += 20.0;
-                Some(state)
-            } else {
-                Some(State::new().cr(20.0))
-            }
+            Some(State::new().cr(20.0))
+        } else {
+            None
         }
     }
 
     fn reset(&mut self) -> () {
-        self.burst_aa.reset();
+        self.burst_timer.reset();
     }
 }

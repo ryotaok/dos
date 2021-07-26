@@ -123,24 +123,15 @@ impl PartialEq<WeaponType> for Preference {
 #[derive(Debug, Copy, Clone)]
 pub struct UnstackableBuff(usize);
 
+pub const NOBLESSE_OBLIGE: UnstackableBuff = UnstackableBuff(1 << 0);
+
+pub const TENACITY_OF_THE_MILLELITH: UnstackableBuff = UnstackableBuff(1 << 1);
+
+pub const MILLENNIAL_MOVEMENT_SERIES: UnstackableBuff = UnstackableBuff(1 << 2);
+
 impl UnstackableBuff {
     pub fn new() -> Self {
         Self(0)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn NoblesseOblige() -> Self {
-        Self(1)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn TenacityOfTheMillelith() -> Self {
-        Self(10)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn MillennialMovementSeries() -> Self {
-        Self(100)
     }
 }
 
@@ -407,7 +398,8 @@ pub struct ElementalReaction {
 impl ElementalReaction {
     pub fn new(enemy_aura: Vision, trigger: Vision) -> ElementalReactionType {
         match (&enemy_aura, &trigger) {
-            (Physical, _)       => Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
+            (Physical, Physical)=> Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
+            (Physical, _)       => Equalize(Self { enemy_aura, trigger, rm: 0.0 }),
             (Pyro, Pyro)        => Equalize(Self { enemy_aura, trigger, rm: 0.0 }),
             (Pyro, Hydro)       => Vaporize(Self { enemy_aura, trigger, rm: 2.0 }),
             (Pyro, Electro)     => Overloaded(Self { enemy_aura, trigger, rm: 4.0 }),
@@ -467,17 +459,17 @@ mod tests {
 
     #[test]
     fn usb_eq() {
-        assert_eq!(UnstackableBuff::NoblesseOblige(), UnstackableBuff(1));
+        assert_eq!(NOBLESSE_OBLIGE, UnstackableBuff(1));
     }
 
     #[test]
     fn usb_add() {
-        let no = UnstackableBuff::NoblesseOblige();
-        let tm = UnstackableBuff::TenacityOfTheMillelith();
-        let mm = UnstackableBuff::MillennialMovementSeries();
-        assert_eq!(no + tm, UnstackableBuff(11));
-        assert_eq!(tm + mm, UnstackableBuff(110));
-        assert_eq!(mm + no, UnstackableBuff(101));
-        assert_eq!(no + tm + mm, UnstackableBuff(111));
+        let no = NOBLESSE_OBLIGE;
+        let tm = TENACITY_OF_THE_MILLELITH;
+        let mm = MILLENNIAL_MOVEMENT_SERIES;
+        assert_eq!(no + tm, UnstackableBuff(3));
+        assert_eq!(tm + mm, UnstackableBuff(6));
+        assert_eq!(mm + no, UnstackableBuff(5));
+        assert_eq!(no + tm + mm, UnstackableBuff(7));
     }
 }

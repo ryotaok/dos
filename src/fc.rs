@@ -60,6 +60,8 @@ pub trait CharacterAbility : SpecialAbility {
 
     fn use_hold(&self) -> bool { false }
 
+    fn use_ca(&self) -> bool { false }
+
     // Change speed of normal attacks or reset the cool down time of skill and
     // burst.
     fn accelerate(&self, timers: &mut FullCharacterTimers) -> () { }

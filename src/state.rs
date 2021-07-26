@@ -1,4 +1,4 @@
-use crate::types::{AttackType, UnstackableBuff, Energy, Vision};
+use crate::types::{AttackType, UnstackableBuff, Energy, Vision, NOBLESSE_OBLIGE};
 
 // this State class is meant to hold numbers only so that
 // 1) they can be merged
@@ -170,6 +170,8 @@ impl State {
         if cr > cr_threshold {
             cd += (cr - cr_threshold) * 2.0;
             cr = cr_threshold;
+        } else if cr < 0.0 {
+            return 1.0
         }
         1.0 + cd / 100.0 * cr / 100.0
     }
@@ -217,7 +219,7 @@ mod tests {
             dendro_dmg: 1.0,
             elemental_dmg: 1.0,
             infusion: true,
-            stacked_buff: UnstackableBuff::NoblesseOblige(),
+            stacked_buff: NOBLESSE_OBLIGE,
             amplifying_bonus: 1.0,
             transformative_bonus: 1.0,
         };
@@ -251,7 +253,7 @@ mod tests {
         assert_eq!(a.dendro_dmg, 1.0);
         assert_eq!(a.elemental_dmg, 1.0);
         assert_eq!(a.infusion, true);
-        assert_eq!(a.stacked_buff, UnstackableBuff::NoblesseOblige());
+        assert_eq!(a.stacked_buff, NOBLESSE_OBLIGE);
         assert_eq!(a.amplifying_bonus, 1.0);
         assert_eq!(a.transformative_bonus, 1.0);
     }

@@ -116,10 +116,10 @@ pub fn calculate(attack: &ElementalAttack, state: Option<State>, fc: &CharacterD
     let attack_element = fc.infused_element(attack);
     let mut dmg = attack.outgoing_damage(attack_element, state, fc);
     dmg = attack.incoming_damage(attack_element, dmg, fc, enemy);
-    let atk = unsafe { &(*attack.atk) };
-    // println!("  dmg = {:?}: {:?}({:?})", dmg, &atk.kind, atk.idx.0);
+    // let atk = unsafe { &(*attack.atk) };
+    // // println!("  dmg = {:?}: {:?}({:?})", dmg, &atk.kind, atk.idx.0);
+    // println!("  dmg = {:?}: {:?}({:?}) {:?}", dmg, &atk.kind, atk.idx.0, fc.state.energy);
     // println!("{:?}\t{:?}", dmg, &atk.kind);
-    // println!("{:?} {:?}", &attack.kind, dmg);
     dmg
 }
 
@@ -283,6 +283,22 @@ mod tests {
         let expect = 1.466 * (200.0 + 4.0 * 100.0);
         let differnce = (total_dmg - 0.5 * expect).abs();
         assert!(differnce <= 0.001);
+    }
+
+    #[test]
+    fn apply_aura() {
+        let mut env = TestEnvironment::new();
+        let mut members = vec![
+            env.vision(FieldCharacterIndex(0), State::new(), Pyro)
+        ];
+        let mut enemy = TestEnvironment::enemy();
+        let mut _total_dmg = 0.0;
+        for _ in 0..10 {
+            _total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        }
+        // skill na na na na
+        assert_eq!(enemy.aura.aura, Pyro);
+        assert!(0.0 < enemy.aura.unit && enemy.aura.unit < 1.0);
     }
 
     #[test]

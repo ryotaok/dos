@@ -1,6 +1,7 @@
+use std::ptr;
 
 use crate::fc::{CharacterData, FieldCharacterIndex, CharacterAbility, Enemy, Debuff};
-use crate::types::{AttackType, Vision, BareElementalGauge, ElementalReactionType, ElementalReaction};
+use crate::types::{AttackType, Vision, BareElementalGauge, ElementalReactionType, ElementalReaction, GAUGE1A};
 use crate::state::State;
 
 use AttackType::*;
@@ -185,6 +186,61 @@ impl PartialEq<Vision> for ElementalAttack {
 }
 
 #[derive(Debug)]
+pub struct ElementalAbsorption {
+    element: Option<Vision>,
+    timer: DurationTimer,
+    attack: Attack,
+}
+
+impl ElementalAbsorption {
+    pub fn new(idx: FieldCharacterIndex, kind: AttackType, multiplier: f32, timer: DurationTimer) -> Self {
+        Self {
+            element: None,
+            timer,
+            attack: Attack {
+                kind,
+                gauge: &GAUGE1A,
+                multiplier,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }
+        }
+    }
+
+    pub fn icd(&mut self) -> &mut *mut ICDTimer {
+        &mut self.attack.icd_timer
+    }
+
+    pub fn did_absort(&self) -> bool {
+        self.element.is_some()
+    }
+
+    pub fn absorb(&mut self, guard: &TimerGuard, enemy: &Enemy, time: f32) -> () {
+        use Vision::*;
+        self.timer.update(guard, time);
+        if self.timer.is_active() {
+            if self.element.is_none() {
+                match &enemy.aura.aura {
+                    Pyro | Hydro | Electro | Cryo => self.element = Some(enemy.aura.aura),
+                    _ => (),
+                }
+            }
+        } else if self.element.is_some() {
+            self.element = None;
+        }
+    }
+
+    pub fn attack(&self) -> Option<ElementalAttack> {
+        if let Some(e) = self.element {
+            Some(ElementalAttack::new(e, &self.attack))
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Attack {
     // type of this `Attack`. For example, Xiangling's skill summons Guoba to
     // deal DoT Pyro DMG. This DMG is considered as an additional attack and
@@ -233,6 +289,7 @@ impl Attack {
         let bonus = state.DMG_bonus(&self.kind, attack_element);
         let crcd = state.CRCD();
         let atk = match (fc.cr.name, self.kind) {
+            ("Sangonomiya Kokomi", AttackType::SkillDot) => state.HP(),
             ("Albedo", AttackType::SkillDot) => state.DEF(),
             ("Noelle", AttackType::PressSkill) => state.DEF(),
             _ => state.ATK(),
@@ -335,9 +392,9 @@ pub struct CDTimer {
 }
 
 impl CDTimer {
-    // pub fn new(cool_down: f32) -> Self {
-    //     Self { cool_down, cd: 0.0 }
-    // }
+    pub fn new(cool_down: f32) -> Self {
+        Self { cool_down, cd: 0.0 }
+    }
 }
 
 impl EffectTimer for CDTimer {
@@ -867,7 +924,7 @@ impl EffectTimer for StaminaTimer {
         }
         if guard.second && self.is_cd_off() {
             // TODO recovery rate of energy
-            self.stamina -= self.consumption + time * 10.0;
+            self.stamina -= self.consumption + time * 25.0;
         } else {
             self.stamina += time * 10.0;
         }
@@ -1009,7 +1066,7 @@ impl FullCharacterTimers {
             Some(HoldSkill)
         } else if self.define_press && self.should_press() {
             Some(PressSkill)
-        } else if self.define_ca && self.should_ca() {
+        } else if self.define_ca && ca.use_ca() && self.should_ca() {
             Some(Ca)
         } else if self.define_na && self.should_na() {
             Some(Na)
@@ -1114,12 +1171,25 @@ impl FullCharacterTimers {
         &self.burst
     }
 
+    // accumulate
+
     pub fn reset_cd(&mut self) -> () {
         if self.define_press {
             self.press.reset();
         }
         if self.define_hold {
             self.hold.reset();
+        }
+    }
+
+    pub fn reduce_cd(&mut self, time: f32) -> () {
+        if self.define_press {
+            self.press.cd -= time;
+            self.press.dcd -= time;
+        }
+        if self.define_hold {
+            self.press.cd -= time;
+            self.press.dcd -= time;
         }
     }
 }

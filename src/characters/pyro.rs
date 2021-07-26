@@ -74,6 +74,10 @@ impl CharacterAbility for Amber {
         self.press.icd_timer = &mut timers.skill_icd;
         self.burst.icd_timer = &mut timers.burst_icd;
     }
+
+    fn use_ca(&self) -> bool {
+        true
+    }
 }
 
 impl SpecialAbility for Amber {

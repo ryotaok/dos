@@ -23,13 +23,13 @@ impl<A, B, C> Permutation3<A, B, C> {
         Self { av, bv, cv, last: (0, 0, 0), }
     }
 
-    // pub fn reset(&mut self) -> () {
-    //     self.last = (0, 0, 0);
-    // }
-
-    pub fn size(&self) -> usize {
-        self.av.len() * self.bv.len() * self.cv.len()
+    pub fn reset(&mut self) -> () {
+        self.last = (0, 0, 0);
     }
+
+    // pub fn size(&self) -> usize {
+    //     self.av.len() * self.bv.len() * self.cv.len()
+    // }
 
     pub fn iter(&mut self) -> P3Inner<A, B, C> {
         P3Inner {

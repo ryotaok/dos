@@ -25,6 +25,7 @@ mod permutools;
 mod testutil;
 mod cli;
 
+use crate::state::State;
 use crate::characters::{AllCharacters, CharacterName};
 use crate::weapons::{AllWeapons, WeaponName};
 use crate::artifact::{Artifact, AllArtifacts, ArtifactName};
@@ -110,7 +111,7 @@ impl Recorder {
     }
 }
 
-fn main_loop(members: &mut [FieldCharacterData], time: f32, emulation_time: f32) -> Recorder {
+fn main_loop(members: &mut [FieldCharacterData], time: f32, simulation_time: f32) -> Recorder {
     let mut head: Vec<&str> = Vec::new();
     for m in members.iter() {
         head.push(m.fc.data.cr.name);
@@ -122,7 +123,20 @@ fn main_loop(members: &mut [FieldCharacterData], time: f32, emulation_time: f32)
     // setup for Emulator
     let mut current_time = 0.0;
     let mut total_dmg = 0.0;
-    while current_time < emulation_time {
+    // accumulate passives of weapons and artifacts at the 0 second.
+    {
+        let mut modifiable_state: Vec<State> = Vec::with_capacity(members.len());
+        for _ in 0..members.len() {
+            modifiable_state.push(State::new());
+        }
+        for FieldCharacterData { fc, .. } in members.iter_mut() {
+            fc.modify(&mut modifiable_state, &mut enemy);
+        }
+        for (state, FieldCharacterData { fc, .. }) in modifiable_state.into_iter().zip(members.iter_mut()) {
+            fc.data.state.merge(&state);
+        }
+    }
+    while current_time < simulation_time {
         if current_time == 0.0 {
             for m in members.iter_mut() {
                 m.fc.data.state.energy.0 = m.fc.data.state.energy_cost;
@@ -176,97 +190,105 @@ fn combination_filter_attacker(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Art
     true
 }
 
-// fn combination_filter_supporter(((cr, _ca), (wr, _wa), (ar, _aa)): Permu3Item) -> bool {
-//     // check weapon
-//     if cr.weapon != wr.type_ {
-//         return false;
-//     }
+fn combination_filter_supporter(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Artifact, args: &Args) -> bool {
+    if cr.version > args.character_version ||
+       wr.version > args.weapon_version ||
+       ar.version > args.artifact_version {
+        return false;
+    }
 
-//     // check artifact
-//     for p in &ar.preference {
-//         if p != vision
-//         && *p != cr.weapon
-//         && *p != Preference::Supporter {
-//             return false;
-//         }
-//     }
+    // check weapon
+    if cr.weapon != wr.type_ {
+        return false;
+    }
 
-//     true
-// }
+    // check artifact
+    for p in &ar.preference {
+        if *p != cr.vision
+        && *p != cr.weapon
+        && *p != Preference::Supporter {
+            return false;
+        }
+    }
 
-// fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
-//     let input_characters: Vec<(CharacterRecord, Vision, Box<dyn SpecialAbility>)> = characters::setup(args).drain(start..end).collect();
-//     // TODO
-//     let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
-//     let mut member1 = Permutation3::new(
-//         input_characters,
-//         weapons::setup(args),
-//         Artifact::setup(args.artifact_version),
-//     );
-//     let mut member2 = Permutation3::new(
-//         characters::setup(args),
-//         weapons::setup(args),
-//         Artifact::setup(args.artifact_version),
-//     );
-//     for item1 in member1.iter() {
-//         if !combination_filter_attacker(&item1) {
-//             member1.back(item1);
-//             continue;
-//         }
-//         let ((mut cr1, mut vision1, mut ca1), (mut wr1, mut wa1), (mut ar1, mut aa1)) = item1;
-//         let mut items: Vec<Recorder> = Vec::with_capacity(member2.size());
-//         for item2 in member2.iter() {
-//             if !combination_filter_supporter(&item2) {
-//                 member2.back(item2);
-//                 continue;
-//             }
-//             // identical characters cannot be on field.
-//             if cr1.name == item2.0.0.name {
-//                 member2.back(item2);
-//                 continue;
-//             }
-//             let ((mut cr2, mut vision2, mut ca2), (mut wr2, mut wa2), (mut ar2, mut aa2)) = item2;
-//             if physical_infusion.contains(&cr1.name) {
-//                 ar1.infuse_goblet(&Vision::Physical);
-//             } else {
-//                 ar1.infuse_goblet(&vision1);
-//             }
-//             ar2.infuse_goblet(&vision2);
-//             let mut members = vec![
-//                 FieldCharacter::new(FieldCharacterIndex(0), cr1, vision1, wr1, ar1).to_data(FieldAbility {
-//                     character: ca1,
-//                     weapon: wa1,
-//                     artifact: aa1,
-//                 }),
-//                 FieldCharacter::new(FieldCharacterIndex(1), cr2, vision2, wr2, ar2).noop(FieldAbility {
-//                     character: ca2,
-//                     weapon: wa2,
-//                     artifact: aa2,
-//                 }),
-//                 ];
-//             let rc = main_loop(&mut members, args.unit_time, args.emulation_time);
-//             items.push(rc);
+    true
+}
 
-//             // destruct objects
-//             let (fc, field_ability, _, _) = members.remove(0);
-//             FieldCharacter { cr: cr1, wr: wr1, ar: ar1, vision: vision1, .. } = fc;
-//             FieldAbility { character: ca1, weapon: wa1, artifact: aa1 } = field_ability;
-//             ca1.reset();
-//             wa1.reset();
-//             aa1.reset();
-//             let (fc, field_ability, _, _) = members.remove(0);
-//             FieldCharacter { cr: cr2, wr: wr2, ar: ar2, vision: vision2, .. } = fc;
-//             FieldAbility { character: ca2, weapon: wa2, artifact: aa2 } = field_ability;
-//             ca2.reset();
-//             wa2.reset();
-//             aa2.reset();
-//             member2.back(((cr2, vision2, ca2), (wr2, wa2), (ar2, aa2)));
-//         }
-//         member2.reset();
-//         member1.back(((cr1, vision1, ca1), (wr1, wa1), (ar1, aa1)));
-//         tx.send(items).unwrap();
-//     }
-// }
+fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
+    let idx0 = FieldCharacterIndex(0);
+    let idx1 = FieldCharacterIndex(1);
+    let mut timers0 = Box::new(CharacterTimersBuilder::new().build());
+    let mut timers1 = Box::new(CharacterTimersBuilder::new().build());
+    let mut characters1 = AllCharacters::new(idx0);
+    let mut characters2 = AllCharacters::new(idx1);
+    let mut weapons1 = AllWeapons::new(idx0);
+    let mut weapons2 = AllWeapons::new(idx1);
+    let mut artifacts1 = AllArtifacts::new();
+    let mut artifacts2 = AllArtifacts::new();
+    let input_characters: Vec<CharacterName> = CharacterName::vec().drain(start..end).collect();
+    // TODO
+    let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
+
+    let mut member1 = Permutation3::new(
+        input_characters,
+        WeaponName::vec(),
+        ArtifactName::vec(),
+    );
+    let mut member2 = Permutation3::new(
+        CharacterName::vec(),
+        WeaponName::vec(),
+        ArtifactName::vec(),
+    );
+    for (character_name1, weapon_name1, artifact_name1) in member1.iter() {
+        let (cr1, ca1) = characters1.find(&character_name1);
+        let (wr1, wa1) = weapons1.find(&weapon_name1);
+        let (ar1, aa1) = artifacts1.find(&artifact_name1);
+        if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
+            member1.back((character_name1, weapon_name1, artifact_name1));
+            continue;
+        }
+        if physical_infusion.contains(&cr1.name) {
+            ar1.infuse_goblet(&Vision::Physical);
+        } else {
+            ar1.infuse_goblet(&cr1.vision);
+        }
+
+        let mut items: Vec<Recorder> = Vec::new();
+        for (character_name2, weapon_name2, artifact_name2) in member2.iter() {
+            let (cr2, ca2) = characters2.find(&character_name2);
+            let (wr2, wa2) = weapons2.find(&weapon_name2);
+            let (ar2, aa2) = artifacts2.find(&artifact_name2);
+            // identical characters cannot be on the same field.
+            if cr1.name == cr2.name ||
+               !combination_filter_supporter(&cr2, &wr2, &ar2, args) {
+                member2.back((character_name2, weapon_name2, artifact_name2));
+                continue;
+            }
+            if physical_infusion.contains(&cr2.name) {
+                ar2.infuse_goblet(&Vision::Physical);
+            } else {
+                ar2.infuse_goblet(&cr2.vision);
+            }
+            let mut members = vec![
+                FieldCharacterData::new(&mut timers0, ca1, wa1, aa1, CharacterData::new(idx0, &cr1, &wr1, &ar1)),
+                FieldCharacterData::new(&mut timers1, ca2, wa2, aa2, CharacterData::new(idx1, &cr2, &wr2, &ar2)),
+            ];
+            let rc = main_loop(&mut members, args.unit_time, args.simulation_time);
+            items.push(rc);
+
+            // destruct objects
+            for m in members.iter_mut() {
+                m.fc.reset();
+            }
+            ar1.dry_goblet();
+            ar2.dry_goblet();
+            member2.back((character_name2, weapon_name2, artifact_name2));
+        }
+        member2.reset();
+        member1.back((character_name1, weapon_name1, artifact_name1));
+        tx.send(items).unwrap();
+    }
+}
 
 fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
     let idx = FieldCharacterIndex(0);
@@ -282,7 +304,8 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         WeaponName::vec(),
         ArtifactName::vec(),
     );
-    let mut items: Vec<Recorder> = Vec::with_capacity(member1.size());
+    // let mut items: Vec<Recorder> = Vec::with_capacity(member1.size());
+    let mut items: Vec<Recorder> = Vec::new();
     for (character_name, weapon_name, artifact_name) in member1.iter() {
         let (cr1, ca1) = characters.find(&character_name);
         let (wr1, wa1) = weapons.find(&weapon_name);
@@ -299,7 +322,7 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         let mut members = vec![
             FieldCharacterData::new(&mut timers, ca1, wa1, aa1, CharacterData::new(idx, &cr1, &wr1, &ar1))
         ];
-        let rc = main_loop(&mut members, args.unit_time, args.emulation_time);
+        let rc = main_loop(&mut members, args.unit_time, args.simulation_time);
         items.push(rc);
 
         // destruct objects
@@ -342,7 +365,7 @@ fn debugging(args: &Args, debug_args: Vec<String>) -> () {
         FieldCharacterData::new(&mut timers, ca1, wa1, aa1, CharacterData::new(idx, &cr1, &wr1, &ar1))
     ];
     println!("debugging: {:?} {:?} {:?}", cr1.name, wr1.name, ar1.name);
-    main_loop(&mut members, args.unit_time, args.emulation_time);
+    main_loop(&mut members, args.unit_time, args.simulation_time);
 }
 
 fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
@@ -351,24 +374,22 @@ fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
     if debug_args.len() > 0 {
         return Ok(debugging(&args, debug_args));
     }
-    let num_cpu = 1;
-    // let character_size = characters::setup(&args).len();
-    // let chunk_size = character_size / num_cpu;
+    let num_cpu = 3;
+    let character_size = CharacterName::vec().len();
+    let chunk_size = character_size / num_cpu;
     let (tx, rx) = mpsc::channel();
     for i in 0..num_cpu {
-        // let start = i * chunk_size;
-        // let mut end = (i + 1) * chunk_size;
-        // if start >= character_size {
-        //     break;
-        // } else if end > character_size {
-        //     end = character_size;
-        // }
-        let start = 0;
-        let end = 13;
+        let start = i * chunk_size;
+        let mut end = (i + 1) * chunk_size;
+        if start >= character_size {
+            break;
+        } else if end > character_size {
+            end = character_size;
+        }
         let txn = tx.clone();
         match args.n_members {
             1 => thread::spawn(move || permu3(txn, start, end, &args) ),
-            // 2 => thread::spawn(move || permu6(txn, start, end, &args) ),
+            2 => thread::spawn(move || permu6(txn, start, end, &args) ),
             _ => unimplemented!(),
         };
     }

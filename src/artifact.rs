@@ -1,7 +1,7 @@
 use crate::state::State;
 use crate::fc::{CharacterData, SpecialAbility, ArtifactAbility, Enemy, Debuff};
 use crate::action::{ElementalAttack, TimerGuard, TimerGuardCheck, FullCharacterTimers, EffectTimer, StackTimer, DurationTimer};
-use crate::types::{AttackType, WeaponType, UnstackableBuff, Particle, Preference, Vision};
+use crate::types::{AttackType, WeaponType, Particle, Preference, Vision, NOBLESSE_OBLIGE, TENACITY_OF_THE_MILLELITH};
 
 use AttackType::*;
 
@@ -84,6 +84,7 @@ pub struct AllArtifacts {
     lavawalker: (Artifact, Lavawalker),
     lavawalkerhp: (Artifact, LavawalkerHp),
     gfelm: (Artifact, Gfelm),
+    gfelmhp: (Artifact, GfelmHpCr),
     blizzardstrayer: (Artifact, BlizzardStrayer),
     heartofdepth: (Artifact, HeartOfDepth),
     glacierandsnowfield: (Artifact, GlacierAndSnowfield),
@@ -116,6 +117,7 @@ impl AllArtifacts {
             lavawalker: field(Lavawalker),
             lavawalkerhp: field(LavawalkerHp),
             gfelm: field(Gfelm),
+            gfelmhp: field(GfelmHpCr),
             blizzardstrayer: field(BlizzardStrayer),
             heartofdepth: field(HeartOfDepth::new()),
             glacierandsnowfield: field(GlacierAndSnowfield::new()),
@@ -149,6 +151,7 @@ impl AllArtifacts {
             Lavawalker => &mut self.lavawalker,
             LavawalkerHp => &mut self.lavawalkerhp,
             Gfelm => &mut self.gfelm,
+            GfelmHpCr => &mut self.gfelmhp,
             BlizzardStrayer => &mut self.blizzardstrayer,
             HeartOfDepth => &mut self.heartofdepth,
             GlacierAndSnowfield => &mut self.glacierandsnowfield,
@@ -182,6 +185,7 @@ pub enum ArtifactName {
     Lavawalker,
     LavawalkerHp,
     Gfelm,
+    GfelmHpCr,
     BlizzardStrayer,
     HeartOfDepth,
     GlacierAndSnowfield,
@@ -215,6 +219,7 @@ impl ArtifactName {
             Lavawalker,
             LavawalkerHp,
             Gfelm,
+            GfelmHpCr,
             BlizzardStrayer,
             HeartOfDepth,
             GlacierAndSnowfield,
@@ -250,6 +255,7 @@ impl<'a> From<&'a str> for ArtifactName {
             "Lavawalker" => Lavawalker,
             "LavawalkerHp" => LavawalkerHp,
             "Gfelm" => Gfelm,
+            "GfelmHpCr" => GfelmHpCr,
             "BlizzardStrayer" => BlizzardStrayer,
             "HeartOfDepth" => HeartOfDepth,
             "GlacierAndSnowfield" => GlacierAndSnowfield,
@@ -443,9 +449,9 @@ impl SpecialAbility for NoblesseOblige {
     fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &mut Enemy) -> () {
         if self.timer.is_active() {
             for s in modifiable_state.iter_mut() {
-                if s.stacked_buff != UnstackableBuff::NoblesseOblige() {
+                if s.stacked_buff != NOBLESSE_OBLIGE {
                     s.atk += 20.0;
-                    s.stacked_buff += UnstackableBuff::NoblesseOblige();
+                    s.stacked_buff += NOBLESSE_OBLIGE;
                 }
             }
         }
@@ -687,6 +693,22 @@ impl ArtifactAbility for Gfelm {
 }
 
 #[derive(Debug)]
+pub struct GfelmHpCr;
+
+impl SpecialAbility for GfelmHpCr {}
+
+impl ArtifactAbility for GfelmHpCr {
+    fn record(&self) -> Artifact {
+        Artifact {
+            name: "GFE HP120 ATK58 CR-80 DMG 15%",
+            version: 1.0,
+            preference: Vec::new(),
+            state: State::new().atk(-80.0 + 58.0).hp(120.0).cr(-80.0).elemental_dmg(15.0)
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct BlizzardStrayer;
 
 impl ArtifactAbility for BlizzardStrayer {
@@ -892,9 +914,9 @@ impl SpecialAbility for TenacityOfTheMillelith {
     fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &mut Enemy) -> () {
         if self.timer.is_active() {
             for s in modifiable_state.iter_mut() {
-                if s.stacked_buff != UnstackableBuff::TenacityOfTheMillelith() {
+                if s.stacked_buff != TENACITY_OF_THE_MILLELITH {
                     s.atk += 20.0;
-                    s.stacked_buff += UnstackableBuff::TenacityOfTheMillelith();
+                    s.stacked_buff += TENACITY_OF_THE_MILLELITH;
                 }
             }
         }
@@ -908,15 +930,13 @@ impl SpecialAbility for TenacityOfTheMillelith {
 #[derive(Debug)]
 pub struct ShimenawasReminiscence {
     first_activation: bool,
-    cd: f32,
     duration: f32,
-    _cd: f32,
     _dr: f32,
 }
 
 impl ShimenawasReminiscence {
     fn new() -> Self {
-        Self { first_activation: false, cd: 0.0, duration: 10.0, _cd: 0.0, _dr: 0.0 }
+        Self { first_activation: false, duration: 10.0, _dr: 0.0 }
     }
 }
 
@@ -935,30 +955,22 @@ impl ArtifactAbility for ShimenawasReminiscence {
 }
 
 impl SpecialAbility for ShimenawasReminiscence {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        // let should_update = owner_fc.state.energy.0 >= 15.0 && unsafe {
-        //     attack.iter().any(|&a| match (*a).kind {
-        //         PressSkill | HoldSkill => true,
-        //         _ => false,
-        //     })
-        // };
-        guard.second(guard.kind == PressSkill || guard.kind == HoldSkill);
-        guard.third(self._cd > 0.0);
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+        guard.second(data.state.energy.0 >= 15.0 && (guard.kind == PressSkill || guard.kind == HoldSkill));
+        guard.third(true);
         if !guard.check(()) {
             return;
         }
-        if guard.second && self._cd <= 0.0 {
-            self._cd = self.cd;
+        if guard.second {
             self._dr = self.duration;
         }
         // notify the first time activation
         self.first_activation = self._dr == self.duration;
-        self._cd -= time;
         self._dr -= time;
     }
 
     fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self._dr > 0.0 && data.state.energy.0 >= 15.0 && self.first_activation {
+        if self._dr > 0.0 && self.first_activation {
             let state = &mut modifiable_state[data.idx.0];
             state.energy.0 -= 15.0;
             state.na_dmg += 50.0;
@@ -971,7 +983,6 @@ impl SpecialAbility for ShimenawasReminiscence {
     }
 
     fn reset(&mut self) -> () {
-        self._cd = 0.0;
         self._dr = 0.0;
     }
 }
@@ -1153,5 +1164,25 @@ mod tests {
             + 1.18 * (200.0 + 5.0 * 100.0)
         );
         assert_eq!(total_dmg, expect);
+    }
+
+    #[test]
+    fn shimenawa_1() {
+        let mut env = TestEnvironment::new();
+        let mut aa = ShimenawasReminiscence::new();
+        let mut members = vec![
+            // disable 2 set bonus
+            env.artifact(FieldCharacterIndex(0), State::new().atk(-18.0), Pyro, &mut aa),
+        ];
+        members[0].fc.data.state.energy.0 = 10.0;
+        let mut enemy = TestEnvironment::enemy();
+        let mut total_dmg = 0.0;
+        for _ in 0..20 {
+            total_dmg += simulate(&mut members, &mut enemy, 1.0);
+        }
+        let expect = 4.0 * 200.0       // skill
+                   + 9.0 * 100.0 * 1.5 // na
+                   + 9.0 * 100.0;      // na
+        assert_eq!(total_dmg, 0.5 * expect);
     }
 }
