@@ -1,108 +1,14 @@
-use std::mem;
-// use std::cell::{RefCell};
+use std::ptr;
 // use rand::prelude::*;
 
 use crate::state::State;
 use crate::artifact::Artifact;
-use crate::fc;
-use crate::fc::{FieldCharacterIndex, CharacterRecord, WeaponRecord, Enemy, FieldCharacter, FieldAction, SpecialAbility, FieldCharacterData, FieldAbility};
-use crate::types::{Vision, ElementalGaugeDecay};
-use crate::action::{Attack, TimerGuard, NormalAttackAction, SkillAction, BurstAction};
 
-pub fn revert<T>(mut xs: Vec<T>, a: usize, b: usize, c: usize) -> (Vec<T>, Vec<T>, Vec<T>) {
-    if a + b + c > xs.len() {
-        panic!("cannot revert");
-    }
-    let mut av: Vec<T> = Vec::with_capacity(a);
-    let mut bv: Vec<T> = Vec::with_capacity(b);
-    let mut cv: Vec<T> = Vec::with_capacity(c);
-    match (a, b, c) {
-        (0, 0, 0) => (av, bv, cv),
-        (_, 0, 0) => { for x in xs.drain(..) { av.push(x); } (av, bv, cv ) },
-        (0, _, 0) => { for x in xs.drain(..) { bv.push(x); } (av, bv, cv ) },
-        (0, 0, _) => { for x in xs.drain(..) { cv.push(x); } (av, bv, cv ) },
-        (0, s, t) => {
-            for x in xs.drain(..s) { bv.push(x); }
-            for x in xs.drain(..t) { cv.push(x); }
-            (av, bv, cv)
-        }
-        (s, 0, t) => {
-            for x in xs.drain(..s) { av.push(x); }
-            for x in xs.drain(..t) { cv.push(x); }
-            (av, bv, cv)
-        }
-        (s, t, 0) => {
-            for x in xs.drain(..s) { av.push(x); }
-            for x in xs.drain(..t) { bv.push(x); }
-            (av, bv, cv)
-        }
-        _ => {
-            for x in xs.drain(..a) { av.push(x); }
-            for x in xs.drain(..b) { bv.push(x); }
-            for x in xs.drain(..c) { cv.push(x); }
-            (av, bv, cv)
-        }
-    }
-}
+use crate::fc::{FieldCharacterIndex, CharacterRecord, WeaponRecord, Enemy, FieldCharacter, SpecialAbility, CharacterAbility, WeaponAbility, ArtifactAbility, FieldCharacterData, CharacterData};
+use crate::types::{AttackType, Vision, Particle, GAUGE1A};
+use crate::action::{Attack, ElementalAttack, FullCharacterTimers, TimerGuard, CharacterTimersBuilder, LoopTimer, DotTimer, HitsTimer, StaminaTimer};
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn revert_1() {
-        let v = vec![1,2,3,4,5];
-        let (av, bv, cv) = revert(v, 1, 2, 2);
-        assert_eq!(av, [1]);
-        assert_eq!(bv, [2,3]);
-        assert_eq!(cv, [4,5]);
-    }
-
-    #[test]
-    fn revert_2() {
-        let v = vec![1,2,3,4,5];
-        let (av, bv, cv) = revert(v, 0, 3, 2);
-        assert_eq!(av, []);
-        assert_eq!(bv, [1,2,3]);
-        assert_eq!(cv, [4,5]);
-    }
-
-    #[test]
-    fn revert_3() {
-        let v = vec![1,2,3,4,5];
-        let (av, bv, cv) = revert(v, 0, 5, 0);
-        assert_eq!(av, []);
-        assert_eq!(bv, [1,2,3,4,5]);
-        assert_eq!(cv, []);
-    }
-
-    #[test]
-    fn revert_4() {
-        let v = vec![1,2,3,4,5];
-        let (av, bv, cv) = revert(v, 0, 0, 0);
-        assert_eq!(av, []);
-        assert_eq!(bv, []);
-        assert_eq!(cv, []);
-    }
-}
-
-#[derive(Debug)]
-pub struct Srdst<T> {
-    pub source: Vec<T>,
-    pub destination: Vec<T>,
-}
-
-impl<T> Srdst<T> {
-    pub fn new(source: Vec<T>) -> Self {
-        let destination: Vec<T> = Vec::with_capacity(source.capacity());
-        Self { source, destination }
-    }
-
-    pub fn swap(&mut self) -> () {
-        mem::swap(&mut self.source, &mut self.destination);
-    }
-}
-
+use Vision::*;
 
 // #[cfg(test)]
 // #[cfg(not(test))]
@@ -112,49 +18,499 @@ pub fn chance() -> f32 {
 }
 
 pub struct TestCharacter {
-    pub vision: String,
+    pub vision: Vision,
+    pub na: Attack,
+    pub press: Attack,
+    pub burst: Attack,
 }
 
 impl TestCharacter {
-    pub fn new() -> Self {
-        Self { vision: String::from("Pyro") }
+    pub fn new(idx: FieldCharacterIndex, vision: Vision) -> Self {
+        Self {
+            vision,
+            na: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 100.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            press: Attack {
+                kind: AttackType::PressSkill,
+                gauge: &GAUGE1A,
+                multiplier: 200.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            burst: Attack {
+                kind: AttackType::Burst,
+                gauge: &GAUGE1A,
+                multiplier: 300.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+        }
+    }
+}
+
+impl CharacterAbility for TestCharacter {
+    fn record(&self) -> CharacterRecord {
+        CharacterRecord::default()
+            .vision(self.vision)
+            .base_atk(100.0)
+            .cr(0.0).cd(0.0)
+            .energy_cost(40.0)
+    }
+
+    fn timers(&self) -> FullCharacterTimers {
+        CharacterTimersBuilder::new()
+            .na(LoopTimer::new(2.0, 5))
+            .press(DotTimer::single_hit(6.0))
+            .burst(DotTimer::single_hit(12.0))
+            .build()
+    }
+
+    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
+        self.na.icd_timer = &mut timers.na_icd;
+        self.press.icd_timer = &mut timers.skill_icd;
+        self.burst.icd_timer = &mut timers.burst_icd;
     }
 }
 
 impl SpecialAbility for TestCharacter {
-    fn character(&self) -> CharacterRecord {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
+        if timers.burst_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.burst));
+        }
+        if timers.press_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.press));
+            particles.push(Particle::new(Pyro, 2.0));
+        }
+        if timers.na_timer().is_active() {
+            if owner_fc.state.infusion {
+                atk_queue.push(ElementalAttack::new(self.vision, &self.na));
+            } else {
+                atk_queue.push(ElementalAttack::physical(&self.na));
+            }
+        }
+    }
+}
+
+pub struct NoSkillTestCharacter {
+    pub vision: Vision,
+    pub na: Attack,
+    pub burst: Attack,
+}
+
+impl NoSkillTestCharacter {
+    pub fn new(idx: FieldCharacterIndex, vision: Vision) -> Self {
+        Self {
+            vision,
+            na: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 100.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            burst: Attack {
+                kind: AttackType::Burst,
+                gauge: &GAUGE1A,
+                multiplier: 300.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+        }
+    }
+}
+
+impl CharacterAbility for NoSkillTestCharacter {
+    fn record(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name(&String::from("simple")).vision(&self.vision).weapon(&String::from("Sword"))
-            .base_hp(100.0).base_atk(100.0).base_def(100.0)
+            .vision(self.vision)
+            .base_atk(100.0)
             .cr(0.0).cd(0.0)
-            .na_1(100.0).na_2(100.0).na_3(100.0).na_4(100.0).na_5(100.0).na_6(0.0).na_time(3.0)
-            .press_cd(6.0).press_particle(2.0).press_dmg(200.0)
-            .burst_cd(12.0).energy_cost(40.0).burst_dmg(300.0)
+            .energy_cost(40.0)
+    }
+
+    fn timers(&self) -> FullCharacterTimers {
+        CharacterTimersBuilder::new()
+            .na(LoopTimer::new(2.0, 5))
+            .burst(DotTimer::single_hit(12.0))
+            .build()
+    }
+
+    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
+        self.na.icd_timer = &mut timers.na_icd;
+        self.burst.icd_timer = &mut timers.burst_icd;
+    }
+}
+
+impl SpecialAbility for NoSkillTestCharacter {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
+        if timers.burst_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.burst));
+        }
+        if timers.na_timer().is_active() && timers.na_timer().n() > 0 {
+            if owner_fc.state.infusion {
+                atk_queue.push(ElementalAttack::new(self.vision, &self.na));
+            } else {
+                atk_queue.push(ElementalAttack::physical(&self.na));
+            }
+        }
+    }
+}
+
+pub struct CaTestCharacter {
+    pub vision: Vision,
+    pub na: Attack,
+    pub ca: Attack,
+    pub press: Attack,
+    pub burst: Attack,
+}
+
+impl CaTestCharacter {
+    pub fn new(idx: FieldCharacterIndex, vision: Vision) -> Self {
+        Self {
+            vision,
+            na: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 100.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            ca: Attack {
+                kind: AttackType::Ca,
+                gauge: &GAUGE1A,
+                multiplier: 150.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            press: Attack {
+                kind: AttackType::PressSkill,
+                gauge: &GAUGE1A,
+                multiplier: 200.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            burst: Attack {
+                kind: AttackType::Burst,
+                gauge: &GAUGE1A,
+                multiplier: 300.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+        }
+    }
+}
+
+impl CharacterAbility for CaTestCharacter {
+    fn record(&self) -> CharacterRecord {
+        CharacterRecord::default()
+            .vision(self.vision)
+            .base_atk(100.0)
+            .cr(0.0).cd(0.0)
+            .energy_cost(40.0)
+    }
+
+    fn timers(&self) -> FullCharacterTimers {
+        CharacterTimersBuilder::new()
+            .na(LoopTimer::new(2.0, 5))
+            .ca(HitsTimer::new(2.0, 1))
+            .stamina(StaminaTimer::new(200.0))
+            .press(DotTimer::single_hit(6.0))
+            .burst(DotTimer::single_hit(12.0))
+            .build()
+    }
+
+    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
+        self.na.icd_timer = &mut timers.na_icd;
+        self.ca.icd_timer = &mut timers.ca_icd;
+        self.press.icd_timer = &mut timers.skill_icd;
+        self.burst.icd_timer = &mut timers.burst_icd;
+    }
+
+    fn use_ca(&self) -> bool {
+        true
+    }
+}
+
+impl SpecialAbility for CaTestCharacter {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
+        if timers.burst_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.burst));
+        }
+        if timers.press_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.press));
+            particles.push(Particle::new(Pyro, 2.0));
+        }
+        if timers.ca_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.na));
+            atk_queue.push(ElementalAttack::new(self.vision, &self.ca));
+        }
+        if timers.na_timer().is_active() && timers.na_timer().n() > 0 {
+            if owner_fc.state.infusion {
+                atk_queue.push(ElementalAttack::new(self.vision, &self.na));
+            } else {
+                atk_queue.push(ElementalAttack::physical(&self.na));
+            }
+        }
+    }
+}
+
+pub struct HoldTestCharacter {
+    use_hold: bool,
+    pub vision: Vision,
+    pub na: Attack,
+    pub press: Attack,
+    pub hold: Attack,
+    pub burst: Attack,
+}
+
+impl HoldTestCharacter {
+    pub fn new(idx: FieldCharacterIndex, vision: Vision) -> Self {
+        Self {
+            use_hold: true,
+            vision,
+            na: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 100.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            press: Attack {
+                kind: AttackType::PressSkill,
+                gauge: &GAUGE1A,
+                multiplier: 200.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            hold: Attack {
+                kind: AttackType::HoldSkill,
+                gauge: &GAUGE1A,
+                multiplier: 250.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            burst: Attack {
+                kind: AttackType::Burst,
+                gauge: &GAUGE1A,
+                multiplier: 300.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+        }
+    }
+}
+
+impl CharacterAbility for HoldTestCharacter {
+    fn record(&self) -> CharacterRecord {
+        CharacterRecord::default()
+            .vision(self.vision)
+            .base_atk(100.0)
+            .cr(0.0).cd(0.0)
+            .energy_cost(40.0)
+    }
+
+    fn timers(&self) -> FullCharacterTimers {
+        CharacterTimersBuilder::new()
+            .na(LoopTimer::new(2.0, 5))
+            .press(DotTimer::single_hit(1.0))
+            .hold(DotTimer::single_hit(1.5))
+            .burst(DotTimer::single_hit(12.0))
+            .build()
+    }
+
+    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
+        self.na.icd_timer = &mut timers.na_icd;
+        self.press.icd_timer = &mut timers.skill_icd;
+        self.hold.icd_timer = &mut timers.skill_icd;
+        self.burst.icd_timer = &mut timers.burst_icd;
+    }
+
+    fn use_hold(&self) -> bool {
+        self.use_hold
+    }
+}
+
+impl SpecialAbility for HoldTestCharacter {
+    fn update(&mut self, _guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, _time: f32) -> () {
+        self.use_hold = false;
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
+        if timers.burst_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.burst));
+        }
+        if timers.press_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.press));
+            particles.push(Particle::new(Pyro, 2.0));
+        }
+        if timers.hold_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.hold));
+            particles.push(Particle::new(Pyro, 3.0));
+        }
+        if timers.na_timer().is_active() && timers.na_timer().n() > 0 {
+            if owner_fc.state.infusion {
+                atk_queue.push(ElementalAttack::new(self.vision, &self.na));
+            } else {
+                atk_queue.push(ElementalAttack::physical(&self.na));
+            }
+        }
+    }
+}
+
+pub struct DotSkillCharacter {
+    pub vision: Vision,
+    pub na: Attack,
+    pub press: Attack,
+    pub burst: Attack,
+}
+
+impl DotSkillCharacter {
+    pub fn new(idx: FieldCharacterIndex, vision: Vision) -> Self {
+        Self {
+            vision,
+            na: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 100.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            press: Attack {
+                kind: AttackType::PressSkill,
+                gauge: &GAUGE1A,
+                multiplier: 50.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            burst: Attack {
+                kind: AttackType::Burst,
+                gauge: &GAUGE1A,
+                multiplier: 300.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+        }
+    }
+}
+
+impl CharacterAbility for DotSkillCharacter {
+    fn record(&self) -> CharacterRecord {
+        CharacterRecord::default()
+            .vision(self.vision)
+            .base_atk(100.0)
+            .cr(0.0).cd(0.0)
+            .energy_cost(40.0)
+    }
+
+    fn timers(&self) -> FullCharacterTimers {
+        CharacterTimersBuilder::new()
+            .na(LoopTimer::new(2.0, 5))
+            .press(DotTimer::new(6.0, 0.5, 4))
+            .burst(DotTimer::single_hit(12.0))
+            .build()
+    }
+
+    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
+        self.na.icd_timer = &mut timers.na_icd;
+        self.press.icd_timer = &mut timers.skill_icd;
+        self.burst.icd_timer = &mut timers.burst_icd;
+    }
+}
+
+impl SpecialAbility for DotSkillCharacter {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
+        if timers.burst_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.burst));
+        }
+        if timers.press_timer().is_active() {
+            atk_queue.push(ElementalAttack::new(self.vision, &self.press));
+            particles.push(Particle::new(Pyro, 1.0));
+        }
+        if timers.na_timer().is_active() {
+            if owner_fc.state.infusion {
+                atk_queue.push(ElementalAttack::new(self.vision, &self.na));
+            } else {
+                atk_queue.push(ElementalAttack::physical(&self.na));
+            }
+        }
     }
 }
 
 pub struct TestWeapon;
 
-impl SpecialAbility for TestWeapon {
-    fn weapon(&self) -> WeaponRecord {
-        WeaponRecord {
-            name: String::from("simple"), type_: String::from("Sword"), version: 1.0,
-            base_atk: 0.0,
-            atk: 0.0, hp: 0.0, def: 0.0, cr: 0.0, cd: 0.0, er: 0.0, em: 0.0, atk_spd: 0.0,
-            dmg_na: 0.0, dmg_ca: 0.0, dmg_skill: 0.0, dmg_burst: 0.0,
-            dmg_phy: 0.0, dmg_pyro: 0.0, dmg_cryo: 0.0, dmg_hydro: 0.0, dmg_electro: 0.0, dmg_anemo: 0.0, dmg_geo: 0.0, dmg_dendro: 0.0,
-        }
+impl SpecialAbility for TestWeapon {}
+
+impl WeaponAbility for TestWeapon {
+    fn record(&self) -> WeaponRecord {
+        WeaponRecord::default()
+    }
+}
+
+pub struct TestWeaponAbility<T: WeaponAbility>(pub T);
+
+impl<T: WeaponAbility> SpecialAbility for TestWeaponAbility<T> {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.0.update(guard, timers, attack, particles, data, enemy, time);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+        self.0.additional_attack(atk_queue, particles, timers, data, enemy);
+    }
+
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_state, timers, data, enemy);
+    }
+
+    fn intensify(&self, attack: &Attack) -> Option<State> {
+        self.0.intensify(attack)
+    }
+
+    fn reset(&mut self) -> () {
+        self.0.reset();
+    }
+}
+
+impl<T: WeaponAbility> WeaponAbility for TestWeaponAbility<T> {
+    fn record(&self) -> WeaponRecord {
+        WeaponRecord::default()
+    }
+
+    fn accelerate(&self, ac: &mut FullCharacterTimers) -> () {
+        self.0.accelerate(ac);
     }
 }
 
 pub struct TestArtifact(pub State);
 
-impl SpecialAbility for TestArtifact {
-    fn artifact(&self) -> Artifact {
+impl SpecialAbility for TestArtifact {}
+
+impl ArtifactAbility for TestArtifact {
+    fn record(&self) -> Artifact {
         let mut state = State::new();
         state.merge(&self.0);
         Artifact {
-            name: String::from("simple"),
+            name: "simple",
             version: 1.0,
             preference: Vec::new(),
             state
@@ -162,107 +518,117 @@ impl SpecialAbility for TestArtifact {
     }
 }
 
-pub struct TestAbility<T: SpecialAbility>(pub T);
-
-impl<T: SpecialAbility> SpecialAbility for TestAbility<T> {
-    fn character(&self) -> CharacterRecord { TestCharacter::new().character() }
-    fn weapon(&self) -> WeaponRecord { TestWeapon.weapon() }
-    fn artifact(&self) -> Artifact { Default::default() }
-
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.0.update(gaurd, attack, owner_fc, enemy, time);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
-        self.0.additional_attack(atk_queue, owner_fc, fa, enemy);
-    }
-
-    fn modify(&self, modifiable_state: &mut [State], owner_fc: &FieldCharacter, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, owner_fc, enemy);
-    }
-
-    fn accelerate(&self, na: &mut NormalAttackAction, skill: &mut SkillAction, burst: &mut BurstAction) -> () {
-        self.0.accelerate(na, skill, burst);
-    }
-
-    fn intensify(&self, attack: &mut Attack, owner_fc: &FieldCharacter, enemy: &Enemy) -> () {
-        self.0.intensify(attack, owner_fc, enemy);
-    }
-
-    fn reset(&mut self) -> () { self.0.reset() }
+pub struct TestEnvironment {
+    timers: Box<FullCharacterTimers>,
+    testcharacter: Option<TestCharacter>,
+    noskilltestcharacter: Option<NoSkillTestCharacter>,
+    catestcharacter: Option<CaTestCharacter>,
+    holdtestcharacter: Option<HoldTestCharacter>,
+    dotskillcharacter: Option<DotSkillCharacter>,
+    testweapon: Option<TestWeapon>,
+    testartifact: Option<TestArtifact>,
+    cr: Option<CharacterRecord>,
+    wr: Option<WeaponRecord>,
+    ar: Option<Artifact>,
 }
 
-pub struct TestEnvironment;
-
 impl TestEnvironment {
+    pub fn new() -> Self {
+        Self {
+            timers: Box::new(CharacterTimersBuilder::new().build()),
+            testcharacter: None,
+            noskilltestcharacter: None,
+            catestcharacter: None,
+            holdtestcharacter: None,
+            dotskillcharacter: None,
+            testweapon: None,
+            testartifact: None,
+            cr: None,
+            wr: None,
+            ar: None,
+        }
+    }
+
     pub fn enemy() -> Enemy {
         Enemy::simple()
     }
 
-    pub fn fc(state: State) -> FieldCharacterData {
-        TestEnvironment::fc_n(FieldCharacterIndex(0), state)
+    pub fn vision<'a>(&'a mut self, idx: FieldCharacterIndex, state: State, vision: Vision) -> FieldCharacterData<'a> {
+        let ca = self.testcharacter.insert(TestCharacter::new(idx, vision));
+        let wa = self.testweapon.insert(TestWeapon);
+        let aa = self.testartifact.insert(TestArtifact(state));
+        let cr = self.cr.insert(ca.record());
+        let wr = self.wr.insert(wa.record());
+        let ar = self.ar.insert(aa.record());
+        FieldCharacterData::new(&mut self.timers, ca, wa, aa, CharacterData::new(idx, cr, wr, ar))
     }
 
-    pub fn fc1(state: State) -> FieldCharacterData {
-        TestEnvironment::fc_n(FieldCharacterIndex(1), state)
+    pub fn no_skill<'a>(&'a mut self, idx: FieldCharacterIndex, state: State, vision: Vision) -> FieldCharacterData<'a> {
+        let ca = self.noskilltestcharacter.insert(NoSkillTestCharacter::new(idx, vision));
+        let wa = self.testweapon.insert(TestWeapon);
+        let aa = self.testartifact.insert(TestArtifact(state));
+        let cr = self.cr.insert(ca.record());
+        let wr = self.wr.insert(wa.record());
+        let ar = self.ar.insert(aa.record());
+        FieldCharacterData::new(&mut self.timers, ca, wa, aa, CharacterData::new(idx, cr, wr, ar))
     }
 
-    pub fn fc_n(idx: FieldCharacterIndex, state: State) -> FieldCharacterData {
-        let ca = TestCharacter { vision: String::from("Pyro") };
-        let cr = ca.character();
-        let vision = Vision::from(&cr.vision);
-        let wa = TestWeapon;
-        let aa = TestArtifact(state);
-        FieldCharacter::new(idx, cr, vision, wa.weapon(), aa.artifact()).to_data(FieldAbility {
-            character: Box::new(ca),
-            weapon: Box::new(wa),
-            artifact: Box::new(aa),
-        })
+    pub fn ca<'a>(&'a mut self, idx: FieldCharacterIndex, state: State, vision: Vision) -> FieldCharacterData<'a> {
+        let ca = self.catestcharacter.insert(CaTestCharacter::new(idx, vision));
+        let wa = self.testweapon.insert(TestWeapon);
+        let aa = self.testartifact.insert(TestArtifact(state));
+        let cr = self.cr.insert(ca.record());
+        let wr = self.wr.insert(wa.record());
+        let ar = self.ar.insert(aa.record());
+        FieldCharacterData::new(&mut self.timers, ca, wa, aa, CharacterData::new(idx, cr, wr, ar))
     }
 
-    pub fn fc_artifact<T: 'static +  SpecialAbility>(idx: FieldCharacterIndex, aa: T) -> FieldCharacterData {
-        let ca = TestCharacter { vision: String::from("Pyro") };
-        let cr = ca.character();
-        let vision = Vision::from(&cr.vision);
-        let wa = TestWeapon;
-        FieldCharacter::new(idx, cr, vision, wa.weapon(), aa.artifact()).to_data(FieldAbility {
-            character: Box::new(ca),
-            weapon: Box::new(wa),
-            artifact: Box::new(aa),
-        })
+    pub fn hold<'a>(&'a mut self, idx: FieldCharacterIndex, state: State, vision: Vision) -> FieldCharacterData<'a> {
+        let ca = self.holdtestcharacter.insert(HoldTestCharacter::new(idx, vision));
+        let wa = self.testweapon.insert(TestWeapon);
+        let aa = self.testartifact.insert(TestArtifact(state));
+        let cr = self.cr.insert(ca.record());
+        let wr = self.wr.insert(wa.record());
+        let ar = self.ar.insert(aa.record());
+        FieldCharacterData::new(&mut self.timers, ca, wa, aa, CharacterData::new(idx, cr, wr, ar))
     }
 
-    pub fn vision(state: State, vision: &str) -> FieldCharacterData {
-        let ca = TestCharacter { vision: String::from(vision) };
-        let cr = ca.character();
-        let vision = Vision::from(&cr.vision);
-        let wa = TestWeapon;
-        let aa = TestArtifact(state);
-        FieldCharacter::new(FieldCharacterIndex(0), cr, vision, wa.weapon(), aa.artifact()).to_data(FieldAbility {
-            character: Box::new(ca),
-            weapon: Box::new(wa),
-            artifact: Box::new(aa),
-        })
+    pub fn dot<'a>(&'a mut self, idx: FieldCharacterIndex, state: State, vision: Vision) -> FieldCharacterData<'a> {
+        let ca = self.dotskillcharacter.insert(DotSkillCharacter::new(idx, vision));
+        let wa = self.testweapon.insert(TestWeapon);
+        let aa = self.testartifact.insert(TestArtifact(state));
+        let cr = self.cr.insert(ca.record());
+        let wr = self.wr.insert(wa.record());
+        let ar = self.ar.insert(aa.record());
+        FieldCharacterData::new(&mut self.timers, ca, wa, aa, CharacterData::new(idx, cr, wr, ar))
     }
 
-    pub fn no_skill(character: Box<dyn SpecialAbility>, weapon: Box<dyn SpecialAbility>, artifact: Box<dyn SpecialAbility>) -> FieldCharacterData {
-        let idx = FieldCharacterIndex(0);
-        let cr = character.character();
-        let wr = weapon.weapon();
-        let ar = artifact.artifact();
-        let vision = Vision::from(&cr.vision);
-        let burst = cr.burst_action();
-        let skill = SkillAction::noop(vision);
-        let normal_action = cr.normal_action();
-        let mut state = State::new();
-        state.merge(&cr.state());
-        state.merge(&wr.state());
-        state.merge(&ar.state);
-        (
-            FieldCharacter { idx, cr, wr, ar, state, vision },
-            FieldAbility { character, weapon, artifact },
-            Vec::new(),
-            FieldAction { burst, skill, na: normal_action },
-        )
+    pub fn artifact<'a, T: 'static + ArtifactAbility>(&'a mut self, idx: FieldCharacterIndex, state: State, vision: Vision, aa: &'a mut T) -> FieldCharacterData<'a> {
+        let ca = self.testcharacter.insert(TestCharacter::new(idx, vision));
+        let wa = self.testweapon.insert(TestWeapon);
+        let cr = self.cr.insert(ca.record());
+        let wr = self.wr.insert(wa.record());
+        let ar = self.ar.insert(aa.record());
+        ar.state.merge(&state);
+        FieldCharacterData::new(&mut self.timers, ca, wa, aa, CharacterData::new(idx, cr, wr, ar))
+
+    }
+
+    pub fn weapon<'a, T: 'static + WeaponAbility>(&'a mut self, idx: FieldCharacterIndex, state: State, vision: Vision, wa: &'a mut T) -> FieldCharacterData<'a> {
+        let ca = self.testcharacter.insert(TestCharacter::new(idx, vision));
+        let aa = self.testartifact.insert(TestArtifact(state));
+        let cr = self.cr.insert(ca.record());
+        let wr = self.wr.insert(wa.record());
+        let ar = self.ar.insert(aa.record());
+        FieldCharacterData::new(&mut self.timers, ca, wa, aa, CharacterData::new(idx, cr, wr, ar))
+    }
+
+    pub fn no_skill_weapon<'a, T: 'static + WeaponAbility>(&'a mut self, idx: FieldCharacterIndex, state: State, vision: Vision, wa: &'a mut T) -> FieldCharacterData<'a> {
+        let ca = self.noskilltestcharacter.insert(NoSkillTestCharacter::new(idx, vision));
+        let aa = self.testartifact.insert(TestArtifact(state));
+        let cr = self.cr.insert(ca.record());
+        let wr = self.wr.insert(wa.record());
+        let ar = self.ar.insert(aa.record());
+        FieldCharacterData::new(&mut self.timers, ca, wa, aa, CharacterData::new(idx, cr, wr, ar))
     }
 }

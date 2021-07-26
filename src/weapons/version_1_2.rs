@@ -1,32 +1,31 @@
-use std::mem;
+use std::ptr;
 use crate::state::State;
-use crate::types::{AttackType, Vision};
-use crate::fc::{SpecialAbility, FieldCharacter, FieldAction, WeaponRecord, Enemy};
-use crate::action::{Attack, TimerGuard, EffectTimer, HitsTimer};
+use crate::types::{AttackType, WeaponType, Particle, Vision, GAUGE1A};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, HitsTimer};
 
 use AttackType::*;
+use WeaponType::*;
 use Vision::*;
 
 pub struct FesteringDesire;
 
-impl SpecialAbility for FesteringDesire {
-    fn weapon(&self) -> WeaponRecord {
+impl WeaponAbility for FesteringDesire {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Festering Desire").type_("Sword").version(1.2)
+            .name("Festering Desire").type_(Sword).version(1.2)
             .base_atk(510.0)
             .er(45.9).dmg_skill(32.0)
     }
+}
 
-    fn intensify(&self, attack: &mut Attack, _owner_fc: &FieldCharacter, _enemy: &Enemy) -> () {
-        if attack.kind == Skill || attack.kind == SkillDot {
-            let mut state: Option<State> = None;
-            mem::swap(&mut state, &mut attack.state);
-            attack.state = if let Some(mut state) = state {
-                state.cr += 12.0;
-                Some(state)
-            } else {
-                Some(State::new().cr(12.0))
-            }
+impl SpecialAbility for FesteringDesire {
+    fn intensify(&self, attack: &Attack) -> Option<State> {
+        match &attack.kind {
+            PressSkill |
+            HoldSkill |
+            SkillDot => Some(State::new().cr(12.0)),
+            _ => None,
         }
     }
 }
@@ -34,31 +33,47 @@ impl SpecialAbility for FesteringDesire {
 #[derive(Debug)]
 pub struct FrostBurial {
     timer: HitsTimer,
+    aa: Attack,
+    aa_cryo: Attack,
 }
 
 impl FrostBurial {
-    pub fn new() -> Self {
-        Self { timer: HitsTimer::new(10.0, 1) }
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            timer: HitsTimer::new(10.0, 1),
+            aa: Attack {
+                kind: AdditionalAttack,
+                gauge: &GAUGE1A,
+                multiplier: 140.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            aa_cryo: Attack {
+                kind: AdditionalAttack,
+                gauge: &GAUGE1A,
+                multiplier: 360.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+        }
     }
 }
 
 impl SpecialAbility for FrostBurial {
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(gaurd.second(attack.iter().any(|a| a.owned(owner_fc) && a.is_naca())), time);
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+        let should_update = guard.kind == Na || guard.kind == Ca;
+        self.timer.update(guard.second(should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, _fa: &FieldAction, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, enemy: &Enemy) -> () {
         if self.timer.is_active() {
-            atk_queue.push(Attack {
-                kind: AdditionalAttack,
-                element: Physical,
-                multiplier: if enemy.aura.aura == Cryo { 360.0 } else { 140.0 },
-                particle: None,
-                state: None,
-                icd_cleared: false,
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
-            })
+            if enemy.aura.aura == Cryo {
+                atk_queue.push(ElementalAttack::physical(&self.aa_cryo));
+            } else {
+                atk_queue.push(ElementalAttack::physical(&self.aa));
+            }
         }
     }
 
@@ -70,25 +85,27 @@ impl SpecialAbility for FrostBurial {
 pub struct SnowTombedStarsilver(FrostBurial);
 
 impl SnowTombedStarsilver {
-    pub fn new() -> Self {
-        Self(FrostBurial::new())
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(FrostBurial::new(idx))
+    }
+}
+
+impl WeaponAbility for SnowTombedStarsilver {
+    fn record(&self) -> WeaponRecord {
+        WeaponRecord::default()
+            .name("Snow-Tombed Starsilver").type_(Claymore).version(1.2)
+            .base_atk(565.0)
+            .dmg_phy(34.5)
     }
 }
 
 impl SpecialAbility for SnowTombedStarsilver {
-    fn weapon(&self) -> WeaponRecord {
-        WeaponRecord::default()
-            .name("Snow-Tombed Starsilver").type_("Claymore").version(1.2)
-            .base_atk(565.0)
-            .dmg_phy(34.5)
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.0.update(gaurd, attack, owner_fc, enemy, time);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
-        self.0.additional_attack(atk_queue, owner_fc, fa, enemy);
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+        self.0.additional_attack(atk_queue, particles, timers, data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }
@@ -97,25 +114,27 @@ impl SpecialAbility for SnowTombedStarsilver {
 pub struct DragonspineSpear(FrostBurial);
 
 impl DragonspineSpear {
-    pub fn new() -> Self {
-        Self(FrostBurial::new())
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(FrostBurial::new(idx))
+    }
+}
+
+impl WeaponAbility for DragonspineSpear {
+    fn record(&self) -> WeaponRecord {
+        WeaponRecord::default()
+            .name("Dragonspine Spear").type_(Polearm).version(1.2)
+            .base_atk(454.0)
+            .dmg_phy(69.0)
     }
 }
 
 impl SpecialAbility for DragonspineSpear {
-    fn weapon(&self) -> WeaponRecord {
-        WeaponRecord::default()
-            .name("Dragonspine Spear").type_("Polearm").version(1.2)
-            .base_atk(454.0)
-            .dmg_phy(69.0)
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.0.update(gaurd, attack, owner_fc, enemy, time);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
-        self.0.additional_attack(atk_queue, owner_fc, fa, enemy);
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+        self.0.additional_attack(atk_queue, particles, timers, data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }
@@ -124,25 +143,27 @@ impl SpecialAbility for DragonspineSpear {
 pub struct Frostbearer(FrostBurial);
 
 impl Frostbearer {
-    pub fn new() -> Self {
-        Self(FrostBurial::new())
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(FrostBurial::new(idx))
+    }
+}
+
+impl WeaponAbility for Frostbearer {
+    fn record(&self) -> WeaponRecord {
+        WeaponRecord::default()
+            .name("Frostbearer").type_(Catalyst).version(1.2)
+            .base_atk(510.0)
+            .atk(41.3)
     }
 }
 
 impl SpecialAbility for Frostbearer {
-    fn weapon(&self) -> WeaponRecord {
-        WeaponRecord::default()
-            .name("Frostbearer").type_("Catalyst").version(1.2)
-            .base_atk(510.0)
-            .atk(41.3)
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.0.update(gaurd, attack, owner_fc, enemy, time);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
-        self.0.additional_attack(atk_queue, owner_fc, fa, enemy);
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+        self.0.additional_attack(atk_queue, particles, timers, data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }

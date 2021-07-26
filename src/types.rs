@@ -1,12 +1,20 @@
 use std::ops::{Add, AddAssign};
 use std::cmp::PartialEq;
 
-use crate::fc::{FieldCharacter};
 use crate::action::Attack;
 
-use self::AttackType::*;
+// use self::AttackType::*;
 use self::Vision::*;
 use self::ElementalReactionType::*;
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum WeaponType {
+    Sword,
+    Claymore,
+    Polearm,
+    Bow,
+    Catalyst,
+}
 
 // DOC https://doc.rust-lang.org/std/marker/trait.Copy.html
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -14,7 +22,8 @@ pub enum AttackType {
     Na,
     Ca,
     // Plunge,
-    Skill,
+    PressSkill,
+    HoldSkill,
     SkillDot,
     Burst,
     BurstDot,
@@ -24,6 +33,50 @@ pub enum AttackType {
 
 #[derive(Debug, PartialEq)]
 pub struct Energy(pub f32);
+
+#[derive(Debug, PartialEq)]
+pub struct Particle {
+    element: Vision,
+    n: f32,
+}
+
+impl Particle {
+    pub fn new(element: Vision, n: f32) -> Self {
+        Self {
+            element,
+            n,
+        }
+    }
+
+    pub fn neutral(n: f32) -> Self {
+        Self {
+            element: Physical,
+            n
+        }
+    }
+
+    // TODO forget about number of members
+    pub fn on_field_energy(&self, reciver_element: &Vision) -> f32 {
+        self.n * if self.element == *reciver_element {
+            3.0
+        // physical particles mean neutral energy
+        } else if self.element == Physical {
+            2.0
+        } else {
+            1.0
+        }
+    }
+
+    pub fn off_field_energy(&self, reciver_element: &Vision) -> f32 {
+        self.n * if self.element == *reciver_element {
+            1.8
+        } else if self.element == Physical {
+            1.2
+        } else {
+            0.6
+        }
+    }
+}
 
 // The `Preference` enum means a preferable role in a battle for artifacts,
 // weapons and characters. Implementations should allow some of them to prefer
@@ -54,14 +107,14 @@ impl PartialEq<Vision> for Preference {
     }
 }
 
-impl PartialEq<String> for Preference {
-    fn eq(&self, other: &String) -> bool {
-        match (&self, other.as_str()) {
-            (Preference::Melee, "Sword") => true,
-            (Preference::Melee, "Claymore") => true,
-            (Preference::Melee, "Polearm") => true,
-            (Preference::Ranged, "Bow") => true,
-            (Preference::Ranged, "Catalyst") => true,
+impl PartialEq<WeaponType> for Preference {
+    fn eq(&self, other: &WeaponType) -> bool {
+        match (&self, other) {
+            (Preference::Melee, WeaponType::Sword) => true,
+            (Preference::Melee, WeaponType::Claymore) => true,
+            (Preference::Melee, WeaponType::Polearm) => true,
+            (Preference::Ranged, WeaponType::Bow) => true,
+            (Preference::Ranged, WeaponType::Catalyst) => true,
             _ => false,
         }
     }
@@ -70,24 +123,15 @@ impl PartialEq<String> for Preference {
 #[derive(Debug, Copy, Clone)]
 pub struct UnstackableBuff(usize);
 
+pub const NOBLESSE_OBLIGE: UnstackableBuff = UnstackableBuff(1 << 0);
+
+pub const TENACITY_OF_THE_MILLELITH: UnstackableBuff = UnstackableBuff(1 << 1);
+
+pub const MILLENNIAL_MOVEMENT_SERIES: UnstackableBuff = UnstackableBuff(1 << 2);
+
 impl UnstackableBuff {
     pub fn new() -> Self {
         Self(0)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn NoblesseOblige() -> Self {
-        Self(1)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn TenacityOfTheMillelith() -> Self {
-        Self(10)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn MillennialMovementSeries() -> Self {
-        Self(100)
     }
 }
 
@@ -170,6 +214,37 @@ impl ElementalGaugeDecay {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
+pub struct BareElementalGauge {
+    pub unit: f32,
+    pub decay: ElementalGaugeDecay,
+}
+
+pub const GAUGE1A: BareElementalGauge = BareElementalGauge {
+    unit: 1.0,
+    decay: ElementalGaugeDecay::A,
+};
+
+pub const GAUGE2B: BareElementalGauge = BareElementalGauge {
+    unit: 2.0,
+    decay: ElementalGaugeDecay::B,
+};
+
+pub const GAUGE4C: BareElementalGauge = BareElementalGauge {
+    unit: 4.0,
+    decay: ElementalGaugeDecay::C,
+};
+
+impl BareElementalGauge {
+    pub fn to_gauge(&self, aura: &Vision) -> ElementalGauge {
+        ElementalGauge {
+            aura: *aura,
+            unit: self.unit,
+            decay: self.decay,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct ElementalGauge {
     pub aura: Vision,
     pub unit: f32,
@@ -177,72 +252,18 @@ pub struct ElementalGauge {
 }
 
 impl ElementalGauge {
-    pub fn na(fc: &FieldCharacter) -> Self {
+    pub fn new(aura: Vision, unit: f32, decay: ElementalGaugeDecay) -> Self {
         Self {
-            aura: if fc.state.infusion { fc.vision } else { Physical },
-            unit: fc.cr.na_unit,
-            decay: fc.cr.na_decay,
+            aura,
+            unit,
+            decay
         }
     }
 
-    pub fn ca(fc: &FieldCharacter) -> Self {
-        let element = if fc.state.infusion
-                      || fc.cr.weapon == "Bow" {
-            fc.vision
-        } else {
-            Physical
-        };
-        Self {
-            aura: element,
-            unit: fc.cr.ca_unit,
-            decay: fc.cr.ca_decay,
-        }
-    }
-
-    pub fn skill(fc: &FieldCharacter) -> Self {
-        Self {
-            aura: fc.vision,
-            unit: fc.cr.skill_unit,
-            decay: fc.cr.skill_decay,
-        }
-    }
-
-    pub fn skilldot(fc: &FieldCharacter) -> Self {
-        Self {
-            aura: fc.vision,
-            unit: fc.cr.skilldot_unit,
-            decay: fc.cr.skilldot_decay,
-        }
-    }
-
-    pub fn burst(fc: &FieldCharacter) -> Self {
-        Self {
-            aura: fc.vision,
-            unit: fc.cr.burst_unit,
-            decay: fc.cr.burst_decay,
-        }
-    }
-
-    pub fn burstdot(fc: &FieldCharacter) -> Self {
-        Self {
-            aura: fc.vision,
-            unit: fc.cr.burstdot_unit,
-            decay: fc.cr.burstdot_decay,
-        }
-    }
-
-    pub fn trigger(&mut self, attack: &Attack) -> () {
-        if attack.icd_cleared {
-            let other = match attack.kind {
-                Na => unsafe { ElementalGauge::na(&(*attack.fc_ptr)) },
-                Ca => unsafe { ElementalGauge::ca(&(*attack.fc_ptr)) },
-                Skill => unsafe { ElementalGauge::skill(&(*attack.fc_ptr)) },
-                SkillDot => unsafe { ElementalGauge::skilldot(&(*attack.fc_ptr)) },
-                Burst => unsafe { ElementalGauge::burst(&(*attack.fc_ptr)) },
-                BurstDot => unsafe { ElementalGauge::burstdot(&(*attack.fc_ptr)) },
-                _ => ElementalGauge::default(),
-            };
-            let er = ElementalReaction::new(self.aura, other.aura);
+    pub fn trigger(&mut self, attack: &Attack, attack_element: &Vision) -> () {
+        if attack.icd_cleared() {
+            let other = attack.gauge.to_gauge(attack_element);
+            let er = ElementalReaction::new(self.aura, *attack_element);
             let before_negative = self.unit <= 0.0;
             self.unit += er.gauge_modifier() * other.unit;
             let after_negative = self.unit <= 0.0;
@@ -251,7 +272,7 @@ impl ElementalGauge {
                 self.aura = Physical;
             } else if before_negative && !after_negative {
                 // no aura was applied on the enemy
-                self.aura = other.aura;
+                self.aura = *attack_element;
                 self.unit = other.unit;
                 self.decay = other.decay;
             }
@@ -377,7 +398,8 @@ pub struct ElementalReaction {
 impl ElementalReaction {
     pub fn new(enemy_aura: Vision, trigger: Vision) -> ElementalReactionType {
         match (&enemy_aura, &trigger) {
-            (Physical, _)       => Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
+            (Physical, Physical)=> Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
+            (Physical, _)       => Equalize(Self { enemy_aura, trigger, rm: 0.0 }),
             (Pyro, Pyro)        => Equalize(Self { enemy_aura, trigger, rm: 0.0 }),
             (Pyro, Hydro)       => Vaporize(Self { enemy_aura, trigger, rm: 2.0 }),
             (Pyro, Electro)     => Overloaded(Self { enemy_aura, trigger, rm: 4.0 }),
@@ -437,17 +459,17 @@ mod tests {
 
     #[test]
     fn usb_eq() {
-        assert_eq!(UnstackableBuff::NoblesseOblige(), UnstackableBuff(1));
+        assert_eq!(NOBLESSE_OBLIGE, UnstackableBuff(1));
     }
 
     #[test]
     fn usb_add() {
-        let no = UnstackableBuff::NoblesseOblige();
-        let tm = UnstackableBuff::TenacityOfTheMillelith();
-        let mm = UnstackableBuff::MillennialMovementSeries();
-        assert_eq!(no + tm, UnstackableBuff(11));
-        assert_eq!(tm + mm, UnstackableBuff(110));
-        assert_eq!(mm + no, UnstackableBuff(101));
-        assert_eq!(no + tm + mm, UnstackableBuff(111));
+        let no = NOBLESSE_OBLIGE;
+        let tm = TENACITY_OF_THE_MILLELITH;
+        let mm = MILLENNIAL_MOVEMENT_SERIES;
+        assert_eq!(no + tm, UnstackableBuff(3));
+        assert_eq!(tm + mm, UnstackableBuff(6));
+        assert_eq!(mm + no, UnstackableBuff(5));
+        assert_eq!(no + tm + mm, UnstackableBuff(7));
     }
 }

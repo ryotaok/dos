@@ -1,9 +1,10 @@
-use crate::types::{AttackType, Vision};
-use crate::fc::{SpecialAbility, FieldCharacter, FieldAction, WeaponRecord, Enemy};
-use crate::action::{Attack, TimerGuard, EffectTimer, HitsTimer};
+use crate::types::{AttackType, WeaponType, Particle};
+use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, HitsTimer};
 
 use AttackType::*;
-use Vision::*;
+use WeaponType::*;
+// use Vision::*;
 
 pub struct Windfall {
     timer: HitsTimer,
@@ -16,28 +17,21 @@ impl Windfall {
 }
 
 impl SpecialAbility for Windfall {
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, _enemy: &Enemy, time: f32) -> () {
-        let should_update = attack.iter().any(|a|
-            match &a.kind {
-                Na | Ca | Skill | SkillDot | Burst | BurstDot => a.owned(owner_fc),
-                _ => false,
-            }
-        );
-        self.timer.update(gaurd.second(should_update), time);
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+        let should_update = unsafe {
+            attack.iter().any(|&a|
+                match (*a.atk).kind {
+                    Na | Ca | PressSkill | HoldSkill | SkillDot | Burst | BurstDot => true,
+                    _ => false,
+                }
+            )
+        };
+        self.timer.update(guard.second(should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, _fa: &FieldAction, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, _atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
-            atk_queue.push(Attack {
-                kind: StandStill,
-                element: Physical,
-                multiplier: 0.0,
-                particle: Some(3.0 * owner_fc.state.cr / 100.0),
-                state: None,
-                icd_cleared: false,
-                on_field_character_index: owner_fc.idx.0,
-                fc_ptr: owner_fc,
-            })
+            particles.push(Particle::neutral(3.0 * data.state.cr / 100.0));
         }
     }
 
@@ -55,20 +49,22 @@ impl FavoniusGreatswordR5 {
     }
 }
 
-impl SpecialAbility for FavoniusGreatswordR5 {
-    fn weapon(&self) -> WeaponRecord {
+impl WeaponAbility for FavoniusGreatswordR5 {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Favonius Greatsword R5").type_("Claymore").version(1.0)
+            .name("Favonius Greatsword R5").type_(Claymore).version(1.0)
             .base_atk(454.0)
             .er(61.3)
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.0.update(gaurd, attack, owner_fc, enemy, time);
+impl SpecialAbility for FavoniusGreatswordR5 {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
-        self.0.additional_attack(atk_queue, owner_fc, fa, enemy);
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+        self.0.additional_attack(atk_queue, particles, timers, data, enemy);
     }
 
     fn reset(&mut self) -> () {
@@ -84,20 +80,22 @@ impl FavoniusSwordR5 {
     }
 }
 
-impl SpecialAbility for FavoniusSwordR5 {
-    fn weapon(&self) -> WeaponRecord {
+impl WeaponAbility for FavoniusSwordR5 {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Favonius Sword R5").type_("Sword").version(1.0)
+            .name("Favonius Sword R5").type_(Sword).version(1.0)
             .base_atk(454.0)
             .er(61.3)
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.0.update(gaurd, attack, owner_fc, enemy, time);
+impl SpecialAbility for FavoniusSwordR5 {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
-        self.0.additional_attack(atk_queue, owner_fc, fa, enemy);
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+        self.0.additional_attack(atk_queue, particles, timers, data, enemy);
     }
 
     fn reset(&mut self) -> () {
@@ -113,20 +111,22 @@ impl FavoniusLanceR5 {
     }
 }
 
-impl SpecialAbility for FavoniusLanceR5 {
-    fn weapon(&self) -> WeaponRecord {
+impl WeaponAbility for FavoniusLanceR5 {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Favonius Lance R5").type_("Polearm").version(1.0)
+            .name("Favonius Lance R5").type_(Polearm).version(1.0)
             .base_atk(565.0)
             .er(30.6)
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.0.update(gaurd, attack, owner_fc, enemy, time);
+impl SpecialAbility for FavoniusLanceR5 {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
-        self.0.additional_attack(atk_queue, owner_fc, fa, enemy);
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+        self.0.additional_attack(atk_queue, particles, timers, data, enemy);
     }
 
     fn reset(&mut self) -> () {
@@ -142,20 +142,22 @@ impl FavoniusWarbowR5 {
     }
 }
 
-impl SpecialAbility for FavoniusWarbowR5 {
-    fn weapon(&self) -> WeaponRecord {
+impl WeaponAbility for FavoniusWarbowR5 {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Favonius Warbow R5").type_("Bow").version(1.0)
+            .name("Favonius Warbow R5").type_(Bow).version(1.0)
             .base_atk(454.0)
             .er(61.3)
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.0.update(gaurd, attack, owner_fc, enemy, time);
+impl SpecialAbility for FavoniusWarbowR5 {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
-        self.0.additional_attack(atk_queue, owner_fc, fa, enemy);
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+        self.0.additional_attack(atk_queue, particles, timers, data, enemy);
     }
 
     fn reset(&mut self) -> () {
@@ -171,20 +173,22 @@ impl FavoniusCodexR5 {
     }
 }
 
-impl SpecialAbility for FavoniusCodexR5 {
-    fn weapon(&self) -> WeaponRecord {
+impl WeaponAbility for FavoniusCodexR5 {
+    fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Favonius Codex R5").type_("Catalyst").version(1.0)
+            .name("Favonius Codex R5").type_(Catalyst).version(1.0)
             .base_atk(510.0)
             .er(45.9)
     }
+}
 
-    fn update(&mut self, gaurd: &mut TimerGuard, attack: &[Attack], owner_fc: &FieldCharacter, enemy: &Enemy, time: f32) -> () {
-        self.0.update(gaurd, attack, owner_fc, enemy, time);
+impl SpecialAbility for FavoniusCodexR5 {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<Attack>, owner_fc: &FieldCharacter, fa: &FieldAction, enemy: &Enemy) -> () {
-        self.0.additional_attack(atk_queue, owner_fc, fa, enemy);
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+        self.0.additional_attack(atk_queue, particles, timers, data, enemy);
     }
 
     fn reset(&mut self) -> () {

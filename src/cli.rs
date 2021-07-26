@@ -51,7 +51,7 @@ pub struct Args {
     pub weapon_version: f32,
     pub artifact_version: f32,
     pub unit_time: f32,
-    pub emulation_time: f32,
+    pub simulation_time: f32,
     pub truncate: bool,
 }
 
@@ -59,11 +59,11 @@ impl Default for Args {
     fn default() -> Self {
         Self {
             n_members: 1,
-            character_version: 1.6,
-            weapon_version: 1.6,
-            artifact_version: 1.6,
+            character_version: 2.0,
+            weapon_version: 2.0,
+            artifact_version: 2.0,
             unit_time: 0.2,
-            emulation_time: 20.0,
+            simulation_time: 20.0,
             truncate: false,
         }
     }
@@ -102,7 +102,7 @@ impl Args {
                 "--weapon_version" => kv.push((WeaponVersion, Help)),
                 "--artifact_version" => kv.push((ArtifactVersion, Help)),
                 "--unit_time" => kv.push((UnitTime, Help)),
-                "--emulation_time" => kv.push((EmulationTime, Help)),
+                "--simulation_time" => kv.push((EmulationTime, Help)),
                 "--truncate" => kv.push((Truncate, Help)),
                 _ => if let Some((_k, v)) = kv.last_mut() {
                     *v = Value(a);
@@ -117,7 +117,7 @@ impl Args {
 
 Usage:
     dos simulate [--n_members N] [--character_version N] [--weapon_version N] [--artifact_version N]
-                 [--unit_time N] [--emulation_time N] [--truncate]
+                 [--unit_time N] [--simulation_time N] [--truncate]
 
 Options:
     --n_members N         : Number of field members [default: 1]
@@ -125,7 +125,7 @@ Options:
     --weapon_version N    : weapons up to the version will be simulated [default: 1.6]
     --artifact_version N  : artifacts up to the version will be simulated [default: 1.6]
     --unit_time N         : frequency of character actions [default: 0.2]
-    --emulation_time N    : end the simulation at N seconds [default: 20.0]
+    --simulation_time N    : end the simulation at N seconds [default: 20.0]
     --truncate            : remove some results from outputs when field members are greater than 2 [default: false]");
                     process::exit(0);
                 },
@@ -134,7 +134,7 @@ Options:
                 (WeaponVersion, Value(v)) => args.weapon_version = v.parse()?,
                 (ArtifactVersion, Value(v)) => args.artifact_version = v.parse()?,
                 (UnitTime, Value(v)) => args.unit_time = v.parse()?,
-                (EmulationTime, Value(v)) => args.emulation_time = v.parse()?,
+                (EmulationTime, Value(v)) => args.simulation_time = v.parse()?,
                 (Truncate, _) => args.truncate = true,
                 _ => return Err(Box::new(MyError::new("arguments were not recognized."))),
             }
@@ -148,7 +148,7 @@ Options:
             Err(Box::new(MyError::new("given n_members is not supported now.")))
         } else if self.character_version < 0.0 || self.weapon_version < 0.0 || self.artifact_version < 0.0 {
             Err(Box::new(MyError::new("versions should not be negative.")))
-        } else if self.unit_time < 0.0 || self.emulation_time < 0.0 {
+        } else if self.unit_time < 0.0 || self.simulation_time < 0.0 {
             Err(Box::new(MyError::new("times should not be negative.")))
         } else {
             Ok(())
