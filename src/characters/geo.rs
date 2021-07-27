@@ -152,7 +152,6 @@ impl SpecialAbility for Ningguang {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::geo(&self.burst));
             if self.jade_screen.is_active() {
-                // TODO reset?
                 atk_queue.push(ElementalAttack::geo(&self.burst_aa));
             }
         }

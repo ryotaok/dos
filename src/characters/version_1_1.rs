@@ -168,6 +168,10 @@ impl SpecialAbility for Tartaglia {
     }
 
     fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
+        // Master of Weaponry
+        for s in modifiable_state.iter_mut() {
+            s.na_talent += 5.0;
+        }
         let state = &mut modifiable_state[data.idx.0];
         if self.skill_timer.is_active() {
             state.infusion = true;

@@ -33,7 +33,7 @@ pub struct RaidenShogun {
 impl RaidenShogun {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
-            resolve_stack: 0.0,
+            resolve_stack: 40.0, // TODO starting 200 energy consumption
             musou_isshin: DurationTimer::new(20.0, 7.0),
             musou_isshin_energy: DotTimer::new(20.0, 1.0, 5),
             a1_timer: HitsTimer::new(3.0, 1),
@@ -151,13 +151,13 @@ impl CharacterAbility for RaidenShogun {
         CharacterRecord::default()
             .name("Raiden Shogun").vision(Electro).weapon(Polearm).release_date("2021-07-20").version(2.1)
             .base_hp(12907.0).base_atk(337.0).base_def(789.0)
-            .dmg_electro(28.0)
+            .dmg_electro(28.8)
             .energy_cost(80.0)
     }
 
     fn timers(&self) -> FullCharacterTimers {
         CharacterTimersBuilder::new()
-            .na(LoopTimer::new(2.217, 5))
+            .na(LoopTimer::new(2.117, 5))
             .press(DotTimer::new(10.0, 0.9, 28))
             .burst(DotTimer::single_hit(20.0))
             .build()
@@ -542,7 +542,7 @@ impl SpecialAbility for KujouSara {
     }
 
     fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+        // let state = &mut modifiable_state[data.idx.0];
         if self.skill_timer.is_active() || timers.burst_timer().is_active() {
             for s in modifiable_state.iter_mut() {
                 s.flat_atk += data.state.base_atk * 0.8162;
@@ -639,7 +639,7 @@ impl Aloy {
 impl CharacterAbility for Aloy {
     fn record(&self) -> CharacterRecord {
         CharacterRecord::default()
-            .name("Aloy").vision(Electro).weapon(Bow).release_date("2021-08-10").version(2.1)
+            .name("Aloy").vision(Cryo).weapon(Bow).release_date("2021-08-10").version(2.1)
             .base_hp(10899.0).base_atk(234.0).base_def(676.0)
             .dmg_cryo(28.8)
             .energy_cost(40.0)
@@ -688,11 +688,11 @@ impl SpecialAbility for Aloy {
         let press = timers.press_timer();
         if press.is_active() {
             if press.n() == 1 {
-                atk_queue.push(ElementalAttack::electro(&self.press));
-                atk_queue.push(ElementalAttack::electro(&self.press_dot));
+                atk_queue.push(ElementalAttack::cryo(&self.press));
+                atk_queue.push(ElementalAttack::cryo(&self.press_dot));
                 particles.push(Particle::new(Cryo, 1.0));
             } else {
-                atk_queue.push(ElementalAttack::electro(&self.press_dot));
+                atk_queue.push(ElementalAttack::cryo(&self.press_dot));
                 particles.push(Particle::new(Cryo, 1.0));
             }
         }

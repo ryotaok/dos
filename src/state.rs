@@ -12,6 +12,7 @@ pub struct State {
     pub pyro_dmg: f32, pub cryo_dmg: f32, pub hydro_dmg: f32, pub electro_dmg: f32,
     pub physical_dmg: f32, pub anemo_dmg: f32, pub geo_dmg: f32, pub dendro_dmg: f32, pub elemental_dmg: f32,
     pub infusion: bool, pub stacked_buff: UnstackableBuff, pub amplifying_bonus: f32, pub transformative_bonus: f32,
+    pub na_talent: f32, pub ca_talent: f32, pub skill_talent: f32, pub burst_talent: f32, 
 }
 
 impl Default for State {
@@ -45,6 +46,7 @@ impl State {
             pyro_dmg: 0.0, cryo_dmg: 0.0, hydro_dmg: 0.0, electro_dmg: 0.0,
             physical_dmg: 0.0, anemo_dmg: 0.0, geo_dmg: 0.0, dendro_dmg: 0.0, elemental_dmg: 0.0,
             infusion: false, stacked_buff: UnstackableBuff::new(), amplifying_bonus: 0.0, transformative_bonus: 0.0,
+            na_talent: 0.0, ca_talent: 0.0, skill_talent: 0.0, burst_talent: 0.0, 
         }
     }
 
@@ -79,6 +81,10 @@ impl State {
     pub fn infusion(mut self, infusion: bool) -> Self { self.infusion = infusion; self }
     pub fn amplifying_bonus(mut self, amplifying_bonus: f32) -> Self { self.amplifying_bonus = amplifying_bonus; self }
     pub fn transformative_bonus(mut self, transformative_bonus: f32) -> Self { self.transformative_bonus = transformative_bonus; self }
+    pub fn na_talent(mut self, na_talent: f32) -> Self { self.na_talent = na_talent; self }
+    pub fn ca_talent(mut self, ca_talent: f32) -> Self { self.ca_talent = ca_talent; self }
+    pub fn skill_talent(mut self, skill_talent: f32) -> Self { self.skill_talent = skill_talent; self }
+    pub fn burst_talent(mut self, burst_talent: f32) -> Self { self.burst_talent = burst_talent; self }
 
     pub fn merge(&mut self, other: &State) -> &mut Self {
         self.base_hp += other.base_hp;
@@ -113,20 +119,11 @@ impl State {
         self.stacked_buff += other.stacked_buff;
         self.amplifying_bonus += other.amplifying_bonus;
         self.transformative_bonus += other.transformative_bonus;
+        self.na_talent += other.na_talent;
+        self.ca_talent += other.ca_talent;
+        self.skill_talent += other.skill_talent;
+        self.burst_talent += other.burst_talent;
         self
-    }
-
-    pub fn get_attack_bonus(&self, key: &AttackType) -> f32 {
-        match key {
-            AttackType::Na => self.na_dmg + self.all_dmg,
-            AttackType::Ca => self.ca_dmg + self.all_dmg,
-            AttackType::PressSkill |
-            AttackType::HoldSkill |
-            AttackType::SkillDot => self.skill_dmg + self.all_dmg,
-            AttackType::Burst |
-            AttackType::BurstDot => self.burst_dmg + self.all_dmg,
-            _ => self.all_dmg,
-        }
     }
 
     #[allow(non_snake_case)]
@@ -144,6 +141,33 @@ impl State {
     pub fn ATK(&self) -> f32 {
         let plume_atk = self.flat_atk;
         self.base_atk * (1.0 + self.atk / 100.0) + plume_atk
+    }
+
+    pub fn get_talent_bonus(&self, key: &AttackType) -> f32 {
+        let b = match key {
+            AttackType::Na => self.na_talent,
+            AttackType::Ca => self.ca_talent,
+            AttackType::PressSkill |
+            AttackType::HoldSkill |
+            AttackType::SkillDot => self.skill_talent,
+            AttackType::Burst |
+            AttackType::BurstDot => self.burst_talent,
+            _ => 0.0,
+        };
+        1.0 + b / 100.0
+    }
+
+    pub fn get_attack_bonus(&self, key: &AttackType) -> f32 {
+        match key {
+            AttackType::Na => self.na_dmg + self.all_dmg,
+            AttackType::Ca => self.ca_dmg + self.all_dmg,
+            AttackType::PressSkill |
+            AttackType::HoldSkill |
+            AttackType::SkillDot => self.skill_dmg + self.all_dmg,
+            AttackType::Burst |
+            AttackType::BurstDot => self.burst_dmg + self.all_dmg,
+            _ => self.all_dmg,
+        }
     }
 
     #[allow(non_snake_case)]
@@ -222,6 +246,10 @@ mod tests {
             stacked_buff: NOBLESSE_OBLIGE,
             amplifying_bonus: 1.0,
             transformative_bonus: 1.0,
+            na_talent: 1.0,
+            ca_talent: 1.0,
+            skill_talent: 1.0,
+            burst_talent: 1.0,
         };
         a.merge(&b);
         assert_eq!(a.base_hp, 1.0);
@@ -256,5 +284,9 @@ mod tests {
         assert_eq!(a.stacked_buff, NOBLESSE_OBLIGE);
         assert_eq!(a.amplifying_bonus, 1.0);
         assert_eq!(a.transformative_bonus, 1.0);
+        assert_eq!(a.na_talent, 1.0);
+        assert_eq!(a.ca_talent, 1.0);
+        assert_eq!(a.skill_talent, 1.0);
+        assert_eq!(a.burst_talent, 1.0);
     }
 }

@@ -158,6 +158,7 @@ impl SpecialAbility for Ayaka {
         let s = &mut modifiable_state[data.idx.0];
         // Alternate Sprint (Kamisato Art: Senho)
         s.infusion = true;
+        s.cryo_dmg += 18.0;
         if self.skill_a1.is_active() {
             s.na_dmg += 30.0;
             s.ca_dmg += 30.0;
@@ -178,6 +179,11 @@ pub struct Yoimiya {
     na_3: Attack,
     na_4: Attack,
     na_5: Attack,
+    skill_na_1: Attack,
+    skill_na_2: Attack,
+    skill_na_3: Attack,
+    skill_na_4: Attack,
+    skill_na_5: Attack,
     press: Attack,
     burst: Attack,
     burst_dot: Attack,
@@ -225,6 +231,46 @@ impl Yoimiya {
                 kind: AttackType::Na,
                 gauge: &GAUGE1A,
                 multiplier: 188.87,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            skill_na_1: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 63.59 * 1.6174,
+                hits: 2,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            skill_na_2: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 121.99 * 1.6174,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            skill_na_3: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 158.59 * 1.6174,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            skill_na_4: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 82.82 * 1.6174,
+                hits: 2,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            skill_na_5: Attack {
+                kind: AttackType::Na,
+                gauge: &GAUGE1A,
+                multiplier: 188.87 * 1.6174,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
                 idx,
@@ -280,6 +326,11 @@ impl CharacterAbility for Yoimiya {
         self.na_3.icd_timer = &mut timers.na_icd;
         self.na_4.icd_timer = &mut timers.na_icd;
         self.na_5.icd_timer = &mut timers.na_icd;
+        self.skill_na_1.icd_timer = &mut timers.na_icd;
+        self.skill_na_2.icd_timer = &mut timers.na_icd;
+        self.skill_na_3.icd_timer = &mut timers.na_icd;
+        self.skill_na_4.icd_timer = &mut timers.na_icd;
+        self.skill_na_5.icd_timer = &mut timers.na_icd;
         self.press.icd_timer = &mut timers.skill_icd;
         self.burst.icd_timer = &mut timers.burst_icd;
         self.burst_dot.icd_timer = &mut timers.burst_icd;
@@ -295,7 +346,7 @@ impl SpecialAbility for Yoimiya {
         }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             if burst.n() == 1 {
@@ -312,11 +363,31 @@ impl SpecialAbility for Yoimiya {
         let na = timers.na_timer();
         if na.is_active() {
             match na.n() {
-                1 => atk_queue.push_pyro(data, &self.na_1),
-                2 => atk_queue.push_pyro(data, &self.na_2),
-                3 => atk_queue.push_pyro(data, &self.na_3),
-                4 => atk_queue.push_pyro(data, &self.na_4),
-                5 => atk_queue.push_pyro(data, &self.na_5),
+                1 => atk_queue.push(if self.skill_timer.is_active() {
+                    ElementalAttack::pyro(&self.skill_na_1)
+                } else {
+                    ElementalAttack::physical(&self.na_1)
+                }),
+                2 => atk_queue.push(if self.skill_timer.is_active() {
+                    ElementalAttack::pyro(&self.skill_na_2)
+                } else {
+                    ElementalAttack::physical(&self.na_2)
+                }),
+                3 => atk_queue.push(if self.skill_timer.is_active() {
+                    ElementalAttack::pyro(&self.skill_na_3)
+                } else {
+                    ElementalAttack::physical(&self.na_3)
+                }),
+                4 => atk_queue.push(if self.skill_timer.is_active() {
+                    ElementalAttack::pyro(&self.skill_na_4)
+                } else {
+                    ElementalAttack::physical(&self.na_4)
+                }),
+                5 => atk_queue.push(if self.skill_timer.is_active() {
+                    ElementalAttack::pyro(&self.skill_na_5)
+                } else {
+                    ElementalAttack::physical(&self.na_5)
+                }),
                 _ => (),
             };
         }

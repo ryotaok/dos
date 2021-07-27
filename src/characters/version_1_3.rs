@@ -3,8 +3,7 @@ use std::ptr;
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
-use crate::action::{Attack, ElementalAttack, ElementalAttackVector, ElementalAbsorption, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, StackTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
-use crate::testutil;
+use crate::action::{Attack, ElementalAttack, ElementalAttackVector, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, StackTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
 
 use AttackType::*;
 use WeaponType::*;
@@ -107,7 +106,7 @@ impl CharacterAbility for Xiao {
 
     fn timers(&self) -> FullCharacterTimers {
         CharacterTimersBuilder::new()
-            .na(LoopTimer::new(3.2, 6))
+            .na(LoopTimer::new(3.85, 6))
             .ca(HitsTimer::new(1.7, 1))
             .stamina(StaminaTimer::new(0.0))
             .press(DotTimer::single_hit(10.0))
@@ -155,6 +154,7 @@ impl SpecialAbility for Xiao {
                 3 => atk_queue.push_anemo(data, &self.na_3),
                 4 => atk_queue.push_anemo(data, &self.na_4),
                 5 => atk_queue.push_anemo(data, &self.na_5),
+                6 => atk_queue.push_anemo(data, &self.na_6),
                 _ => (),
             };
         }

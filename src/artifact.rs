@@ -93,6 +93,7 @@ pub struct AllArtifacts {
     shimenawasreminiscence: (Artifact, ShimenawasReminiscence),
     gfshimenawa: (Artifact, GfShimenawa),
     emblemofseveredfate: (Artifact, EmblemOfSeveredFate),
+    emblemofseveredfateer: (Artifact, EmblemOfSeveredFateER),
 }
 
 impl AllArtifacts {
@@ -126,6 +127,7 @@ impl AllArtifacts {
             shimenawasreminiscence: field(ShimenawasReminiscence::new()),
             gfshimenawa: field(GfShimenawa),
             emblemofseveredfate: field(EmblemOfSeveredFate),
+            emblemofseveredfateer: field(EmblemOfSeveredFateER),
         }
     }
 
@@ -160,6 +162,7 @@ impl AllArtifacts {
             ShimenawasReminiscence => &mut self.shimenawasreminiscence,
             GfShimenawa => &mut self.gfshimenawa,
             EmblemOfSeveredFate => &mut self.emblemofseveredfate,
+            EmblemOfSeveredFateER => &mut self.emblemofseveredfateer,
         }
     }
 }
@@ -194,6 +197,7 @@ pub enum ArtifactName {
     ShimenawasReminiscence,
     GfShimenawa,
     EmblemOfSeveredFate,
+    EmblemOfSeveredFateER,
 }
 
 impl ArtifactName {
@@ -228,6 +232,7 @@ impl ArtifactName {
             ShimenawasReminiscence,
             GfShimenawa,
             EmblemOfSeveredFate,
+            EmblemOfSeveredFateER,
         ]
     }
 }
@@ -264,6 +269,7 @@ impl<'a> From<&'a str> for ArtifactName {
             "ShimenawasReminiscence" => ShimenawasReminiscence,
             "GfShimenawa" => GfShimenawa,
             "EmblemOfSeveredFate" => EmblemOfSeveredFate,
+            "EmblemOfSeveredFateER" => EmblemOfSeveredFate,
             _ => unimplemented!(),
         }
     }
@@ -1020,6 +1026,36 @@ impl ArtifactAbility for EmblemOfSeveredFate {
 }
 
 impl SpecialAbility for EmblemOfSeveredFate {
+    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
+        // the maximum DMG bonus is obtained if ER is 300%.
+        // `State.er` does not contain base 100% of characters.
+        let er = 100.0 + data.state.er;
+        modifiable_state[data.idx.0].burst_dmg += if er > 300.0 {
+            75.0
+        } else {
+            er * 0.25
+        };
+    }
+}
+
+#[derive(Debug)]
+pub struct EmblemOfSeveredFateER;
+
+// 4 Piece: Increases Elemental Burst DMG by 25% of Energy Recharge. A maximum
+// 75% DMG increase can be obtained in this way.
+impl ArtifactAbility for EmblemOfSeveredFateER {
+    fn record(&self) -> Artifact {
+        Artifact {
+            name: "EoSF ATK-40 ER+50",
+            version: 2.0,
+            preference: Vec::new(),
+            // state: State::new().er(20.0 + 50.0).atk(-40.0)
+            state: State::new().er(20.0 + 50.0).atk(6.6).elemental_dmg(-46.6)
+        }
+    }
+}
+
+impl SpecialAbility for EmblemOfSeveredFateER {
     fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
         // the maximum DMG bonus is obtained if ER is 300%.
         // `State.er` does not contain base 100% of characters.

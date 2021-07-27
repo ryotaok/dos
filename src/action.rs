@@ -295,7 +295,7 @@ impl Attack {
             _ => state.ATK(),
         };
         let power = atk * bonus * crcd;
-        self.multiplier / 100.0 * power
+        self.multiplier / 100.0 * power * state.get_talent_bonus(&self.kind)
     }
 
     pub fn incoming_damage(&self, attack_element: &Vision, outgoing_damage: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {

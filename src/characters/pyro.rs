@@ -420,9 +420,7 @@ impl SpecialAbility for Xiangling {
 
     fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &mut Enemy) -> () {
         if self.skill_a4.is_active() {
-            for s in modifiable_state.iter_mut() {
-                s.atk += 10.0;
-            }
+            modifiable_state[0].atk += 10.0;
         }
     }
 
