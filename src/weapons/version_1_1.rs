@@ -1,5 +1,5 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Particle};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle};
 use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, StackTimer};
 
@@ -29,7 +29,7 @@ impl WeaponAbility for GoldenMajesty {
 }
 
 impl SpecialAbility for GoldenMajesty {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = unsafe {
             attack.iter().any(|&a|
                 match (*a.atk).kind {
@@ -67,7 +67,7 @@ impl WeaponAbility for TheUnforged {
 }
 
 impl SpecialAbility for TheUnforged {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
@@ -93,7 +93,7 @@ impl WeaponAbility for SummitShaper {
 }
 
 impl SpecialAbility for SummitShaper {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
@@ -119,7 +119,7 @@ impl WeaponAbility for VortexVanquisher {
 }
 
 impl SpecialAbility for VortexVanquisher {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
@@ -145,7 +145,7 @@ impl WeaponAbility for MemoryOfDust {
 }
 
 impl SpecialAbility for MemoryOfDust {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 

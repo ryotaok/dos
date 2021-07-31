@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Particle, GAUGE1A};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, TimerGuard, FullCharacterTimers, EffectTimer, DurationTimer, HitsTimer, DotTimer, StackTimer};
 use crate::testutil;
@@ -47,14 +47,14 @@ impl WeaponAbility for SkywardBlade {
 }
 
 impl SpecialAbility for SkywardBlade {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.na_or_ca = guard.kind == Na || guard.kind == Ca;
         let burst = guard.kind == Burst;
         self.burst_timer.update(guard.second(burst), time);
         // self.na.update(guard.second(na_or_ca), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if self.burst_timer.is_active() && self.na_or_ca {
             atk_queue.push(ElementalAttack::physical(&self.aa))
         }
@@ -104,12 +104,12 @@ impl WeaponAbility for AquilaFavonia {
 }
 
 impl SpecialAbility for AquilaFavonia {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == Na || guard.kind == Ca;
         self.na.update(guard.second(should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if self.na.is_active() {
             atk_queue.push(ElementalAttack::physical(&self.aa))
         }
@@ -154,12 +154,12 @@ impl WeaponAbility for SkywardPride {
 }
 
 impl SpecialAbility for SkywardPride {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.burst_timer.update(guard.second(guard.kind == Burst), time);
         self.na.update(guard.second(guard.kind == Na || guard.kind == Ca), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if self.burst_timer.is_active() && self.na.is_active() {
             atk_queue.push(ElementalAttack::physical(&self.aa))
         }
@@ -217,12 +217,12 @@ impl WeaponAbility for SkywardSpine {
 }
 
 impl SpecialAbility for SkywardSpine {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == Na || guard.kind == Ca;
         self.timer.update(guard.second(testutil::chance() < 0.5 && should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(ElementalAttack::physical(&self.aa))
         }
@@ -253,7 +253,7 @@ impl WeaponAbility for PrimordialJadeWingedSpear {
 }
 
 impl SpecialAbility for PrimordialJadeWingedSpear {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = unsafe {
             attack.iter().any(|&a|
                 match (*a.atk).kind {
@@ -309,7 +309,7 @@ impl WeaponAbility for SkywardHarp {
 }
 
 impl SpecialAbility for SkywardHarp {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = unsafe {
             attack.iter().any(|&a|
                 match (*a.atk).kind {
@@ -321,7 +321,7 @@ impl SpecialAbility for SkywardHarp {
         self.timer.update(guard.second(testutil::chance() < 0.6 && should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(ElementalAttack::physical(&self.aa))
         }
@@ -378,12 +378,12 @@ impl WeaponAbility for SkywardAtlas {
 }
 
 impl SpecialAbility for SkywardAtlas {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == Na;
         self.timer.update(guard.second(testutil::chance() < 0.5 && should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(ElementalAttack::physical(&self.aa))
         }
@@ -414,7 +414,7 @@ impl WeaponAbility for LostPrayerToTheSacredWinds {
 }
 
 impl SpecialAbility for LostPrayerToTheSacredWinds {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         // only the attacker can activate the passive
         self.timer.update(guard.second(data.idx.0 == 0), time);
     }

@@ -1,5 +1,5 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Particle};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle};
 use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, DurationTimer};
 
@@ -29,7 +29,7 @@ impl WeaponAbility for GrasscuttersLight {
 }
 
 impl SpecialAbility for GrasscuttersLight {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.timer.update(guard.check_second(Burst), time);
     }
 
@@ -69,14 +69,14 @@ impl WeaponAbility for FumetsuGekka {
 }
 
 impl SpecialAbility for FumetsuGekka {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.timer.update(guard.check_second(Burst), time);
     }
 
     fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
         if timers.na_timer().is_active() {
             for s in modifiable_state.iter_mut() {
-                s.energy.0 += 0.6;
+                s.energy += 0.6;
             }
         }
         let state = &mut modifiable_state[data.idx.0];

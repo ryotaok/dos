@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Particle, GAUGE1A};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, HitsTimer, StackTimer, DurationTimer};
 use crate::testutil;
@@ -19,7 +19,7 @@ impl SpecialAbility for PrototypeAmberR5 {}
 impl WeaponAbility for PrototypeAmberR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Prototype Amber R5").type_(Catalyst).version(1.0)
+            .name("Prototype Amber").type_(Catalyst).version(1.0)
             .base_atk(510.0)
             .hp(41.3)
     }
@@ -40,14 +40,14 @@ impl MappaMareR5 {
 impl WeaponAbility for MappaMareR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Mappa Mare R5").type_(Catalyst).version(1.0)
+            .name("Mappa Mare").type_(Catalyst).version(1.0)
             .base_atk(565.0)
             .em(110.0)
     }
 }
 
 impl SpecialAbility for MappaMareR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         let should_update = attack.iter().any(|a| enemy.trigger_er(&a.element).is_triggered());
         self.timer.update(guard.second(should_update), time);
     }
@@ -80,14 +80,14 @@ impl SolarPearlR5 {
 impl WeaponAbility for SolarPearlR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Solar Pearl R5").type_(Catalyst).version(1.0)
+            .name("Solar Pearl").type_(Catalyst).version(1.0)
             .base_atk(510.0)
             .cr(27.6)
     }
 }
 
 impl SpecialAbility for SolarPearlR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let mut should_update = guard.kind == Na;
         self.na_timer.update(guard.second(should_update), time);
         should_update = guard.kind == Burst || guard.kind == PressSkill || guard.kind == HoldSkill;
@@ -119,7 +119,7 @@ impl SpecialAbility for BlackcliffAgateR5 {}
 impl WeaponAbility for BlackcliffAgateR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Blackcliff Agate R5").type_(Catalyst).version(1.0)
+            .name("Blackcliff Agate").type_(Catalyst).version(1.0)
             .base_atk(510.0)
             .atk(24.0).cd(55.1)
     }
@@ -132,7 +132,7 @@ impl SpecialAbility for RoyalGrimoireR5 {}
 impl WeaponAbility for RoyalGrimoireR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Royal Grimoire R5").type_(Catalyst).version(1.0)
+            .name("Royal Grimoire").type_(Catalyst).version(1.0)
             .base_atk(565.0)
             .atk(27.6)
     }
@@ -153,14 +153,14 @@ impl ThrillingTalesOfDragonSlayersR5 {
 impl WeaponAbility for ThrillingTalesOfDragonSlayersR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Thrilling Tales of Dragon Slayers R5").type_(Catalyst).version(1.0)
+            .name("Thrilling Tales of Dragon Slayers").type_(Catalyst).version(1.0)
             .base_atk(401.0)
             .hp(35.2)
     }
 }
 
 impl SpecialAbility for ThrillingTalesOfDragonSlayersR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.timer.update(guard.second(true), time);
     }
 
@@ -200,19 +200,19 @@ impl EyeOfPerceptionR5 {
 impl WeaponAbility for EyeOfPerceptionR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Eye of Perception R5").type_(Catalyst).version(1.0)
+            .name("Eye of Perception").type_(Catalyst).version(1.0)
             .base_atk(454.0)
             .atk(55.1)
     }
 }
 
 impl SpecialAbility for EyeOfPerceptionR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = timers.na_timer().is_active() || timers.ca_timer().is_active();
         self.timer.update(guard.second(testutil::chance() < 0.5 && should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(ElementalAttack::physical(&self.aa))
         }
@@ -239,14 +239,14 @@ impl TheWidsithR5 {
 impl WeaponAbility for TheWidsithR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("The Widsith R5").type_(Catalyst).version(1.0)
+            .name("The Widsith").type_(Catalyst).version(1.0)
             .base_atk(510.0)
             .cd(55.1)
     }
 }
 
 impl SpecialAbility for TheWidsithR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let before = self.timer.is_active();
         self.timer.update(guard.second(true), time);
         let after = self.timer.is_active();

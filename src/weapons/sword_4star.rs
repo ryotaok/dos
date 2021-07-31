@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Particle, Vision, GAUGE1A};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, Vision, GAUGE1A};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, StackTimer, SigilTimer};
 
@@ -26,14 +26,14 @@ impl PrototypeRancourR5 {
 impl WeaponAbility for PrototypeRancourR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Prototype Rancour R5").type_(Sword).version(1.0)
+            .name("Prototype Rancour").type_(Sword).version(1.0)
             .base_atk(566.0)
             .dmg_phy(34.5)
     }
 }
 
 impl SpecialAbility for PrototypeRancourR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         // let should_update = timers.na_timer().is_active() || timers.ca_timer().is_active();
         let should_update = guard.kind == Na || guard.kind == Ca;
         self.timer.update(guard.second(should_update), time);
@@ -60,7 +60,7 @@ impl SpecialAbility for TheBlackSwordR5 {}
 impl WeaponAbility for TheBlackSwordR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("The Black Sword R5").type_(Sword).version(1.0)
+            .name("The Black Sword").type_(Sword).version(1.0)
             .base_atk(510.0)
             .cr(27.6)
             .dmg_na(40.0).dmg_ca(40.0)
@@ -74,7 +74,7 @@ impl SpecialAbility for BlackcliffLongswordR5 {}
 impl WeaponAbility for BlackcliffLongswordR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Blackcliff Longsword R5").type_(Sword).version(1.0)
+            .name("Blackcliff Longsword").type_(Sword).version(1.0)
             .base_atk(565.0)
             .atk(24.0).cd(36.8)
     }
@@ -86,7 +86,7 @@ impl SpecialAbility for RoyalLongswordR5 {}
 impl WeaponAbility for RoyalLongswordR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Royal Longsword R5").type_(Sword).version(1.0)
+            .name("Royal Longsword").type_(Sword).version(1.0)
             .base_atk(565.0)
             .atk(27.6).cr(0.0)
     }
@@ -99,7 +99,7 @@ impl SpecialAbility for HarbingerOfDawnR5 {}
 impl WeaponAbility for HarbingerOfDawnR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Harbinger of Dawn R5").type_(Sword).version(1.0)
+            .name("Harbinger of Dawn").type_(Sword).version(1.0)
             .base_atk(401.0)
             .cr(28.0).cd(46.9)
     }
@@ -129,19 +129,19 @@ impl TheFluteR5 {
 impl WeaponAbility for TheFluteR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("The Flute R5").type_(Sword).version(1.0)
+            .name("The Flute").type_(Sword).version(1.0)
             .base_atk(510.0)
             .atk(41.3)
     }
 }
 
 impl SpecialAbility for TheFluteR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == Na || guard.kind == Ca;
         self.timer.update(guard.second(should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(ElementalAttack::physical(&self.aa))
         }
@@ -157,7 +157,7 @@ pub struct LionsRoarR5;
 impl WeaponAbility for LionsRoarR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Lion's Roar R5").type_(Sword).version(1.0)
+            .name("Lion's Roar").type_(Sword).version(1.0)
             .base_atk(510.0)
             .atk(41.3)
     }

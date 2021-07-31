@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, ElementalAbsorption, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
 use crate::testutil;
@@ -144,14 +144,14 @@ impl CharacterAbility for Kazuha {
 }
 
 impl SpecialAbility for Kazuha {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.soumon_swordsmanship.absorb(guard.check_second(PressSkill), enemy, time);
         self.burst_ea.absorb(guard.check_second(Burst), enemy, time);
         // TODO remember the specific element on the enemy
         self.swirl_a4.update(guard.second(attack.iter().any(|a| enemy.trigger_er(&a.element).is_swirl())), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             if burst.n() == 1 {
@@ -165,7 +165,7 @@ impl SpecialAbility for Kazuha {
             }
         }
         if timers.press_timer().is_active() {
-            particles.push(Particle::new(Anemo, 4.0));
+            particles.push_p(Particle::new(Anemo, 4.0));
             atk_queue.push(ElementalAttack::anemo(&self.press));
             atk_queue.push(ElementalAttack::anemo(&self.midare_ranzan));
             if let Some(a) = self.soumon_swordsmanship.attack() {

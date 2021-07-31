@@ -1,5 +1,5 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Particle, MILLENNIAL_MOVEMENT_SERIES};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, MILLENNIAL_MOVEMENT_SERIES};
 use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, StackTimer, SigilTimer, DurationTimer};
 
@@ -29,7 +29,7 @@ impl WeaponAbility for ElegyForTheEnd {
 }
 
 impl SpecialAbility for ElegyForTheEnd {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = unsafe {
             attack.iter().any(|&a|
                 match (*a.atk).kind {
@@ -92,7 +92,7 @@ impl WeaponAbility for AlleyHunter {
 }
 
 impl SpecialAbility for AlleyHunter {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.timer.update(guard.second(true), time);
     }
 
@@ -140,7 +140,7 @@ impl WeaponAbility for WindblumeOde {
 }
 
 impl SpecialAbility for WindblumeOde {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == PressSkill || guard.kind == HoldSkill;
         self.timer.update(guard.second(should_update), time);
     }

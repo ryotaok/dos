@@ -111,7 +111,12 @@ impl Recorder {
     }
 }
 
-fn main_loop(members: &mut [FieldCharacterData], time: f32, simulation_time: f32) -> Recorder {
+fn near_eq(a: f32, b: f32) -> bool {
+    let diff = (a - b).abs();
+    diff <= 0.001
+}
+
+fn main_loop(members: &mut [FieldCharacterData], args: &Args) -> Recorder {
     let mut head: Vec<&str> = Vec::new();
     for m in members.iter() {
         head.push(m.fc.data.cr.name);
@@ -136,31 +141,32 @@ fn main_loop(members: &mut [FieldCharacterData], time: f32, simulation_time: f32
             fc.data.state.merge(&state);
         }
     }
-    while current_time < simulation_time {
+    while current_time < args.simulation_time {
         if current_time == 0.0 {
-            for m in members.iter_mut() {
-                m.fc.data.state.energy.0 = m.fc.data.state.energy_cost;
+            if args.start_energy < 0 {
+                for m in members.iter_mut() {
+                    m.fc.data.state.energy = m.fc.data.state.energy_cost;
+                }
+            } else {
+                let e = args.start_energy as f32;
+                for m in members.iter_mut() {
+                    m.fc.data.state.energy = e;
+                }
             }
         }
-        if current_time == time * 5.0 {
+        if near_eq(current_time, 5.0) || near_eq(current_time, 15.0) {
+        // if near_eq(current_time, 5.0) {
             for m in members.iter_mut() {
-                m.fc.data.state.energy.0 += 15.0 * m.fc.data.state.ER();
+                m.fc.data.state.energy += 10.0 * m.fc.data.state.ER();
             }
         }
-        total_dmg += simulate::simulate(members, &mut enemy, time);
-        current_time += time;
+        total_dmg += simulate::simulate(members, &mut enemy, args.unit_time);
+        current_time += args.unit_time;
         rc.record(current_time, total_dmg);
     }
     rc
 }
 
-// type Permu3Item = &(
-//     (CharacterRecord, dyn SpecialAbility),
-//     (WeaponRecord, dyn SpecialAbility),
-//     (Artifact, dyn SpecialAbility),
-// );
-
-// fn combination_filter_attacker(((cr, _ca), (wr, _wa), (ar, _aa)): Permu3Item, args: &Args) -> bool {
 fn combination_filter_attacker(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Artifact, args: &Args) -> bool {
     // TODO
     let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
@@ -178,16 +184,22 @@ fn combination_filter_attacker(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Art
 
     // check artifact
     let physical_attack = physical_infusion.contains(&cr.name);
-    for p in &ar.preference {
-        if *p != cr.vision
-        && (physical_attack && *p != Preference::Physical)
-        && *p != cr.weapon
-        && *p != Preference::Attacker {
-            return false;
+    let mut result = if ar.preference.len() == 0 {
+        true
+    } else {
+        false
+    };
+    for p in ar.preference.iter() {
+        if p == &cr.vision
+        || (physical_attack && p == &Preference::Physical)
+        || p == &cr.weapon
+        || p == &Preference::Attacker {
+            result = true;
+            break;
         }
     }
 
-    true
+    result
 }
 
 fn combination_filter_supporter(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Artifact, args: &Args) -> bool {
@@ -203,15 +215,87 @@ fn combination_filter_supporter(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Ar
     }
 
     // check artifact
+    let mut result = if ar.preference.len() == 0 {
+        true
+    } else {
+        false
+    };
     for p in &ar.preference {
-        if *p != cr.vision
-        && *p != cr.weapon
-        && *p != Preference::Supporter {
-            return false;
+        if *p == cr.vision
+        || *p == cr.weapon
+        || *p == Preference::Supporter {
+            result = true;
+            break;
         }
     }
 
-    true
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::fc::{CharacterAbility, WeaponAbility, ArtifactAbility};
+    use super::*;
+
+    #[test]
+    fn filter_1() {
+        let c = characters::pyro::Diluc::new(FieldCharacterIndex(0)).record();
+        let w = weapons::claymore_4star::RainslasherR5.record();
+        let a = artifact::ViridescentVenerer.record();
+        let args = Args::default();
+        assert!(!combination_filter_attacker(&c, &w, &a, &args));
+        assert!(!combination_filter_supporter(&c, &w, &a, &args));
+    }
+
+    #[test]
+    fn filter_2() {
+        let c = characters::pyro::Diluc::new(FieldCharacterIndex(0)).record();
+        let w = weapons::claymore_4star::RainslasherR5.record();
+        let a = artifact::GladiatorsFinale::new().record();
+        let args = Args::default();
+        assert!(combination_filter_attacker(&c, &w, &a, &args));
+        assert!(combination_filter_supporter(&c, &w, &a, &args));
+    }
+
+    #[test]
+    fn filter_3() {
+        let c = characters::electro::Razor::new(FieldCharacterIndex(0)).record();
+        let w = weapons::claymore_4star::RainslasherR5.record();
+        let a = artifact::PaleFlame::new().record();
+        let args = Args::default();
+        assert!(combination_filter_attacker(&c, &w, &a, &args));
+        // assert!(combination_filter_supporter(&c, &w, &a, &args));
+    }
+
+    #[test]
+    fn filter_4() {
+        let c = characters::electro::Razor::new(FieldCharacterIndex(0)).record();
+        let w = weapons::claymore_4star::RainslasherR5.record();
+        let a = artifact::ThunderingFury::new().record();
+        let args = Args::default();
+        assert!(combination_filter_attacker(&c, &w, &a, &args));
+        assert!(combination_filter_supporter(&c, &w, &a, &args));
+    }
+
+    #[test]
+    fn filter_5() {
+        let c = characters::hydro::Xingqiu::new(FieldCharacterIndex(0)).record();
+        let w = weapons::sword_4star::PrototypeRancourR5::new().record();
+        let a = artifact::BlizzardStrayer.record();
+        let args = Args::default();
+        assert!(combination_filter_attacker(&c, &w, &a, &args));
+        assert!(combination_filter_supporter(&c, &w, &a, &args));
+    }
+
+    #[test]
+    fn filter_6() {
+        let c = characters::cryo::Kaeya::new(FieldCharacterIndex(0)).record();
+        let w = weapons::sword_4star::PrototypeRancourR5::new().record();
+        let a = artifact::BlizzardStrayer.record();
+        let args = Args::default();
+        assert!(combination_filter_attacker(&c, &w, &a, &args));
+        assert!(combination_filter_supporter(&c, &w, &a, &args));
+    }
 }
 
 fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
@@ -273,7 +357,9 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
                 FieldCharacterData::new(&mut timers0, ca1, wa1, aa1, CharacterData::new(idx0, &cr1, &wr1, &ar1)),
                 FieldCharacterData::new(&mut timers1, ca2, wa2, aa2, CharacterData::new(idx1, &cr2, &wr2, &ar2)),
             ];
-            let rc = main_loop(&mut members, args.unit_time, args.simulation_time);
+            // members[1].fc.timers.decelerate_naca(4.0);
+            members[1].fc.timers.disable_naca();
+            let rc = main_loop(&mut members, args);
             items.push(rc);
 
             // destruct objects
@@ -322,7 +408,7 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         let mut members = vec![
             FieldCharacterData::new(&mut timers, ca1, wa1, aa1, CharacterData::new(idx, &cr1, &wr1, &ar1))
         ];
-        let rc = main_loop(&mut members, args.unit_time, args.simulation_time);
+        let rc = main_loop(&mut members, args);
         items.push(rc);
 
         // destruct objects
@@ -365,7 +451,7 @@ fn debugging(args: &Args, debug_args: Vec<String>) -> () {
         FieldCharacterData::new(&mut timers, ca1, wa1, aa1, CharacterData::new(idx, &cr1, &wr1, &ar1))
     ];
     println!("debugging: {:?} {:?} {:?}", cr1.name, wr1.name, ar1.name);
-    main_loop(&mut members, args.unit_time, args.simulation_time);
+    main_loop(&mut members, args);
 }
 
 fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
@@ -374,9 +460,9 @@ fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
     if debug_args.len() > 0 {
         return Ok(debugging(&args, debug_args));
     }
-    let num_cpu = 3;
+    let num_cpu = 4;
     let character_size = CharacterName::vec().len();
-    let chunk_size = character_size / num_cpu;
+    let chunk_size = character_size / num_cpu + 1;
     let (tx, rx) = mpsc::channel();
     for i in 0..num_cpu {
         let start = i * chunk_size;

@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy, Debuff};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
 
@@ -165,7 +165,7 @@ impl CharacterAbility for Yanfei {
 }
 
 impl SpecialAbility for Yanfei {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         match &guard.kind {
             Na => self.scarlet_seal += 1,
             Ca => self.scarlet_seal = 0,
@@ -182,13 +182,13 @@ impl SpecialAbility for Yanfei {
         self.ca_a1.update(guard.second(self.use_ca()), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.press));
-            particles.push(Particle::new(Pyro, 3.0));
+            particles.push_p(Particle::new(Pyro, 3.0));
         }
         let ca = timers.ca_timer();
         if ca.is_active() {
@@ -496,7 +496,7 @@ impl CharacterAbility for Eula {
 }
 
 impl SpecialAbility for Eula {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         // update lightfall_sword_timer
         let before = self.lightfall_sword_timer.is_active();
         self.lightfall_sword_timer.update(guard.check_second(Burst), time);
@@ -527,7 +527,7 @@ impl SpecialAbility for Eula {
         }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         if self.lightfall_sword_expire {
             atk_queue.push(ElementalAttack::physical(&self.burst_lightfall_sword));
             match self.lightfall_sword_stack {
@@ -568,11 +568,11 @@ impl SpecialAbility for Eula {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.press));
-            particles.push(Particle::new(Cryo, 1.5));
+            particles.push_p(Particle::new(Cryo, 1.5));
         }
         if timers.hold_timer().is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.hold));
-            particles.push(Particle::new(Cryo, 2.5));
+            particles.push_p(Particle::new(Cryo, 2.5));
             match self.grimheart {
                 0 => (),
                 1 => atk_queue.push(ElementalAttack::cryo(&self.icewhirl_brand_1)),

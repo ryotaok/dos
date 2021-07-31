@@ -31,8 +31,52 @@ pub enum AttackType {
     StandStill,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Energy(pub f32);
+pub trait VecFieldEnergy {
+    fn has_particles(&self) -> bool;
+    fn push_p(&mut self, p: Particle) -> ();
+    fn push_e(&mut self, e: f32) -> ();
+}
+
+impl VecFieldEnergy for Vec<FieldEnergy> {
+    fn has_particles(&self) -> bool {
+        for x in self.iter() {
+            match &x {
+                FieldEnergy::Particle(_) => return true,
+                _ => (),
+            }
+        };
+        false
+    }
+
+    fn push_p(&mut self, p: Particle) -> () {
+        self.push(FieldEnergy::Particle(p));
+    }
+
+    fn push_e(&mut self, e: f32) -> () {
+        self.push(FieldEnergy::Energy(e));
+    }
+}
+
+impl VecFieldEnergy for [FieldEnergy] {
+    fn has_particles(&self) -> bool {
+        for x in self.iter() {
+            match &x {
+                FieldEnergy::Particle(_) => return true,
+                _ => (),
+            }
+        };
+        false
+    }
+
+    fn push_p(&mut self, _p: Particle) -> () {}
+    fn push_e(&mut self, _e: f32) -> () {}
+}
+
+#[derive(Debug)]
+pub enum FieldEnergy {
+    Energy(f32),
+    Particle(Particle),
+}
 
 #[derive(Debug, PartialEq)]
 pub struct Particle {
@@ -109,7 +153,7 @@ impl PartialEq<Vision> for Preference {
 
 impl PartialEq<WeaponType> for Preference {
     fn eq(&self, other: &WeaponType) -> bool {
-        match (&self, other) {
+        match (&self, &other) {
             (Preference::Melee, WeaponType::Sword) => true,
             (Preference::Melee, WeaponType::Claymore) => true,
             (Preference::Melee, WeaponType::Polearm) => true,
@@ -265,7 +309,16 @@ impl ElementalGauge {
             let other = attack.gauge.to_gauge(attack_element);
             let er = ElementalReaction::new(self.aura, *attack_element);
             let before_negative = self.unit <= 0.0;
-            self.unit += er.gauge_modifier() * other.unit;
+            let unit = er.gauge_modifier() * other.unit;
+            if unit > 0.0 {
+                // unit can be up to 4GU.
+                if self.unit < unit {
+                    self.unit = unit;
+                    self.decay = other.decay;
+                }
+            } else {
+                self.unit += unit;
+            }
             let after_negative = self.unit <= 0.0;
 
             if after_negative {

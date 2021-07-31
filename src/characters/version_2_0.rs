@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, FullCharacterTimers, CharacterTimersBuilder, StackTimer, TimerGuard, EffectTimer, DurationTimer, DotTimer, LoopTimer};
 
@@ -123,11 +123,11 @@ impl CharacterAbility for Ayaka {
 }
 
 impl SpecialAbility for Ayaka {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.skill_a1.update(guard.check_second(PressSkill), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             if burst.n() == 1 {
@@ -139,7 +139,7 @@ impl SpecialAbility for Ayaka {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.press));
-            particles.push(Particle::new(Cryo, 3.5));
+            particles.push_p(Particle::new(Cryo, 3.5));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -338,7 +338,7 @@ impl CharacterAbility for Yoimiya {
 }
 
 impl SpecialAbility for Yoimiya {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.skill_timer.update(guard.check_second(PressSkill), time);
         self.burst_a4.update(guard.check_second(Burst), time);
         if self.skill_timer.is_active() {
@@ -346,7 +346,7 @@ impl SpecialAbility for Yoimiya {
         }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             if burst.n() == 1 {
@@ -358,7 +358,7 @@ impl SpecialAbility for Yoimiya {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.press));
-            particles.push(Particle::new(Pyro, 4.0));
+            particles.push_p(Particle::new(Pyro, 4.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -520,7 +520,7 @@ impl CharacterAbility for Sayu {
 }
 
 impl SpecialAbility for Sayu {
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             if burst.n() == 1 {
@@ -532,7 +532,7 @@ impl SpecialAbility for Sayu {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::anemo(&self.press));
-            particles.push(Particle::new(Anemo, 2.5));
+            particles.push_p(Particle::new(Anemo, 2.5));
         }
         let na = timers.na_timer();
         if na.is_active() {

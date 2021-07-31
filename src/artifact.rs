@@ -1,9 +1,11 @@
-use crate::state::State;
+use crate::state::{State, GearScore};
 use crate::fc::{CharacterData, SpecialAbility, ArtifactAbility, Enemy, Debuff};
-use crate::action::{ElementalAttack, TimerGuard, TimerGuardCheck, FullCharacterTimers, EffectTimer, StackTimer, DurationTimer};
-use crate::types::{AttackType, WeaponType, Particle, Preference, Vision, NOBLESSE_OBLIGE, TENACITY_OF_THE_MILLELITH};
+use crate::action::{ElementalAttack, TimerGuard, TimerGuardCheck, FullCharacterTimers, EffectTimer, StackTimer, DurationTimer, HitsTimer};
+use crate::types::{AttackType, WeaponType, FieldEnergy, ElementalReaction, Preference, Vision, NOBLESSE_OBLIGE, TENACITY_OF_THE_MILLELITH};
 
 use AttackType::*;
+
+const SCORE: GearScore = GearScore { score: 140.0 };
 
 #[derive(Debug)]
 pub struct Artifact {
@@ -53,8 +55,6 @@ impl Artifact {
     pub fn setup(&mut self) -> () {
         // default setup for all artifacts
         self.state.flat_atk += 311.0;
-        self.state.atk += 80.0;
-        self.state.cr  += 80.0;
     }
 }
 
@@ -84,6 +84,8 @@ pub struct AllArtifacts {
     lavawalker: (Artifact, Lavawalker),
     lavawalkerhp: (Artifact, LavawalkerHp),
     gfelm: (Artifact, Gfelm),
+    gfelmer: (Artifact, GfelmEr),
+    gfelmer2: (Artifact, GfelmEr2),
     gfelmhp: (Artifact, GfelmHpCr),
     blizzardstrayer: (Artifact, BlizzardStrayer),
     heartofdepth: (Artifact, HeartOfDepth),
@@ -94,6 +96,7 @@ pub struct AllArtifacts {
     gfshimenawa: (Artifact, GfShimenawa),
     emblemofseveredfate: (Artifact, EmblemOfSeveredFate),
     emblemofseveredfateer: (Artifact, EmblemOfSeveredFateER),
+    emblemofseveredfateer2: (Artifact, EmblemOfSeveredFateER2),
 }
 
 impl AllArtifacts {
@@ -101,7 +104,7 @@ impl AllArtifacts {
         Self {
             bloodstainedchivalry: field(BloodstainedChivalry),
             bcpf: field(Bcpf),
-            thunderingfury: field(ThunderingFury),
+            thunderingfury: field(ThunderingFury::new()),
             viridescentvenerer: field(ViridescentVenerer),
             vvem: field(VVem::new()),
             archaicpetra: field(ArchaicPetra),
@@ -118,6 +121,8 @@ impl AllArtifacts {
             lavawalker: field(Lavawalker),
             lavawalkerhp: field(LavawalkerHp),
             gfelm: field(Gfelm),
+            gfelmer: field(GfelmEr),
+            gfelmer2: field(GfelmEr2),
             gfelmhp: field(GfelmHpCr),
             blizzardstrayer: field(BlizzardStrayer),
             heartofdepth: field(HeartOfDepth::new()),
@@ -128,6 +133,7 @@ impl AllArtifacts {
             gfshimenawa: field(GfShimenawa),
             emblemofseveredfate: field(EmblemOfSeveredFate),
             emblemofseveredfateer: field(EmblemOfSeveredFateER),
+            emblemofseveredfateer2: field(EmblemOfSeveredFateER2),
         }
     }
 
@@ -153,6 +159,8 @@ impl AllArtifacts {
             Lavawalker => &mut self.lavawalker,
             LavawalkerHp => &mut self.lavawalkerhp,
             Gfelm => &mut self.gfelm,
+            GfelmEr => &mut self.gfelmer,
+            GfelmEr2 => &mut self.gfelmer2,
             GfelmHpCr => &mut self.gfelmhp,
             BlizzardStrayer => &mut self.blizzardstrayer,
             HeartOfDepth => &mut self.heartofdepth,
@@ -163,6 +171,7 @@ impl AllArtifacts {
             GfShimenawa => &mut self.gfshimenawa,
             EmblemOfSeveredFate => &mut self.emblemofseveredfate,
             EmblemOfSeveredFateER => &mut self.emblemofseveredfateer,
+            EmblemOfSeveredFateER2 => &mut self.emblemofseveredfateer2,
         }
     }
 }
@@ -188,6 +197,8 @@ pub enum ArtifactName {
     Lavawalker,
     LavawalkerHp,
     Gfelm,
+    GfelmEr,
+    GfelmEr2,
     GfelmHpCr,
     BlizzardStrayer,
     HeartOfDepth,
@@ -198,6 +209,7 @@ pub enum ArtifactName {
     GfShimenawa,
     EmblemOfSeveredFate,
     EmblemOfSeveredFateER,
+    EmblemOfSeveredFateER2,
 }
 
 impl ArtifactName {
@@ -223,6 +235,8 @@ impl ArtifactName {
             Lavawalker,
             LavawalkerHp,
             Gfelm,
+            GfelmEr,
+            GfelmEr2,
             GfelmHpCr,
             BlizzardStrayer,
             HeartOfDepth,
@@ -233,6 +247,7 @@ impl ArtifactName {
             GfShimenawa,
             EmblemOfSeveredFate,
             EmblemOfSeveredFateER,
+            EmblemOfSeveredFateER2,
         ]
     }
 }
@@ -260,6 +275,8 @@ impl<'a> From<&'a str> for ArtifactName {
             "Lavawalker" => Lavawalker,
             "LavawalkerHp" => LavawalkerHp,
             "Gfelm" => Gfelm,
+            "GfelmEr" => GfelmEr,
+            "GfelmEr2" => GfelmEr2,
             "GfelmHpCr" => GfelmHpCr,
             "BlizzardStrayer" => BlizzardStrayer,
             "HeartOfDepth" => HeartOfDepth,
@@ -269,7 +286,8 @@ impl<'a> From<&'a str> for ArtifactName {
             "ShimenawasReminiscence" => ShimenawasReminiscence,
             "GfShimenawa" => GfShimenawa,
             "EmblemOfSeveredFate" => EmblemOfSeveredFate,
-            "EmblemOfSeveredFateER" => EmblemOfSeveredFate,
+            "EmblemOfSeveredFateER" => EmblemOfSeveredFateER,
+            "EmblemOfSeveredFateER2" => EmblemOfSeveredFateER2,
             _ => unimplemented!(),
         }
     }
@@ -287,6 +305,8 @@ impl ArtifactAbility for BloodstainedChivalry {
             version: 1.0,
             preference: vec![Preference::Physical],
             state: State::new().physical_dmg(25.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -303,14 +323,24 @@ impl ArtifactAbility for Bcpf {
             version: 1.0,
             preference: vec![Preference::Physical],
             state: State::new().physical_dmg(50.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
 
 #[derive(Debug)]
-pub struct ThunderingFury;
+pub struct ThunderingFury {
+    timer: HitsTimer,
+}
 
-impl SpecialAbility for ThunderingFury {}
+impl ThunderingFury {
+    pub fn new() -> Self {
+        Self {
+            timer: HitsTimer::new(0.8, 1)
+        }
+    }
+}
 
 impl ArtifactAbility for ThunderingFury {
     fn record(&self) -> Artifact {
@@ -319,7 +349,26 @@ impl ArtifactAbility for ThunderingFury {
             version: 1.0,
             preference: vec![Preference::Electro],
             state: State::new().electro_dmg(15.0).transformative_bonus(40.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
+    }
+
+    fn accelerate(&self, timers: &mut FullCharacterTimers) -> () {
+        if self.timer.is_active() {
+            timers.reduce_cd(1.0);
+        }
+    }
+}
+
+impl SpecialAbility for ThunderingFury {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        let should_update = attack.iter().any(|a| ElementalReaction::new(enemy.aura.aura, a.element).is_electro());
+        self.timer.update(guard.second(should_update), time);
+    }
+
+    fn reset(&mut self) -> () {
+        self.timer.reset();
     }
 }
 
@@ -333,6 +382,8 @@ impl ArtifactAbility for ViridescentVenerer {
             version: 1.0,
             preference: vec![Preference::Anemo],
             state: State::new().anemo_dmg(15.0).transformative_bonus(60.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -366,7 +417,10 @@ impl ArtifactAbility for VVem {
             name: "Viridescent Venerer (EM)",
             version: 1.0,
             preference: vec![Preference::Anemo],
-            state: State::new().anemo_dmg(15.0).transformative_bonus(60.0).em(6.012 * (53.333+80.0)).atk(-80.0).cr(-80.0)
+            state: State::new().anemo_dmg(15.0).transformative_bonus(60.0)
+                    .atk(SCORE.atk(10.0))
+                    .cr(SCORE.cr(10.0))
+                    .em(SCORE.em(80.0))
         }
     }
 }
@@ -389,6 +443,8 @@ impl ArtifactAbility for ArchaicPetra {
             version: 1.0,
             preference: vec![Preference::Geo],
             state: State::new().geo_dmg(15.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -405,6 +461,8 @@ impl ArtifactAbility for CrimsonWitchOfFlames {
             version: 1.0,
             preference: vec![Preference::Pyro],
             state: State::new().pyro_dmg(15.0+7.5).amplifying_bonus(15.0).transformative_bonus(40.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -420,7 +478,9 @@ impl ArtifactAbility for CrimsonWitchOfFlamesHp {
             name: "Crimson Witch of Flames (HP)",
             version: 1.0,
             preference: vec![Preference::Pyro],
-            state: State::new().pyro_dmg(15.0+7.5).amplifying_bonus(15.0).transformative_bonus(40.0).hp(80.0).atk(-80.0)
+            state: State::new().pyro_dmg(15.0+7.5).amplifying_bonus(15.0).transformative_bonus(40.0)
+                    .hp(SCORE.hp(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -443,12 +503,14 @@ impl ArtifactAbility for NoblesseOblige {
             version: 1.0,
             preference: vec![Preference::Supporter],
             state: State::new().burst_dmg(20.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
 
 impl SpecialAbility for NoblesseOblige {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.timer.update(guard.check_second(Burst), time);
     }
 
@@ -480,7 +542,9 @@ impl ArtifactAbility for Gfno {
             name: "GFNO ATK 18% Burst 20%",
             version: 1.0,
             preference: vec![Preference::Supporter],
-            state: State::new().burst_dmg(20.0).atk(18.0)
+            state: State::new().burst_dmg(20.0)
+                    .atk(18.0 + SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -492,7 +556,7 @@ pub struct GladiatorsFinale {
 }
 
 impl GladiatorsFinale {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self { bonus: 0.0, checked: false }
     }
 }
@@ -503,13 +567,15 @@ impl ArtifactAbility for GladiatorsFinale {
             name: "Gladiator's Finale",
             version: 1.0,
             preference: vec![Preference::Melee],
-            state: State::new().atk(18.0)
+            state: State::new()
+                    .atk(18.0 + SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
 
 impl SpecialAbility for GladiatorsFinale {
-    fn update(&mut self, _guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], data: &CharacterData, _enemy: &Enemy, _time: f32) -> () {
+    fn update(&mut self, _guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], data: &CharacterData, _enemy: &Enemy, _time: f32) -> () {
         if !self.checked {
             self.checked = true;
             match data.cr.weapon {
@@ -546,13 +612,16 @@ impl ArtifactAbility for GladiatorsFinaleDef {
             name: "Gladiator's Finale (DEF)",
             version: 1.0,
             preference: vec![Preference::Melee],
-            state: State::new().atk(18.0-80.0).def(110.0)
+            state: State::new()
+                    .atk(18.0)
+                    .def(SCORE.def(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
 
 impl SpecialAbility for GladiatorsFinaleDef {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
@@ -577,6 +646,8 @@ impl ArtifactAbility for WanderersTroupe {
             version: 1.0,
             preference: vec![Preference::Ranged],
             state: State::new().ca_dmg(35.0).em(80.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -593,6 +664,8 @@ impl ArtifactAbility for RetracingBolide {
             version: 1.0,
             preference: vec![Preference::Attacker],
             state: State::new().na_dmg(40.0).ca_dmg(40.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -608,7 +681,9 @@ impl ArtifactAbility for RetracingBolideDef {
             name: "Retracing Bolide (DEF)",
             version: 1.0,
             preference: vec![Preference::Attacker],
-            state: State::new().na_dmg(40.0).ca_dmg(40.0).atk(-80.0).def(110.0)
+            state: State::new().na_dmg(40.0).ca_dmg(40.0)
+                    .def(SCORE.def(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -623,6 +698,8 @@ impl ArtifactAbility for Thundersoother {
             version: 1.0,
             preference: vec![Preference::Electro],
             state: State::new()
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -646,6 +723,8 @@ impl ArtifactAbility for Lavawalker {
             version: 1.0,
             preference: vec![Preference::Pyro],
             state: State::new()
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -668,7 +747,9 @@ impl ArtifactAbility for LavawalkerHp {
             name: "Lavawalker (HP)",
             version: 1.0,
             preference: vec![Preference::Pyro],
-            state: State::new().atk(-80.0).hp(80.0)
+            state: State::new()
+                    .hp(SCORE.hp(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -693,7 +774,47 @@ impl ArtifactAbility for Gfelm {
             name: "GFElem ATK 18% DMG 15%",
             version: 1.0,
             preference: Vec::new(),
-            state: State::new().atk(18.0).elemental_dmg(15.0)
+            state: State::new().elemental_dmg(15.0)
+                    .atk(18.0 + SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct GfelmEr;
+
+impl SpecialAbility for GfelmEr {}
+
+impl ArtifactAbility for GfelmEr {
+    fn record(&self) -> Artifact {
+        Artifact {
+            name: "GFElem ATK88% CR46% ER77% DMG 15%",
+            version: 1.0,
+            preference: Vec::new(),
+            state: State::new().elemental_dmg(15.0)
+                    .atk(18.0 + SCORE.atk(33.3333))
+                    .cr(SCORE.cr(33.3333))
+                    .er(SCORE.er(33.3333))
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct GfelmEr2;
+
+impl SpecialAbility for GfelmEr2 {}
+
+impl ArtifactAbility for GfelmEr2 {
+    fn record(&self) -> Artifact {
+        Artifact {
+            name: "GFElem ATK70% CR35% ER116% DMG 15%",
+            version: 1.0,
+            preference: Vec::new(),
+            state: State::new().elemental_dmg(15.0)
+                    .atk(18.0 + SCORE.atk(25.0))
+                    .cr(SCORE.cr(25.0))
+                    .er(SCORE.er(50.0))
         }
     }
 }
@@ -706,10 +827,12 @@ impl SpecialAbility for GfelmHpCr {}
 impl ArtifactAbility for GfelmHpCr {
     fn record(&self) -> Artifact {
         Artifact {
-            name: "GFE HP120 ATK58 CR-80 DMG 15%",
+            name: "GFE HP 105% ATK 105% DMG 15%",
             version: 1.0,
-            preference: Vec::new(),
-            state: State::new().atk(-80.0 + 58.0).hp(120.0).cr(-80.0).elemental_dmg(15.0)
+            preference: vec![Preference::Hydro],
+            state: State::new().elemental_dmg(15.0)
+                    .hp(SCORE.hp(50.0))
+                    .atk(SCORE.atk(50.0))
         }
     }
 }
@@ -724,6 +847,8 @@ impl ArtifactAbility for BlizzardStrayer {
             version: 1.2,
             preference: vec![Preference::Cryo, Preference::Hydro],
             state: State::new().cryo_dmg(15.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -756,12 +881,14 @@ impl ArtifactAbility for HeartOfDepth {
             version: 1.2,
             preference: vec![Preference::Hydro],
             state: State::new().hydro_dmg(15.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
 
 impl SpecialAbility for HeartOfDepth {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         // let should_update = timers.press_timer().is_active() || timers.hold_timer().is_active();
         // unsafe {
         //     attack.iter().any(|&a| match (*a).kind {
@@ -803,12 +930,14 @@ impl ArtifactAbility for GlacierAndSnowfield {
             version: 99.0,
             preference: vec![Preference::Cryo],
             state: State::new().cryo_dmg(15.0).amplifying_bonus(15.0).transformative_bonus(100.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
 
 impl SpecialAbility for GlacierAndSnowfield {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         // let should_update = timers.burst_timer().is_active();
         // unsafe {
         //     attack.iter().any(|&a| match (*a).kind {
@@ -848,12 +977,14 @@ impl ArtifactAbility for PaleFlame {
             version: 1.5,
             preference: vec![Preference::Physical],
             state: State::new().physical_dmg(25.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
 
 impl SpecialAbility for PaleFlame {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         // let should_update = unsafe {
         //     attack.iter().any(|&a| match (*a).kind {
         //         PressSkill | HoldSkill | SkillDot => true,
@@ -901,12 +1032,14 @@ impl ArtifactAbility for TenacityOfTheMillelith {
             version: 1.5,
             preference: vec![Preference::Supporter],
             state: State::new().hp(20.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
 
 impl SpecialAbility for TenacityOfTheMillelith {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         // let should_update = unsafe {
         //     attack.iter().any(|&a| match (*a).kind {
         //         PressSkill | HoldSkill | SkillDot => true,
@@ -955,14 +1088,16 @@ impl ArtifactAbility for ShimenawasReminiscence {
             name: "Shimenawa's Reminiscence",
             version: 2.0,
             preference: vec![Preference::Attacker],
-            state: State::new().atk(18.0)
+            state: State::new()
+                    .atk(18.0 + SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
 
 impl SpecialAbility for ShimenawasReminiscence {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        guard.second(data.state.energy.0 >= 15.0 && (guard.kind == PressSkill || guard.kind == HoldSkill));
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+        guard.second(data.state.energy >= 15.0 && (guard.kind == PressSkill || guard.kind == HoldSkill));
         guard.third(true);
         if !guard.check(()) {
             return;
@@ -978,7 +1113,7 @@ impl SpecialAbility for ShimenawasReminiscence {
     fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
         if self._dr > 0.0 && self.first_activation {
             let state = &mut modifiable_state[data.idx.0];
-            state.energy.0 -= 15.0;
+            state.energy -= 15.0;
             state.na_dmg += 50.0;
             state.ca_dmg += 50.0;
         } else if self._dr > 0.0 {
@@ -1004,7 +1139,9 @@ impl ArtifactAbility for GfShimenawa {
             name: "GFShimenawa ATK 36%",
             version: 2.0,
             preference: Vec::new(),
-            state: State::new().atk(36.0)
+            state: State::new()
+                    .atk(36.0 + SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
@@ -1021,50 +1158,73 @@ impl ArtifactAbility for EmblemOfSeveredFate {
             version: 2.0,
             preference: Vec::new(),
             state: State::new().er(20.0)
+                    .atk(SCORE.atk(50.0))
+                    .cr(SCORE.cr(50.0))
         }
     }
 }
 
+fn emblem_of_severed_fate(modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
+    // the maximum DMG bonus is obtained if ER is 300%.
+    // `State.er` does not contain base 100% of characters.
+    let er = 100.0 + data.state.er;
+    modifiable_state[data.idx.0].burst_dmg += if er > 300.0 {
+        75.0
+    } else {
+        er * 0.25
+    };
+}
+
 impl SpecialAbility for EmblemOfSeveredFate {
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        // the maximum DMG bonus is obtained if ER is 300%.
-        // `State.er` does not contain base 100% of characters.
-        let er = 100.0 + data.state.er;
-        modifiable_state[data.idx.0].burst_dmg += if er > 300.0 {
-            75.0
-        } else {
-            er * 0.25
-        };
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
+        emblem_of_severed_fate(modifiable_state, timers, data, enemy);
     }
 }
 
 #[derive(Debug)]
 pub struct EmblemOfSeveredFateER;
 
-// 4 Piece: Increases Elemental Burst DMG by 25% of Energy Recharge. A maximum
-// 75% DMG increase can be obtained in this way.
 impl ArtifactAbility for EmblemOfSeveredFateER {
     fn record(&self) -> Artifact {
         Artifact {
-            name: "EoSF ATK-40 ER+50",
+            name: "EoSF ATK70% CR47% ER77%",
             version: 2.0,
             preference: Vec::new(),
-            // state: State::new().er(20.0 + 50.0).atk(-40.0)
-            state: State::new().er(20.0 + 50.0).atk(6.6).elemental_dmg(-46.6)
+            state: State::new()
+                    .atk(SCORE.atk(33.3333))
+                    .cr(SCORE.cr(33.3333))
+                    .er(20.0 + SCORE.er(33.3333))
         }
     }
 }
 
 impl SpecialAbility for EmblemOfSeveredFateER {
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        // the maximum DMG bonus is obtained if ER is 300%.
-        // `State.er` does not contain base 100% of characters.
-        let er = 100.0 + data.state.er;
-        modifiable_state[data.idx.0].burst_dmg += if er > 300.0 {
-            75.0
-        } else {
-            er * 0.25
-        };
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
+        emblem_of_severed_fate(modifiable_state, timers, data, enemy);
+    }
+}
+
+#[derive(Debug)]
+pub struct EmblemOfSeveredFateER2;
+
+impl ArtifactAbility for EmblemOfSeveredFateER2 {
+    fn record(&self) -> Artifact {
+        Artifact {
+            name: "EoSF ATK52% CR35% ER136%",
+            version: 2.0,
+            // TODO both attacker and supporter?
+            preference: vec![Preference::Supporter],
+            state: State::new()
+                    .atk(SCORE.atk(25.0))
+                    .cr(SCORE.cr(25.0))
+                    .er(20.0 + SCORE.er(50.0))
+        }
+    }
+}
+
+impl SpecialAbility for EmblemOfSeveredFateER2 {
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
+        emblem_of_severed_fate(modifiable_state, timers, data, enemy);
     }
 }
 
@@ -1078,6 +1238,13 @@ mod tests {
 
     use Vision::*;
 
+    // #[test]
+    // fn name() {
+    //     let aa = EmblemOfSeveredFateER2;
+    //     println!("{:?}", aa.record().state);
+    //     assert!(false);
+    // }
+
     // fc0 triggers burst, which is invariant to fc1 who equips an artifact
     // that can be triggered by own burst.
     #[test]
@@ -1089,7 +1256,7 @@ mod tests {
             env1.vision(FieldCharacterIndex(0), State::new(), Pyro),
             env2.artifact(FieldCharacterIndex(1), State::new(), Pyro, &mut aa),
             ];
-        members[0].fc.data.state.energy.0 = members[0].fc.data.cr.energy_cost;
+        members[0].fc.data.state.energy = members[0].fc.data.cr.energy_cost;
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
         for _ in 0..21 {
@@ -1110,14 +1277,14 @@ mod tests {
             env1.artifact(FieldCharacterIndex(0), State::new(), Pyro, &mut aa),
             env2.vision(FieldCharacterIndex(1), State::new(), Pyro),
             ];
-        members[0].fc.data.state.energy.0 = members[0].fc.data.cr.energy_cost;
+        members[0].fc.data.state.energy = members[0].fc.data.cr.energy_cost;
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
         for _ in 0..21 {
             total_dmg += simulate(&mut members, &mut enemy, 0.1);
         }
         // (burst skill na na na) and (skill na na na)
-        let expect = 1.2 * (360.0 + 200.0 + 100.0 + 100.0 + 100.0)
+        let expect = 1.2 * (300.0 + 200.0 + 100.0 + 100.0 + 100.0)
                    + 1.2 * (200.0 + 100.0 + 100.0 + 100.0);
         let differnce = (total_dmg - 0.5 * expect).abs();
         assert!(differnce <= 0.001);
@@ -1133,16 +1300,16 @@ mod tests {
             env1.artifact(FieldCharacterIndex(0), State::new(), Pyro, &mut aa1),
             env2.artifact(FieldCharacterIndex(1), State::new(), Pyro, &mut aa2),
             ];
-        members[0].fc.data.state.energy.0 = members[0].fc.data.cr.energy_cost;
-        members[1].fc.data.state.energy.0 = members[1].fc.data.cr.energy_cost;
+        members[0].fc.data.state.energy = members[0].fc.data.cr.energy_cost;
+        members[1].fc.data.state.energy = members[1].fc.data.cr.energy_cost;
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
         for _ in 0..21 {
             total_dmg += simulate(&mut members, &mut enemy, 0.1);
         }
         // twice (burst skill na na na)
-        let expect = 1.2 * (360.0 + 200.0 + 100.0 + 100.0 + 100.0)
-                   + 1.2 * (360.0 + 200.0 + 100.0 + 100.0 + 100.0);
+        let expect = 1.2 * (300.0 + 200.0 + 100.0 + 100.0 + 100.0)
+                   + 1.2 * (300.0 + 200.0 + 100.0 + 100.0 + 100.0);
         let differnce = (total_dmg - 0.5 * expect).abs();
         assert!(differnce <= 0.001);
     }
@@ -1166,16 +1333,16 @@ mod tests {
             total_dmg += simulate(&mut members, &mut enemy, 0.2);
         }
         let expect = 0.5 * (
-            // skill (level multiplier * reaction multiplier * bonus (* TODO bypass enemy defense))
-              725.36 * 1.2 * 1.6 * 2.0 + 200.0 * 1.15 * 1.2
+            // skill (level multiplier * reaction multiplier * bonus * TODO resistance (* TODO bypass enemy defense))
+              725.36 * 1.2 *  1.2 * 2.0 + 200.0 * 1.2
             // na
-            + 725.36 * 1.2 * 1.6 * 2.0 + 100.0 * 1.15 * 1.2
+            + 725.36 * 1.2 *  1.2 * 2.0 + 100.0 * 1.2
             // na (action multiplier * vv 2 set bonus * vv 4 set RES down)
-            + 100.0 * 1.15 * 1.2
+            + 100.0 * 1.2
             // na
-            + 100.0 * 1.15 * 1.2
+            + 100.0 * 1.2
             // na
-            + 100.0 * 1.15 * 1.2
+            + 100.0 * 1.2
         );
         let differnce = (total_dmg - expect).abs();
         assert!(differnce <= 0.001);
@@ -1207,10 +1374,9 @@ mod tests {
         let mut env = TestEnvironment::new();
         let mut aa = ShimenawasReminiscence::new();
         let mut members = vec![
-            // disable 2 set bonus
-            env.artifact(FieldCharacterIndex(0), State::new().atk(-18.0), Pyro, &mut aa),
+            env.artifact(FieldCharacterIndex(0), State::new(), Pyro, &mut aa),
         ];
-        members[0].fc.data.state.energy.0 = 10.0;
+        members[0].fc.data.state.energy = 10.0;
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
         for _ in 0..20 {

@@ -1,5 +1,5 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Particle, MILLENNIAL_MOVEMENT_SERIES};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, MILLENNIAL_MOVEMENT_SERIES};
 use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, SigilTimer};
 
@@ -30,7 +30,7 @@ impl WeaponAbility for SongOfBrokenPines {
 }
 
 impl SpecialAbility for SongOfBrokenPines {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == Na || guard.kind == Ca;
         self.timer.update(guard.second(should_update), time);
     }

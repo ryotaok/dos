@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
 use crate::testutil;
@@ -81,18 +81,18 @@ impl CharacterAbility for Amber {
 }
 
 impl SpecialAbility for Amber {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == Ca;
         self.ca_timer.update(guard.second(should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.press));
-            particles.push(Particle::new(Pyro, 4.0));
+            particles.push_p(Particle::new(Pyro, 4.0));
         }
         if timers.ca_timer().is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.ca));
@@ -226,18 +226,18 @@ impl CharacterAbility for Bennett {
 }
 
 impl SpecialAbility for Bennett {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == Burst;
         self.burst_timer.update(guard.second(should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.press));
-            particles.push(Particle::new(Pyro, 2.0));
+            particles.push_p(Particle::new(Pyro, 2.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -386,12 +386,12 @@ impl CharacterAbility for Xiangling {
 }
 
 impl SpecialAbility for Xiangling {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == PressSkill;
         self.skill_a4.update(guard.second(should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             if burst.n() == 1 {
@@ -403,7 +403,7 @@ impl SpecialAbility for Xiangling {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.press));
-            particles.push(Particle::new(Pyro, 1.0));
+            particles.push_p(Particle::new(Pyro, 1.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -533,12 +533,12 @@ impl CharacterAbility for Diluc {
 }
 
 impl SpecialAbility for Diluc {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == Burst;
         self.burst_a4.update(guard.second(should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             if burst.n() == 1 {
@@ -550,7 +550,7 @@ impl SpecialAbility for Diluc {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.press));
-            particles.push(Particle::new(Pyro, 4.0));
+            particles.push_p(Particle::new(Pyro, 4.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -674,14 +674,14 @@ impl CharacterAbility for Klee {
 }
 
 impl SpecialAbility for Klee {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let ca = guard.kind == Ca;
         let na_a1 = testutil::chance() < 0.5 && (guard.kind == Na || guard.kind == PressSkill);
         self.ca_a4.update(guard.second(ca), time);
         self.na_a1.update(guard.second(na_a1), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::pyro(&self.burst));
@@ -691,7 +691,7 @@ impl SpecialAbility for Klee {
             if press.n() == 1 {
                 atk_queue.push(ElementalAttack::pyro(&self.press));
                 atk_queue.push(ElementalAttack::pyro(&self.press_aa));
-                particles.push(Particle::new(Pyro, 3.5));
+                particles.push_p(Particle::new(Pyro, 3.5));
             } else {
                 atk_queue.push(ElementalAttack::pyro(&self.press_aa));
             }
@@ -706,7 +706,7 @@ impl SpecialAbility for Klee {
             };
         }
         if self.ca_a4.is_active() {
-            particles.push(Particle::neutral(1.0 * data.state.cr / 100.0));
+            particles.push_e(2.0 * data.state.cr / 100.0);
         }
     }
 

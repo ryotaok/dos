@@ -134,6 +134,11 @@ pub struct AllWeapons {
     // version_2_0
     mistsplitterreforged: (WeaponRecord, MistsplitterReforged),
     thunderingpulse: (WeaponRecord, ThunderingPulse),
+    amenomakageuchi: (WeaponRecord, AmenomaKageuchi),
+    katsuragikirinagamasa: (WeaponRecord, KatsuragikiriNagamasa),
+    kitaincrossspear: (WeaponRecord, KitainCrossSpear),
+    hamayumi: (WeaponRecord, Hamayumi),
+    hakushinring: (WeaponRecord, HakushinRing),
     // version_2_1
     grasscutterslight: (WeaponRecord, GrasscuttersLight),
     fumetsugekka: (WeaponRecord, FumetsuGekka),
@@ -237,6 +242,11 @@ impl AllWeapons {
             // version_2_0
             mistsplitterreforged: field(MistsplitterReforged::new()),
             thunderingpulse: field(ThunderingPulse::new()),
+            amenomakageuchi: field(AmenomaKageuchi::new()),
+            katsuragikirinagamasa: field(KatsuragikiriNagamasa::new()),
+            kitaincrossspear: field(KitainCrossSpear::new()),
+            hamayumi: field(Hamayumi),
+            hakushinring: field(HakushinRing::new()),
             // version_2_1
             grasscutterslight: field(GrasscuttersLight::new()),
             fumetsugekka: field(FumetsuGekka::new()),
@@ -341,6 +351,11 @@ impl AllWeapons {
             // version_2_0
             MistsplitterReforged => &mut self.mistsplitterreforged,
             ThunderingPulse => &mut self.thunderingpulse,
+            AmenomaKageuchi => &mut self.amenomakageuchi,
+            KatsuragikiriNagamasa => &mut self.katsuragikirinagamasa,
+            KitainCrossSpear => &mut self.kitaincrossspear,
+            Hamayumi => &mut self.hamayumi,
+            HakushinRing => &mut self.hakushinring,
             // version_2_1
             GrasscuttersLight => &mut self.grasscutterslight,
             FumetsuGekka => &mut self.fumetsugekka,
@@ -445,6 +460,11 @@ pub enum WeaponName {
     // version_2_0
     MistsplitterReforged,
     ThunderingPulse,
+    AmenomaKageuchi,
+    KatsuragikiriNagamasa,
+    KitainCrossSpear,
+    Hamayumi,
+    HakushinRing,
     // version_2_1
     GrasscuttersLight,
     FumetsuGekka,
@@ -549,6 +569,11 @@ impl WeaponName {
     // version_2_0
     MistsplitterReforged,
     ThunderingPulse,
+    AmenomaKageuchi,
+    KatsuragikiriNagamasa,
+    KitainCrossSpear,
+    Hamayumi,
+    HakushinRing,
     // version_2_1
     GrasscuttersLight,
     FumetsuGekka,
@@ -655,6 +680,11 @@ impl<'a> From<&'a str> for WeaponName {
             // version_2_0
             "MistsplitterReforged" => MistsplitterReforged,
             "ThunderingPulse" => ThunderingPulse,
+            "AmenomaKageuchi" => AmenomaKageuchi,
+            "KatsuragikiriNagamasa" => KatsuragikiriNagamasa,
+            "KitainCrossSpear" => KitainCrossSpear,
+            "Hamayumi" => Hamayumi,
+            "HakushinRing" => HakushinRing,
             // version_2_1
             "GrasscuttersLight" => GrasscuttersLight,
             "FumetsuGekka" => FumetsuGekka,
@@ -793,7 +823,7 @@ mod tests {
         let mut members = vec![
             env.no_skill_weapon(idx, State::new(), Pyro, &mut wa)
         ];
-        members[0].fc.data.state.energy.0 = members[0].fc.data.cr.energy_cost;
+        members[0].fc.data.state.energy = members[0].fc.data.cr.energy_cost;
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
         for _ in 0..10 {

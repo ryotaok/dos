@@ -1,4 +1,4 @@
-use crate::types::{AttackType, WeaponType, Particle};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle};
 use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, HitsTimer};
 
@@ -27,7 +27,7 @@ impl WeaponAbility for Composed {
 }
 
 impl SpecialAbility for Composed {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == PressSkill || guard.kind == HoldSkill;
         self.timer.update(guard.second(should_update), time);
     }
@@ -48,7 +48,7 @@ impl SacrificialSwordR5 {
 impl WeaponAbility for SacrificialSwordR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Sacrificial Sword R5").type_(Sword).version(1.0)
+            .name("Sacrificial Sword").type_(Sword).version(1.0)
             .base_atk(454.0)
             .er(61.3)
     }
@@ -59,7 +59,7 @@ impl WeaponAbility for SacrificialSwordR5 {
 }
 
 impl SpecialAbility for SacrificialSwordR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
@@ -79,7 +79,7 @@ impl SacrificialGreatswordR5 {
 impl WeaponAbility for SacrificialGreatswordR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Sacrificial Greatsword R5").type_(Claymore).version(1.0)
+            .name("Sacrificial Greatsword").type_(Claymore).version(1.0)
             .base_atk(565.0)
             .er(30.6).em(0.0).atk_spd(0.0)
     }
@@ -90,7 +90,7 @@ impl WeaponAbility for SacrificialGreatswordR5 {
 }
 
 impl SpecialAbility for SacrificialGreatswordR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
@@ -112,7 +112,7 @@ impl SacrificialBowR5 {
 impl WeaponAbility for SacrificialBowR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Sacrificial Bow R5").type_(Bow).version(1.0)
+            .name("Sacrificial Bow").type_(Bow).version(1.0)
             .base_atk(565.0)
             .er(30.6)
     }
@@ -123,7 +123,7 @@ impl WeaponAbility for SacrificialBowR5 {
 }
 
 impl SpecialAbility for SacrificialBowR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
@@ -143,7 +143,7 @@ impl SacrificialFragmentsR5 {
 impl WeaponAbility for SacrificialFragmentsR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Sacrificial Fragments R5").type_(Catalyst).version(1.0)
+            .name("Sacrificial Fragments").type_(Catalyst).version(1.0)
             .base_atk(454.0)
             .em(221.0)
     }
@@ -154,7 +154,7 @@ impl WeaponAbility for SacrificialFragmentsR5 {
 }
 
 impl SpecialAbility for SacrificialFragmentsR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 

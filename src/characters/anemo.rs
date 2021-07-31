@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, ElementalAbsorption, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
 use crate::testutil;
@@ -111,7 +111,7 @@ impl CharacterAbility for Sucrose {
 }
 
 impl SpecialAbility for Sucrose {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.skill_a1 = attack.iter().any(|a| enemy.trigger_er(&a.element).is_swirl());
         let should_update = unsafe {
             attack.iter().any(|&a|
@@ -125,7 +125,7 @@ impl SpecialAbility for Sucrose {
         self.burst_ea.absorb(guard.check_second(Burst), enemy, time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::anemo(&self.burst_dot));
@@ -135,7 +135,7 @@ impl SpecialAbility for Sucrose {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::anemo(&self.press));
-            particles.push(Particle::new(Anemo, 4.0));
+            particles.push_p(Particle::new(Anemo, 4.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -298,11 +298,11 @@ impl CharacterAbility for TravelerAnemo {
 }
 
 impl SpecialAbility for TravelerAnemo {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.burst_ea.absorb(guard.check_second(Burst), enemy, time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::anemo(&self.burst));
@@ -316,7 +316,7 @@ impl SpecialAbility for TravelerAnemo {
                 atk_queue.push(ElementalAttack::anemo(&self.press_cutting));
             } else {
                 atk_queue.push(ElementalAttack::anemo(&self.press_storm));
-                particles.push(Particle::new(Anemo, 3.5));
+                particles.push_p(Particle::new(Anemo, 3.5));
             }
         }
         let na = timers.na_timer();
@@ -448,7 +448,7 @@ impl CharacterAbility for Jean {
 }
 
 impl SpecialAbility for Jean {
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             if burst.n() == 1 {
@@ -461,7 +461,7 @@ impl SpecialAbility for Jean {
         let press = timers.press_timer();
         if press.is_active() {
             atk_queue.push(ElementalAttack::anemo(&self.press));
-            particles.push(Particle::new(Anemo, 3.0));
+            particles.push_p(Particle::new(Anemo, 3.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -595,28 +595,29 @@ impl CharacterAbility for Venti {
 }
 
 impl SpecialAbility for Venti {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         let before = self.burst_ea.did_absort();
         self.burst_ea.absorb(guard.check_second(Burst), enemy, time);
         let after = self.burst_ea.did_absort();
         self.first_absorption = !before && after;
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::anemo(&self.burst));
             if let Some(a) = self.burst_ea.attack() {
                 atk_queue.push(a);
                 if self.first_absorption {
-                    particles.push(Particle::new(a.element, 5.0));
+                    // TODO should be limited to the corresponding vision
+                    particles.push_e(15.0);
                 }
             }
         }
         let press = timers.press_timer();
         if press.is_active() {
             atk_queue.push(ElementalAttack::anemo(&self.press));
-            particles.push(Particle::new(Anemo, 3.0));
+            particles.push_p(Particle::new(Anemo, 3.0));
         }
         let na = timers.na_timer();
         if na.is_active() {

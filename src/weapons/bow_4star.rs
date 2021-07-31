@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Particle, GAUGE1A};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, HitsTimer, StackTimer};
 use crate::testutil;
@@ -19,7 +19,7 @@ impl SpecialAbility for PrototypeCrescentR5 {}
 impl WeaponAbility for PrototypeCrescentR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Prototype Crescent R5").type_(Bow).version(1.0)
+            .name("Prototype Crescent").type_(Bow).version(1.0)
             .base_atk(510.0)
             .atk(41.3 + 72.0)
     }
@@ -40,14 +40,14 @@ impl CompoundBowR5 {
 impl WeaponAbility for CompoundBowR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Compound Bow R5").type_(Bow).version(1.0)
+            .name("Compound Bow").type_(Bow).version(1.0)
             .base_atk(454.0)
             .dmg_phy(69.0)
     }
 }
 
 impl SpecialAbility for CompoundBowR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = timers.na_timer().is_active() || timers.ca_timer().is_active();
         self.timer.update(guard.second(should_update), time);
     }
@@ -89,19 +89,19 @@ impl TheViridescentHuntR5 {
 impl WeaponAbility for TheViridescentHuntR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("The Viridescent Hunt R5").type_(Bow).version(1.0)
+            .name("The Viridescent Hunt").type_(Bow).version(1.0)
             .base_atk(510.0)
             .cr(27.6)
     }
 }
 
 impl SpecialAbility for TheViridescentHuntR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = timers.na_timer().is_active() || timers.ca_timer().is_active();
         self.timer.update(guard.second(testutil::chance() < 0.5 && should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if self.timer.is_active() {
             atk_queue.push(ElementalAttack::physical(&self.aa))
         }
@@ -120,7 +120,7 @@ impl SpecialAbility for BlackcliffWarbowR5 {}
 impl WeaponAbility for BlackcliffWarbowR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Blackcliff Warbow R5").type_(Bow).version(1.0)
+            .name("Blackcliff Warbow").type_(Bow).version(1.0)
             .base_atk(510.0)
             .atk(24.0).cd(55.1)
     }
@@ -133,7 +133,7 @@ impl SpecialAbility for RoyalBowR5 {}
 impl WeaponAbility for RoyalBowR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Royal Bow R5").type_(Bow).version(1.0)
+            .name("Royal Bow").type_(Bow).version(1.0)
             .base_atk(510.0)
             .atk(41.3)
     }
@@ -146,7 +146,7 @@ impl SpecialAbility for SlingshotR5 {}
 impl WeaponAbility for SlingshotR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Slingshot R5").type_(Bow).version(1.0)
+            .name("Slingshot").type_(Bow).version(1.0)
             .base_atk(354.0)
             .cr(31.2)
             .dmg_na(60.0).dmg_ca(60.0)
@@ -160,7 +160,7 @@ impl SpecialAbility for RustR5 {}
 impl WeaponAbility for RustR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("Rust R5").type_(Bow).version(1.0)
+            .name("Rust").type_(Bow).version(1.0)
             .base_atk(510.0)
             .atk(41.3)
             .dmg_na(80.0).dmg_ca(-10.0)
@@ -174,7 +174,7 @@ impl SpecialAbility for TheStringlessR5 {}
 impl WeaponAbility for TheStringlessR5 {
     fn record(&self) -> WeaponRecord {
         WeaponRecord::default()
-            .name("The Stringless R5").type_(Bow).version(1.0)
+            .name("The Stringless").type_(Bow).version(1.0)
             .base_atk(510.0)
             .em(165.0)
             .dmg_skill(48.0).dmg_burst(48.0)

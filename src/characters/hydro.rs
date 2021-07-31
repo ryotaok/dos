@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, DotTimer, LoopTimer};
 
@@ -89,7 +89,7 @@ impl CharacterAbility for Barbara {
 }
 
 impl SpecialAbility for Barbara {
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         let na = timers.na_timer();
         if na.is_active() {
             match na.n() {
@@ -207,16 +207,16 @@ impl CharacterAbility for Xingqiu {
 }
 
 impl SpecialAbility for Xingqiu {
-    // fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    // fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
     // }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::hydro(&self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::hydro(&self.press));
-            particles.push(Particle::new(Hydro, 4.0));
+            particles.push_p(Particle::new(Hydro, 4.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -340,12 +340,12 @@ impl CharacterAbility for Mona {
 }
 
 impl SpecialAbility for Mona {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let should_update = guard.kind == Burst;
         self.omen_timer.update(guard.second(should_update), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::hydro(&self.burst));
@@ -354,7 +354,7 @@ impl SpecialAbility for Mona {
         if press.is_active() {
             if press.n() == 5 {
                 atk_queue.push(ElementalAttack::hydro(&self.press_explosion));
-                particles.push(Particle::new(Hydro, 3.0));
+                particles.push_p(Particle::new(Hydro, 3.0));
             } else {
                 atk_queue.push(ElementalAttack::hydro(&self.press_dot));
             }

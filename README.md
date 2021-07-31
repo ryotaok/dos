@@ -10,7 +10,7 @@ Please visit [my GitHub Page](https://ryotaok.github.io/dos/simulation_settings.
 
 ## Result of single member simulation
 
-![Result of single member simulation](./images/simulation1_0714.png)
+![Result of single member simulation](./images/simulation1_full_energy.png)
 
 ## Limitations
 

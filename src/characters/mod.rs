@@ -89,6 +89,7 @@ pub struct AllCharacters {
     // version_2_1
     raidenshogun: (CharacterRecord, RaidenShogun),
     sangonomiyakokomi: (CharacterRecord, SangonomiyaKokomi),
+    sangonomiyakokomihp: (CharacterRecord, SangonomiyaKokomiHp),
     kujousara: (CharacterRecord, KujouSara),
     aloy: (CharacterRecord, Aloy),
 }
@@ -150,6 +151,7 @@ impl AllCharacters {
             // version_2_1
             raidenshogun: field(RaidenShogun::new(idx)),
             sangonomiyakokomi: field(SangonomiyaKokomi::new(idx)),
+            sangonomiyakokomihp: field(SangonomiyaKokomiHp::new(idx)),
             kujousara: field(KujouSara::new(idx)),
             aloy: field(Aloy::new(idx)),
         }
@@ -213,6 +215,7 @@ impl AllCharacters {
             // version_2_1
             RaidenShogun => &mut self.raidenshogun,
             SangonomiyaKokomi => &mut self.sangonomiyakokomi,
+            SangonomiyaKokomiHp => &mut self.sangonomiyakokomihp,
             KujouSara => &mut self.kujousara,
             Aloy => &mut self.aloy,
         }
@@ -275,6 +278,7 @@ pub enum CharacterName {
     // version_2_1
     RaidenShogun,
     SangonomiyaKokomi,
+    SangonomiyaKokomiHp,
     KujouSara,
     Aloy,
 }
@@ -337,8 +341,46 @@ impl CharacterName {
     // version_2_1
     RaidenShogun,
     SangonomiyaKokomi,
+    SangonomiyaKokomiHp,
     KujouSara,
     Aloy,
+        ]
+    }
+
+    pub fn cryo() -> Vec<CharacterName> {
+        use CharacterName::*;
+        vec![
+    // cryo
+    Chongyun,
+    Kaeya,
+    Qiqi,
+    // version_1_1
+    Diona,
+    // version_1_2
+    Ganyu,
+    // version_1_4
+    Rosaria,
+    // version_1_5
+    Eula,
+    // version_2_0
+    Ayaka,
+    // version_2_1
+    Aloy,
+        ]
+    }
+
+    pub fn electro() -> Vec<CharacterName> {
+        use CharacterName::*;
+        vec![
+    // electro
+    // Beidou,
+    Fischl,
+    Lisa,
+    // Razor,
+    Keqing,
+    // version_2_1
+    RaidenShogun,
+    KujouSara,
         ]
     }
 }
@@ -401,6 +443,7 @@ impl<'a> From<&'a str> for CharacterName {
             // version_2_1
             "RaidenShogun" => RaidenShogun,
             "SangonomiyaKokomi" => SangonomiyaKokomi,
+            "SangonomiyaKokomiHp" => SangonomiyaKokomiHp,
             "KujouSara" => KujouSara,
             "Aloy" => Aloy,
             _ => unimplemented!(),
@@ -455,7 +498,7 @@ impl<'a> From<&'a str> for CharacterName {
 //             Box::new(TestWeapon),
 //             Box::new(TestArtifact(State::new()))
 //         )];
-//         members[0].0.state.energy.0 += members[0].0.state.energy_cost;
+//         members[0].0.state.energy += members[0].0.state.energy_cost;
 //         let mut enemy = TestEnvironment::enemy();
 //         let mut total_dmg = 0.0;
 //         let mut current_time = 0.0;

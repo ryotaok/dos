@@ -1,5 +1,5 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Particle, MILLENNIAL_MOVEMENT_SERIES};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, MILLENNIAL_MOVEMENT_SERIES};
 use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, DurationTimer, SigilTimer};
 
@@ -29,7 +29,7 @@ impl WeaponAbility for FreedomSworn {
 }
 
 impl SpecialAbility for FreedomSworn {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         let should_update = attack.iter().any(|a| enemy.trigger_er(&a.element).is_triggered());
         self.timer.update(guard.second(should_update), time);
     }
@@ -76,7 +76,7 @@ impl WeaponAbility for MitternachtsWaltz {
 }
 
 impl SpecialAbility for MitternachtsWaltz {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let na = guard.kind == Na;
         let skill = guard.kind == PressSkill || guard.kind == HoldSkill;
         self.na_timer.update(guard.second(na), time);
@@ -122,7 +122,7 @@ impl WeaponAbility for DodocoTales {
 }
 
 impl SpecialAbility for DodocoTales {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let na = guard.kind == Na;
         let ca = guard.kind == Ca;
         self.na_timer.update(guard.second(na), time);

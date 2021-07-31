@@ -5,7 +5,7 @@ use crate::state::State;
 use crate::artifact::Artifact;
 
 use crate::fc::{FieldCharacterIndex, CharacterRecord, WeaponRecord, Enemy, FieldCharacter, SpecialAbility, CharacterAbility, WeaponAbility, ArtifactAbility, FieldCharacterData, CharacterData};
-use crate::types::{AttackType, Vision, Particle, GAUGE1A};
+use crate::types::{AttackType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A};
 use crate::action::{Attack, ElementalAttack, FullCharacterTimers, TimerGuard, CharacterTimersBuilder, LoopTimer, DotTimer, HitsTimer, StaminaTimer};
 
 use Vision::*;
@@ -81,13 +81,13 @@ impl CharacterAbility for TestCharacter {
 }
 
 impl SpecialAbility for TestCharacter {
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.press));
-            particles.push(Particle::new(Pyro, 2.0));
+            particles.push_p(Particle::new(Pyro, 2.0));
         }
         if timers.na_timer().is_active() {
             if owner_fc.state.infusion {
@@ -152,7 +152,7 @@ impl CharacterAbility for NoSkillTestCharacter {
 }
 
 impl SpecialAbility for NoSkillTestCharacter {
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<Particle>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.burst));
         }
@@ -246,13 +246,13 @@ impl CharacterAbility for CaTestCharacter {
 }
 
 impl SpecialAbility for CaTestCharacter {
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.press));
-            particles.push(Particle::new(Pyro, 2.0));
+            particles.push_p(Particle::new(Pyro, 2.0));
         }
         if timers.ca_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.na));
@@ -349,21 +349,21 @@ impl CharacterAbility for HoldTestCharacter {
 }
 
 impl SpecialAbility for HoldTestCharacter {
-    fn update(&mut self, _guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, _time: f32) -> () {
+    fn update(&mut self, _guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, _time: f32) -> () {
         self.use_hold = false;
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.press));
-            particles.push(Particle::new(Pyro, 2.0));
+            particles.push_p(Particle::new(Pyro, 2.0));
         }
         if timers.hold_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.hold));
-            particles.push(Particle::new(Pyro, 3.0));
+            particles.push_p(Particle::new(Pyro, 3.0));
         }
         if timers.na_timer().is_active() && timers.na_timer().n() > 0 {
             if owner_fc.state.infusion {
@@ -439,13 +439,13 @@ impl CharacterAbility for DotSkillCharacter {
 }
 
 impl SpecialAbility for DotSkillCharacter {
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, owner_fc: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::new(self.vision, &self.press));
-            particles.push(Particle::new(Pyro, 1.0));
+            particles.push_p(Particle::new(Pyro, 1.0));
         }
         if timers.na_timer().is_active() {
             if owner_fc.state.infusion {
@@ -470,11 +470,11 @@ impl WeaponAbility for TestWeapon {
 pub struct TestWeaponAbility<T: WeaponAbility>(pub T);
 
 impl<T: WeaponAbility> SpecialAbility for TestWeaponAbility<T> {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.0.update(guard, timers, attack, particles, data, enemy, time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         self.0.additional_attack(atk_queue, particles, timers, data, enemy);
     }
 
@@ -609,6 +609,7 @@ impl TestEnvironment {
         let cr = self.cr.insert(ca.record());
         let wr = self.wr.insert(wa.record());
         let ar = self.ar.insert(aa.record());
+        ar.state.clear();
         ar.state.merge(&state);
         FieldCharacterData::new(&mut self.timers, ca, wa, aa, CharacterData::new(idx, cr, wr, ar))
 

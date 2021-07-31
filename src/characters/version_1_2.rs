@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B, GAUGE4C};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B, GAUGE4C};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, ElementalAbsorption, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
 use crate::testutil;
@@ -136,11 +136,11 @@ impl CharacterAbility for Albedo {
 }
 
 impl SpecialAbility for Albedo {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.burst_timer.update(guard.check_second(Burst), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::geo(&self.burst));
             atk_queue.push(ElementalAttack::geo(&self.burst_dot));
@@ -150,10 +150,10 @@ impl SpecialAbility for Albedo {
             if press.n() == 1 {
                 atk_queue.push(ElementalAttack::geo(&self.press));
                 atk_queue.push(ElementalAttack::geo(&self.press_dot));
-                particles.push(Particle::new(Geo, 0.8));
+                particles.push_p(Particle::new(Geo, 0.8));
             } else {
                 atk_queue.push(ElementalAttack::geo(&self.press_dot));
-                particles.push(Particle::new(Geo, 0.8));
+                particles.push_p(Particle::new(Geo, 0.8));
             }
         }
         let na = timers.na_timer();
@@ -262,17 +262,17 @@ impl CharacterAbility for Ganyu {
 }
 
 impl SpecialAbility for Ganyu {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.burst_timer.update(guard.check_second(Burst), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.press));
-            particles.push(Particle::new(Cryo, 2.0)); // cast and explosion
+            particles.push_p(Particle::new(Cryo, 2.0)); // cast and explosion
         }
         let ca = timers.ca_timer();
         if ca.is_active() {

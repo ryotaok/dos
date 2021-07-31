@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy, Debuff};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
 use crate::testutil;
@@ -110,7 +110,7 @@ impl CharacterAbility for Chongyun {
 }
 
 impl SpecialAbility for Chongyun {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         let skill = guard.kind == PressSkill;
         self.skill_infusion.update(guard.second(skill), time);
         let before = self.skill_timer.is_active();
@@ -119,14 +119,14 @@ impl SpecialAbility for Chongyun {
         self.skill_expire = before && !after;
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.press));
-            particles.push(Particle::new(Cryo, 4.0));
+            particles.push_p(Particle::new(Cryo, 4.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -271,11 +271,11 @@ impl CharacterAbility for Kaeya {
 }
 
 impl SpecialAbility for Kaeya {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.skill_a4 = guard.kind == PressSkill && enemy.aura.aura == Hydro;
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.burst));
@@ -283,7 +283,7 @@ impl SpecialAbility for Kaeya {
         let press = timers.press_timer();
         if press.is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.press));
-            particles.push(Particle::new(Cryo, 2.5));
+            particles.push_p(Particle::new(Cryo, 2.5));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -297,7 +297,7 @@ impl SpecialAbility for Kaeya {
             };
         }
         if self.skill_a4 {
-            particles.push(Particle::new(Cryo, 2.0));
+            particles.push_p(Particle::new(Cryo, 2.0));
         }
     }
 
@@ -416,10 +416,10 @@ impl CharacterAbility for Qiqi {
 }
 
 impl SpecialAbility for Qiqi {
-    // fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    // fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
     // }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.burst));

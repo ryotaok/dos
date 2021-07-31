@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, ElementalAbsorption, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, CDTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
 use crate::testutil;
@@ -137,7 +137,7 @@ impl CharacterAbility for Ningguang {
 }
 
 impl SpecialAbility for Ningguang {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         guard.check_second(PressSkill);
         self.skill_a4.update(guard, time);
         self.jade_screen.update(guard, time);
@@ -148,7 +148,7 @@ impl SpecialAbility for Ningguang {
         }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         if timers.burst_timer().is_active() {
             atk_queue.push(ElementalAttack::geo(&self.burst));
             if self.jade_screen.is_active() {
@@ -157,7 +157,7 @@ impl SpecialAbility for Ningguang {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::geo(&self.press));
-            particles.push(Particle::new(Geo, 3.0));
+            particles.push_p(Particle::new(Geo, 3.0));
         }
         if timers.ca_timer().is_active() {
             atk_queue.push(ElementalAttack::geo(&self.ca));
@@ -290,11 +290,11 @@ impl CharacterAbility for Noelle {
 }
 
 impl SpecialAbility for Noelle {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         self.burst_timer.update(guard.check_second(Burst), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::geo(&self.burst));
@@ -440,7 +440,7 @@ impl CharacterAbility for TravelerGeo {
 }
 
 impl SpecialAbility for TravelerGeo {
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::geo(&self.burst));
@@ -448,7 +448,7 @@ impl SpecialAbility for TravelerGeo {
         let press = timers.press_timer();
         if press.is_active() {
             atk_queue.push(ElementalAttack::geo(&self.press));
-            particles.push(Particle::new(Geo, 3.5));
+            particles.push_p(Particle::new(Geo, 3.5));
         }
         let na = timers.na_timer();
         if na.is_active() {

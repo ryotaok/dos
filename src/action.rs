@@ -289,7 +289,7 @@ impl Attack {
         let bonus = state.DMG_bonus(&self.kind, attack_element);
         let crcd = state.CRCD();
         let atk = match (fc.cr.name, self.kind) {
-            ("Sangonomiya Kokomi", AttackType::SkillDot) => state.HP(),
+            ("Kokomi (HP scale)", AttackType::SkillDot) => state.HP(),
             ("Albedo", AttackType::SkillDot) => state.DEF(),
             ("Noelle", AttackType::PressSkill) => state.DEF(),
             _ => state.ATK(),
@@ -299,10 +299,11 @@ impl Attack {
     }
 
     pub fn incoming_damage(&self, attack_element: &Vision, outgoing_damage: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
-        let def_down = 1.0 + enemy.get_def_down() / 100.0;
-        let level_multiplier = enemy.level / (enemy.level * def_down + enemy.level);
-        let dmg = outgoing_damage * self.resistance(attack_element, &enemy) * level_multiplier;
-        self.elemental_reaction(attack_element, dmg, fc, enemy)
+        let def_down = 1.0 - enemy.get_def_down() / 100.0;
+        let enemy_defense = enemy.level / (enemy.level * def_down + enemy.level);
+        let resistance = self.resistance(attack_element, &enemy);
+        let dmg = outgoing_damage * resistance * enemy_defense;
+        self.elemental_reaction(attack_element, dmg, resistance, fc, enemy)
     }
 
     fn resistance(&self, attack_element: &Vision, enemy: &Enemy) -> f32 {
@@ -323,7 +324,7 @@ impl Attack {
         (100.0 - res) / 100.0
     }
 
-    pub fn elemental_reaction(&self, attack_element: &Vision, outgoing_damage: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
+    pub fn elemental_reaction(&self, attack_element: &Vision, outgoing_damage: f32, resistance: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
         use ElementalReactionType::*;
         let mut total_dmg = 0.0;
         for _ in 0..self.hits {
@@ -335,7 +336,7 @@ impl Attack {
                     Shatter(ref er) |
                     ElectorCharged(ref er) |
                     Swirl(ref er) |
-                    Superconduct(ref er) => outgoing_damage + er.transformative_reaction(fc.state.em, fc.state.transformative_bonus),
+                    Superconduct(ref er) => outgoing_damage + resistance * er.transformative_reaction(fc.state.em, fc.state.transformative_bonus),
                     Vaporize(ref er) |
                     Melt(ref er) => outgoing_damage * er.amplifying_reaction(fc.state.em, fc.state.amplifying_bonus),
                     Crystallize(_) |
@@ -1075,6 +1076,16 @@ impl FullCharacterTimers {
         }
     }
 
+    pub fn disable_naca(&mut self) -> () {
+        self.define_na = false;
+        self.define_ca = false;
+    }
+
+    pub fn decelerate_naca(&mut self, r: f32) -> () {
+        self.na.cool_down *= r;
+        self.ca.cool_down *= r;
+    }
+
     pub fn update(&mut self, guard: &mut TimerGuard, _attack: &[ElementalAttack], fc: &CharacterData, time: f32) -> () {
         if self.define_na {
             self.na.update(guard.check_second(Na), time * (1.0 + fc.state.atk_spd / 100.0));
@@ -1357,6 +1368,16 @@ mod tests {
         timer.update(guard.second(true), 0.0);
         timer.update(guard.second(true), 0.3);
         timer.update(guard.second(true), 0.3);
+        assert_eq!(timer.is_active(), false);
+    }
+
+    #[test]
+    fn hitstimer_3() {
+        let mut timer = HitsTimer::new(0.0, 1);
+        let mut guard = TimerGuard::first_ok();
+        timer.update(guard.second(true), 0.2);
+        assert_eq!(timer.is_active(), true);
+        timer.update(guard.second(false), 0.2);
         assert_eq!(timer.is_active(), false);
     }
 

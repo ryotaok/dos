@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B, GAUGE4C};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B, GAUGE4C};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy, Debuff};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer};
 // StaminaTimer
@@ -126,12 +126,12 @@ impl CharacterAbility for Beidou {
 }
 
 impl SpecialAbility for Beidou {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let skill = guard.kind == PressSkill;
         self.skill_a4.update(guard.second(skill), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             if burst.n() == 1 {
@@ -143,7 +143,7 @@ impl SpecialAbility for Beidou {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::electro(&self.press));
-            particles.push(Particle::new(Electro, 2.0));
+            particles.push_p(Particle::new(Electro, 2.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -327,7 +327,7 @@ impl CharacterAbility for Fischl {
 }
 
 impl SpecialAbility for Fischl {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, enemy: &Enemy, time: f32) -> () {
         let electro_er = attack.iter().any(|a| enemy.trigger_er(&a.element).is_electro());
         self.oz_timer.update(guard.second(guard.kind == PressSkill), time);
         self.ca_a1_timer.update(guard.second(guard.kind == Ca), time);
@@ -337,7 +337,7 @@ impl SpecialAbility for Fischl {
         }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::electro(&self.burst));
@@ -347,10 +347,10 @@ impl SpecialAbility for Fischl {
             if press.n() == 1 {
                 atk_queue.push(ElementalAttack::electro(&self.press));
                 atk_queue.push(ElementalAttack::electro(&self.press_dot));
-                particles.push(Particle::new(Electro, 1.0));
+                particles.push_p(Particle::new(Electro, 1.0));
             } else {
                 atk_queue.push(ElementalAttack::electro(&self.press_dot));
-                particles.push(Particle::new(Electro, 1.0));
+                particles.push_p(Particle::new(Electro, 1.0));
             }
         }
         let na = timers.na_timer();
@@ -518,7 +518,7 @@ impl CharacterAbility for Lisa {
 }
 
 impl SpecialAbility for Lisa {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, _time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, _time: f32) -> () {
         if guard.kind == PressSkill {
             self.conductive_status += 1;
         }
@@ -527,14 +527,14 @@ impl SpecialAbility for Lisa {
         }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::electro(&self.burst_dot));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::electro(&self.press));
-            particles.push(Particle::new(Electro, 1.0));
+            particles.push_p(Particle::new(Electro, 1.0));
         }
         if timers.hold_timer().is_active() {
             match self.conductive_status {
@@ -544,7 +544,7 @@ impl SpecialAbility for Lisa {
                 3 => atk_queue.push(ElementalAttack::electro(&self.hold_3)),
                 _ => atk_queue.push(ElementalAttack::electro(&self.hold_3)),
             };
-            particles.push(Particle::new(Electro, 5.0));
+            particles.push_p(Particle::new(Electro, 5.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -701,7 +701,7 @@ impl CharacterAbility for Razor {
 }
 
 impl SpecialAbility for Razor {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.burst_timer.update(guard.second(guard.kind == Burst), time);
         self.burst_aa.update(guard.second(guard.kind == Na), time);
         if guard.kind == PressSkill {
@@ -712,7 +712,7 @@ impl SpecialAbility for Razor {
         }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::electro(&self.burst));
@@ -722,11 +722,11 @@ impl SpecialAbility for Razor {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::electro(&self.press));
-            particles.push(Particle::new(Electro, 4.0));
+            particles.push_p(Particle::new(Electro, 4.0));
         }
         if timers.hold_timer().is_active() {
             atk_queue.push(ElementalAttack::electro(&self.hold));
-            particles.push(Particle::new(Electro, 5.0));
+            particles.push_p(Particle::new(Electro, 5.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -747,10 +747,10 @@ impl SpecialAbility for Razor {
         }
         state.er += 20.0 * self.electro_sigil as f32;
         if timers.hold_timer().is_active() {
-            state.energy.0 += 5.0 * self.electro_sigil as f32;
+            state.energy += 5.0 * self.electro_sigil as f32;
         }
         // a4
-        if data.state.energy.0 / data.state.energy_cost <= 0.5 {
+        if data.state.energy / data.state.energy_cost <= 0.5 {
             state.er += 30.0;
         }
     }
@@ -899,12 +899,12 @@ impl CharacterAbility for Keqing {
 }
 
 impl SpecialAbility for Keqing {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.skill_timer.update(guard.second(guard.kind == PressSkill), time);
         self.burst_a4.update(guard.second(guard.kind == Burst), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::electro(&self.burst));
@@ -914,7 +914,7 @@ impl SpecialAbility for Keqing {
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::electro(&self.press_lightning_siletto));
             atk_queue.push(ElementalAttack::electro(&self.press_slashing));
-            particles.push(Particle::new(Electro, 2.5));
+            particles.push_p(Particle::new(Electro, 2.5));
         }
         let na = timers.na_timer();
         if na.is_active() {

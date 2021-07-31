@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, Particle, GAUGE1A, GAUGE2B, GAUGE4C};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B, GAUGE4C};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, ElementalAttack, ElementalAttackVector, FullCharacterTimers, CharacterTimersBuilder, StackTimer, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer};
 
@@ -89,7 +89,7 @@ impl RaidenShogun {
             press_dot: Attack {
                 kind: AttackType::SkillDot,
                 gauge: &GAUGE1A,
-                multiplier: 75.6,
+                multiplier: 75.6 * 1.0, // TODO assume to stack
                 hits: 1,
                 icd_timer: ptr::null_mut(),
                 idx,
@@ -103,7 +103,7 @@ impl RaidenShogun {
                 idx,
             },
             burst_na_1: Attack {
-                kind: AttackType::BurstDot,
+                kind: AttackType::Na,
                 gauge: &GAUGE1A,
                 multiplier: 79.82,
                 hits: 1,
@@ -111,7 +111,7 @@ impl RaidenShogun {
                 idx,
             },
             burst_na_2: Attack {
-                kind: AttackType::BurstDot,
+                kind: AttackType::Na,
                 gauge: &GAUGE1A,
                 multiplier: 78.42,
                 hits: 1,
@@ -119,7 +119,7 @@ impl RaidenShogun {
                 idx,
             },
             burst_na_3: Attack {
-                kind: AttackType::BurstDot,
+                kind: AttackType::Na,
                 gauge: &GAUGE1A,
                 multiplier: 96.02,
                 hits: 1,
@@ -127,7 +127,7 @@ impl RaidenShogun {
                 idx,
             },
             burst_na_4: Attack {
-                kind: AttackType::BurstDot,
+                kind: AttackType::Na,
                 gauge: &GAUGE1A,
                 multiplier: (55.11 + 55.26) / 2.0,
                 hits: 2,
@@ -135,7 +135,7 @@ impl RaidenShogun {
                 idx,
             },
             burst_na_5: Attack {
-                kind: AttackType::BurstDot,
+                kind: AttackType::Na,
                 gauge: &GAUGE1A,
                 multiplier: 131.92,
                 hits: 1,
@@ -172,17 +172,17 @@ impl CharacterAbility for RaidenShogun {
         self.press.icd_timer = &mut timers.skill_icd;
         self.press_dot.icd_timer = &mut timers.skill_icd;
         self.burst.icd_timer = &mut timers.burst_icd;
-        self.burst_na_1.icd_timer = &mut timers.burst_icd;
-        self.burst_na_2.icd_timer = &mut timers.burst_icd;
-        self.burst_na_3.icd_timer = &mut timers.burst_icd;
-        self.burst_na_4.icd_timer = &mut timers.burst_icd;
-        self.burst_na_5.icd_timer = &mut timers.burst_icd;
+        self.burst_na_1.icd_timer = &mut timers.na_icd;
+        self.burst_na_2.icd_timer = &mut timers.na_icd;
+        self.burst_na_3.icd_timer = &mut timers.na_icd;
+        self.burst_na_4.icd_timer = &mut timers.na_icd;
+        self.burst_na_5.icd_timer = &mut timers.na_icd;
     }
 }
 
 impl SpecialAbility for RaidenShogun {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        self.a1_timer.update(guard.second(particles.len() > 0), time);
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+        self.a1_timer.update(guard.second(particles.has_particles()), time);
         if self.a1_timer.is_active() {
             self.resolve_stack += 2.0;
         }
@@ -191,23 +191,30 @@ impl SpecialAbility for RaidenShogun {
             self.dmg_bonus = self.resolve_stack * 0.97;
             self.resolve_stack = 0.0;
         }
-        self.musou_isshin_energy.update(guard.second(self.musou_isshin.is_active() && guard.kind == Na), time);
+        // TODO should be restricted with guard.kind == Na
+        self.musou_isshin_energy.update(guard.second(self.musou_isshin.is_active()), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::electro(&self.burst));
+            // TODO wrong
+            atk_queue.push(ElementalAttack::electro(&self.burst_na_1));
+            atk_queue.push(ElementalAttack::electro(&self.burst_na_2));
+            atk_queue.push(ElementalAttack::electro(&self.burst_na_3));
+            atk_queue.push(ElementalAttack::electro(&self.burst_na_4));
+            atk_queue.push(ElementalAttack::electro(&self.burst_na_5));
         }
         let press = timers.press_timer();
         if press.is_active() {
             if press.n() == 1 {
                 atk_queue.push(ElementalAttack::electro(&self.press));
                 atk_queue.push(ElementalAttack::electro(&self.press_dot));
-                particles.push(Particle::new(Electro, 0.5));
+                particles.push_p(Particle::new(Electro, 0.5));
             } else {
                 atk_queue.push(ElementalAttack::electro(&self.press_dot));
-                particles.push(Particle::new(Electro, 0.5));
+                particles.push_p(Particle::new(Electro, 0.5));
             }
         }
         let na = timers.na_timer();
@@ -221,11 +228,10 @@ impl SpecialAbility for RaidenShogun {
                     5 => atk_queue.push(ElementalAttack::electro(&self.burst_na_5)),
                     _ => (),
                 };
-                // TODO recharge directly
                 if self.musou_isshin_energy.is_active() {
                     // a4
                     let bonus = 1.0 + 0.6 * data.state.er / 100.0;
-                    particles.push(Particle::new(Physical, 1.25 * bonus));
+                    particles.push_e(2.5 * bonus);
                 }
             } else {
                 match na.n() {
@@ -241,6 +247,10 @@ impl SpecialAbility for RaidenShogun {
     }
 
     fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
+        // TODO Eye of Stormy Judgment
+        for s in modifiable_state.iter_mut() {
+            s.burst_dmg += 25.0 + 0.25 * data.state.er;
+        }
         let state = &mut modifiable_state[data.idx.0];
         if self.musou_isshin.is_active() {
             state.infusion = true;
@@ -330,7 +340,6 @@ impl CharacterAbility for SangonomiyaKokomi {
     fn timers(&self) -> FullCharacterTimers {
         CharacterTimersBuilder::new()
             .na(LoopTimer::new(1.467, 3))
-            // TODO ca
             .press(DotTimer::new(20.0, 2.0, 6))
             .burst(DotTimer::single_hit(18.0))
             .build()
@@ -346,18 +355,18 @@ impl CharacterAbility for SangonomiyaKokomi {
 }
 
 impl SpecialAbility for SangonomiyaKokomi {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.burst_timer.update(guard.check_second(Burst), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::hydro(&self.burst));
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::hydro(&self.press));
-            particles.push(Particle::new(Hydro, 1.0));
+            particles.push_p(Particle::new(Hydro, 1.0));
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -382,6 +391,46 @@ impl SpecialAbility for SangonomiyaKokomi {
 
     fn reset(&mut self) -> () {
         self.burst_timer.reset();
+    }
+}
+
+pub struct SangonomiyaKokomiHp(SangonomiyaKokomi);
+
+impl SangonomiyaKokomiHp {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(SangonomiyaKokomi::new(idx))
+    }
+}
+
+impl CharacterAbility for SangonomiyaKokomiHp {
+    fn record(&self) -> CharacterRecord {
+        self.0.record().name("Kokomi (HP scale)")
+    }
+
+    fn timers(&self) -> FullCharacterTimers {
+        self.0.timers()
+    }
+    
+    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
+        self.0.init_attack(timers);
+    }
+}
+    
+impl SpecialAbility for SangonomiyaKokomiHp {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
+        self.0.update(guard, timers, attack, particles, data, enemy, time);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
+        self.0.additional_attack(atk_queue, particles, timers, data, enemy);
+    }
+
+    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_state, timers, data, enemy);
+    }
+
+    fn reset(&mut self) -> () {
+        self.0.reset();
     }
 }
 
@@ -507,11 +556,11 @@ impl CharacterAbility for KujouSara {
 }
 
 impl SpecialAbility for KujouSara {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         self.skill_timer.update(guard.check_second(PressSkill), time);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             if burst.n() == 1 {
@@ -523,10 +572,10 @@ impl SpecialAbility for KujouSara {
         }
         if timers.press_timer().is_active() {
             atk_queue.push(ElementalAttack::electro(&self.press));
-            particles.push(Particle::new(Electro, 2.5));
-            // a4 TODO recharge directly
+            particles.push_p(Particle::new(Electro, 2.5));
+            // a4
             let er = 100.0 + data.state.er;
-            particles.push(Particle::new(Physical, 0.012 * er / 2.0));
+            particles.push_e(0.012 * er);
         }
         let na = timers.na_timer();
         if na.is_active() {
@@ -665,7 +714,7 @@ impl CharacterAbility for Aloy {
 }
 
 impl SpecialAbility for Aloy {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[Particle], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
         let press = timers.press_timer();
         self.coil_level = if press.n() > self.coil_level {
             press.n()
@@ -680,7 +729,7 @@ impl SpecialAbility for Aloy {
         }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
         let burst = timers.burst_timer();
         if burst.is_active() {
             atk_queue.push(ElementalAttack::cryo(&self.burst));
@@ -690,10 +739,10 @@ impl SpecialAbility for Aloy {
             if press.n() == 1 {
                 atk_queue.push(ElementalAttack::cryo(&self.press));
                 atk_queue.push(ElementalAttack::cryo(&self.press_dot));
-                particles.push(Particle::new(Cryo, 1.0));
+                particles.push_p(Particle::new(Cryo, 1.0));
             } else {
                 atk_queue.push(ElementalAttack::cryo(&self.press_dot));
-                particles.push(Particle::new(Cryo, 1.0));
+                particles.push_p(Particle::new(Cryo, 1.0));
             }
         }
         let na = timers.na_timer();

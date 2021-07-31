@@ -2,7 +2,7 @@ use crate::types::AttackType;
 use crate::state::State;
 use crate::artifact::Artifact;
 use crate::action::{Attack, ElementalAttack, TimerGuard, FullCharacterTimers};
-use crate::types::{Vision, WeaponType, Particle, ElementalGauge, ElementalReaction, ElementalReactionType};
+use crate::types::{Vision, WeaponType, FieldEnergy, VecFieldEnergy, Particle, ElementalGauge, ElementalReaction, ElementalReactionType};
 
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -17,7 +17,7 @@ pub trait SpecialAbility {
     // passive effect duration are up to date. The three methods of
     // `additional_attack`, `modify` and `accelerate` will depend on the data
     // mutated by this self.
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[Particle], data: &CharacterData, enemy: &Enemy, time: f32) -> () { }
+    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () { }
 
     // `Vec::push` additional attacks created. The `atk_queue` is `Vec` because
     // some character (Eula's hold skill) deals many additional attacks of
@@ -27,7 +27,7 @@ pub trait SpecialAbility {
     // are another entities who take part in the battle. These entities
     // can also attack an enemy, so we need to know how strong their attacks
     // are, i.e. additional attack DMG (or `Attack.multiplier`).
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () { }
+    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () { }
 
     // Apply own passive effects to `State`. This is the primary method that
     // "returns" passive effects to `FieldCharacter`. For example, suppose this
@@ -91,7 +91,7 @@ pub trait ArtifactAbility : SpecialAbility {
 
     // Change speed of normal attacks or reset the cool down time of skill and
     // burst.
-    // fn accelerate(&self, ct: &mut CharacterTimers) -> () { }
+    fn accelerate(&self, timers: &mut FullCharacterTimers) -> () { }
 }
 
 // #[derive(Debug)]
@@ -128,14 +128,14 @@ impl<'a> FieldCharacter<'a> {
         self.timers.maybe_attack(&self.data, self.character)
     }
 
-    pub fn update(&mut self, guard: &mut TimerGuard, attack: &[ElementalAttack], particles: &[Particle], enemy: &Enemy, time: f32) -> () {
+    pub fn update(&mut self, guard: &mut TimerGuard, attack: &[ElementalAttack], particles: &[FieldEnergy], enemy: &Enemy, time: f32) -> () {
         self.timers.update(guard, attack, &self.data, time);
         self.character.update(guard, &self.timers, attack, particles, &self.data, enemy, time);
         self.weapon.update(guard, &self.timers, attack, particles, &self.data, enemy, time);
         self.artifact.update(guard, &self.timers, attack, particles, &self.data, enemy, time);
     }
 
-    pub fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<Particle>, enemy: &Enemy) -> () {
+    pub fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, enemy: &Enemy) -> () {
         self.character.additional_attack(atk_queue, particles, &self.timers, &self.data, enemy);
         self.weapon.additional_attack(atk_queue, particles, &self.timers, &self.data, enemy);
         self.artifact.additional_attack(atk_queue, particles, &self.timers, &self.data, enemy);
@@ -150,6 +150,7 @@ impl<'a> FieldCharacter<'a> {
     pub fn accelerate(&mut self) -> () {
         self.character.accelerate(self.timers);
         self.weapon.accelerate(self.timers);
+        self.artifact.accelerate(self.timers);
     }
 
     pub fn intensify(&self, attack: &Attack) -> (Option<State>, Option<State>, Option<State>) {
@@ -630,7 +631,7 @@ impl<'a> CharacterData<'a> {
     // }
 
     pub fn can_burst(&self) -> bool {
-        self.state.energy.0 >= self.cr.energy_cost
+        self.state.energy >= self.cr.energy_cost
     }
 
     pub fn infused_element<'b>(&'b self, attack: &'b ElementalAttack) -> &'b Vision {

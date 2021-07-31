@@ -34,6 +34,7 @@ enum ArgToken {
     ArtifactVersion,
     UnitTime,
     EmulationTime,
+    StartEnergy,
     Truncate,
     Value(String),
 }
@@ -52,6 +53,7 @@ pub struct Args {
     pub artifact_version: f32,
     pub unit_time: f32,
     pub simulation_time: f32,
+    pub start_energy: i32,
     pub truncate: bool,
 }
 
@@ -64,6 +66,7 @@ impl Default for Args {
             artifact_version: 2.0,
             unit_time: 0.2,
             simulation_time: 20.0,
+            start_energy: -1,
             truncate: false,
         }
     }
@@ -103,6 +106,7 @@ impl Args {
                 "--artifact_version" => kv.push((ArtifactVersion, Help)),
                 "--unit_time" => kv.push((UnitTime, Help)),
                 "--simulation_time" => kv.push((EmulationTime, Help)),
+                "--start_energy" => kv.push((StartEnergy, Help)),
                 "--truncate" => kv.push((Truncate, Help)),
                 _ => if let Some((_k, v)) = kv.last_mut() {
                     *v = Value(a);
@@ -117,7 +121,6 @@ impl Args {
 
 Usage:
     dos simulate [--n_members N] [--character_version N] [--weapon_version N] [--artifact_version N]
-                 [--unit_time N] [--simulation_time N] [--truncate]
 
 Options:
     --n_members N         : Number of field members [default: 1]
@@ -125,7 +128,8 @@ Options:
     --weapon_version N    : weapons up to the version will be simulated [default: 1.6]
     --artifact_version N  : artifacts up to the version will be simulated [default: 1.6]
     --unit_time N         : frequency of character actions [default: 0.2]
-    --simulation_time N    : end the simulation at N seconds [default: 20.0]
+    --simulation_time N   : end the simulation at N seconds [default: 20.0]
+    --start_energy N      : amount of energy given to characters at the beginning of the simulation. Negative values mean full energy [default: -1]
     --truncate            : remove some results from outputs when field members are greater than 2 [default: false]");
                     process::exit(0);
                 },
@@ -135,6 +139,7 @@ Options:
                 (ArtifactVersion, Value(v)) => args.artifact_version = v.parse()?,
                 (UnitTime, Value(v)) => args.unit_time = v.parse()?,
                 (EmulationTime, Value(v)) => args.simulation_time = v.parse()?,
+                (StartEnergy, Value(v)) => args.start_energy = v.parse()?,
                 (Truncate, _) => args.truncate = true,
                 _ => return Err(Box::new(MyError::new("arguments were not recognized."))),
             }

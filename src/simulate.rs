@@ -1,6 +1,6 @@
 use crate::state::State;
 use crate::fc::{CharacterData, Enemy, FieldCharacterData};
-use crate::types::{AttackType, Particle};
+use crate::types::{AttackType, FieldEnergy};
 use crate::action::{ElementalAttack, AttackEvent, TimerGuard};
 
 use AttackType::*;
@@ -11,7 +11,7 @@ use AttackType::*;
 //         than the 0 member's. They never do normal attacks or charge attacks.
 pub fn simulate(members: &mut [FieldCharacterData], enemy: &mut Enemy, time: f32) -> f32 {
     // TODO cache it
-    let mut particles: Vec<Particle> = Vec::new();
+    let mut field_energy: Vec<FieldEnergy> = Vec::new();
     let mut maybe_attack: Vec<Option<AttackEvent>> = Vec::with_capacity(members.len());
     // perform an attack
     for i in (0..members.len()).rev() {
@@ -36,7 +36,7 @@ pub fn simulate(members: &mut [FieldCharacterData], enemy: &mut Enemy, time: f32
     // println!("{:?}", attack_event);
     // collect attacks
     for FieldCharacterData { fc, atk_queue } in members.iter_mut() {
-        fc.additional_attack(atk_queue, &mut particles, &enemy);
+        fc.additional_attack(atk_queue, &mut field_energy, &enemy);
     }
     // update to the on-field attack
     let mut modifiable_state: Vec<State> = Vec::with_capacity(members.len());
@@ -50,7 +50,7 @@ pub fn simulate(members: &mut [FieldCharacterData], enemy: &mut Enemy, time: f32
         fc.modify(&mut modifiable_state, enemy);
         fc.accelerate();
         let mut guard = TimerGuard::with_first_2(&attack_event, &fc.data);
-        fc.update(&mut guard, &atk_queue, &particles, &enemy, time);
+        fc.update(&mut guard, &atk_queue, &field_energy, &enemy, time);
         // weapon.accelerate(character.timer_mut());
         // artifact.accelerate(character.timer_mut());
     }
@@ -58,24 +58,30 @@ pub fn simulate(members: &mut [FieldCharacterData], enemy: &mut Enemy, time: f32
     for (mut new_state, FieldCharacterData { fc, .. }) in modifiable_state.into_iter().zip(members.iter_mut()) {
         if attack_event.kind == Burst && attack_event.idx == fc.data.idx {
             // consume energy on burst
-            new_state.energy.0 -= fc.data.cr.energy_cost;
+            new_state.energy -= fc.data.cr.energy_cost;
         }
         // attacker is on field
         if fc.data.idx.0 == 0 {
-            // since particles need to be distributed to all members, we cannot
+            // since field_energy need to be distributed to all members, we cannot
             // `drain` them.
-            for p in particles.iter() {
-                new_state.energy.0 += p.on_field_energy(&fc.data.vision);
+            for fe in field_energy.iter() {
+                match fe {
+                    FieldEnergy::Particle(ref p) => new_state.energy += p.on_field_energy(&fc.data.vision) * fc.data.state.ER(),
+                    FieldEnergy::Energy(e) => new_state.energy += e * fc.data.state.ER(),
+                }
             }
         } else {
-            for p in particles.iter() {
-                new_state.energy.0 += p.off_field_energy(&fc.data.vision);
+            for fe in field_energy.iter() {
+                match fe {
+                    FieldEnergy::Particle(ref p) => new_state.energy += p.off_field_energy(&fc.data.vision) * fc.data.state.ER(),
+                    FieldEnergy::Energy(e) => new_state.energy += e * fc.data.state.ER(),
+                }
             }
         }
         new_state.merge(&fc.data.cr.state());
         new_state.merge(&fc.data.wr.state());
         new_state.merge(&fc.data.ar.state);
-        new_state.energy.0 += fc.data.state.energy.0;
+        new_state.energy += fc.data.state.energy;
         fc.data.state = new_state;
     }
     // calculate damages
@@ -104,8 +110,8 @@ pub fn simulate(members: &mut [FieldCharacterData], enemy: &mut Enemy, time: f32
         };
         total_dmg += calculate(&attack, state, &fc.data, enemy);
     }
-    // remove all particles
-    particles.clear();
+    // remove all field_energy
+    field_energy.clear();
     enemy.update(time);
     total_dmg
 }
@@ -117,7 +123,7 @@ pub fn calculate(attack: &ElementalAttack, state: Option<State>, fc: &CharacterD
     let mut dmg = attack.outgoing_damage(attack_element, state, fc);
     dmg = attack.incoming_damage(attack_element, dmg, fc, enemy);
     // let atk = unsafe { &(*attack.atk) };
-    // // println!("  dmg = {:?}: {:?}({:?})", dmg, &atk.kind, atk.idx.0);
+    // println!("  dmg = {:?}: {:?}({:?})", dmg, &atk.kind, atk.idx.0);
     // println!("  dmg = {:?}: {:?}({:?}) {:?}", dmg, &atk.kind, atk.idx.0, fc.state.energy);
     // println!("{:?}\t{:?}", dmg, &atk.kind);
     dmg
@@ -196,7 +202,7 @@ mod tests {
             _total_dmg += simulate(&mut members, &mut enemy, 0.2);
         }
         // hold na na skill na
-        let energy = members[0].fc.data.state.energy.0;
+        let energy = members[0].fc.data.state.energy;
         assert_eq!(energy, 15.0);
     }
 
@@ -213,7 +219,7 @@ mod tests {
         }
         // dot (3 * 50), 4 na
         let expect = 150.0 + 4.0 * 100.0;
-        let energy = members[0].fc.data.state.energy.0;
+        let energy = members[0].fc.data.state.energy;
         assert_eq!(total_dmg, 0.5 * expect);
         assert_eq!(energy, 9.0);
     }
@@ -226,7 +232,7 @@ mod tests {
         ];
         let mut enemy = TestEnvironment::enemy();
         let mut total_dmg = 0.0;
-        members[0].fc.data.state.energy.0 = members[0].fc.data.cr.energy_cost;
+        members[0].fc.data.state.energy = members[0].fc.data.cr.energy_cost;
         for _ in 0..10 {
             total_dmg += simulate(&mut members, &mut enemy, 0.2);
         }
@@ -243,11 +249,11 @@ mod tests {
         ];
         let mut enemy = TestEnvironment::enemy();
         let mut _total_dmg = 0.0;
-        members[0].fc.data.state.energy.0 = members[0].fc.data.cr.energy_cost;
+        members[0].fc.data.state.energy = members[0].fc.data.cr.energy_cost;
         for _ in 0..10 {
             _total_dmg += simulate(&mut members, &mut enemy, 0.2);
         }
-        let energy = members[0].fc.data.state.energy.0;
+        let energy = members[0].fc.data.state.energy;
         // the skill was used once.
         assert_eq!(energy, 6.0);
     }
