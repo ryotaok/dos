@@ -13,7 +13,7 @@ pub mod version_1_6;
 pub mod version_2_0;
 pub mod version_2_1;
 
-use crate::fc::{FieldCharacterIndex, CharacterRecord, CharacterAbility};
+use crate::fc::{FieldCharacterIndex, CharacterRecord, SpecialAbility, FieldAbilityBuilder};
 use pyro::*;
 use hydro::*;
 use electro::*;
@@ -28,11 +28,6 @@ use version_1_5::*;
 use version_1_6::*;
 use version_2_0::*;
 use version_2_1::*;
-
-fn field<T: CharacterAbility>(ca: T) -> (CharacterRecord, T) {
-    let a = ca.record();
-    (a, ca)
-}
 
 pub struct AllCharacters {
     // pyro
@@ -89,7 +84,6 @@ pub struct AllCharacters {
     // version_2_1
     raidenshogun: (CharacterRecord, RaidenShogun),
     sangonomiyakokomi: (CharacterRecord, SangonomiyaKokomi),
-    sangonomiyakokomihp: (CharacterRecord, SangonomiyaKokomiHp),
     kujousara: (CharacterRecord, KujouSara),
     aloy: (CharacterRecord, Aloy),
 }
@@ -98,126 +92,124 @@ impl AllCharacters {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
             // pyro
-            amber: field(Amber::new(idx)),
-            bennett: field(Bennett::new(idx)),
-            xiangling: field(Xiangling::new(idx)),
-            diluc: field(Diluc::new(idx)),
-            klee: field(Klee::new(idx)),
+            amber: (Amber::record(), Amber::new(idx)),
+            bennett: (Bennett::record(), Bennett::new(idx)),
+            xiangling: (Xiangling::record(), Xiangling::new(idx)),
+            diluc: (Diluc::record(), Diluc::new(idx)),
+            klee: (Klee::record(), Klee::new(idx)),
             // hydro
-            barbara: field(Barbara::new(idx)),
-            xingqiu: field(Xingqiu::new(idx)),
-            mona: field(Mona::new(idx)),
+            barbara: (Barbara::record(), Barbara::new(idx)),
+            xingqiu: (Xingqiu::record(), Xingqiu::new(idx)),
+            mona: (Mona::record(), Mona::new(idx)),
             // electro
-            beidou: field(Beidou::new(idx)),
-            fischl: field(Fischl::new(idx)),
-            lisa: field(Lisa::new(idx)),
-            razor: field(Razor::new(idx)),
-            keqing: field(Keqing::new(idx)),
+            beidou: (Beidou::record(), Beidou::new(idx)),
+            fischl: (Fischl::record(), Fischl::new(idx)),
+            lisa: (Lisa::record(), Lisa::new(idx)),
+            razor: (Razor::record(), Razor::new(idx)),
+            keqing: (Keqing::record(), Keqing::new(idx)),
             // cryo
-            chongyun: field(Chongyun::new(idx)),
-            kaeya: field(Kaeya::new(idx)),
-            qiqi: field(Qiqi::new(idx)),
+            chongyun: (Chongyun::record(), Chongyun::new(idx)),
+            kaeya: (Kaeya::record(), Kaeya::new(idx)),
+            qiqi: (Qiqi::record(), Qiqi::new(idx)),
             // anemo
-            sucrose: field(Sucrose::new(idx)),
-            traveleranemo: field(TravelerAnemo::new(idx)),
-            jean: field(Jean::new(idx)),
-            venti: field(Venti::new(idx)),
+            sucrose: (Sucrose::record(), Sucrose::new(idx)),
+            traveleranemo: (TravelerAnemo::record(), TravelerAnemo::new(idx)),
+            jean: (Jean::record(), Jean::new(idx)),
+            venti: (Venti::record(), Venti::new(idx)),
             // geo
-            ningguang: field(Ningguang::new(idx)),
-            noelle: field(Noelle::new(idx)),
-            travelergeo: field(TravelerGeo::new(idx)),
+            ningguang: (Ningguang::record(), Ningguang::new(idx)),
+            noelle: (Noelle::record(), Noelle::new(idx)),
+            travelergeo: (TravelerGeo::record(), TravelerGeo::new(idx)),
             // version_1_1
-            tartaglia: field(Tartaglia::new(idx)),
-            diona: field(Diona::new(idx)),
-            zhongli: field(Zhongli::new(idx)),
-            xinyan: field(Xinyan::new(idx)),
+            tartaglia: (Tartaglia::record(), Tartaglia::new(idx)),
+            diona: (Diona::record(), Diona::new(idx)),
+            zhongli: (Zhongli::record(), Zhongli::new(idx)),
+            xinyan: (Xinyan::record(), Xinyan::new(idx)),
             // version_1_2
-            albedo: field(Albedo::new(idx)),
-            ganyu: field(Ganyu::new(idx)),
+            albedo: (Albedo::record(), Albedo::new(idx)),
+            ganyu: (Ganyu::record(), Ganyu::new(idx)),
             // version_1_3
-            xiao: field(Xiao::new(idx)),
-            hutao: field(HuTao::new(idx)),
+            xiao: (Xiao::record(), Xiao::new(idx)),
+            hutao: (HuTao::record(), HuTao::new(idx)),
             // version_1_4
-            rosaria: field(Rosaria::new(idx)),
+            rosaria: (Rosaria::record(), Rosaria::new(idx)),
             // version_1_5
-            yanfei: field(Yanfei::new(idx)),
-            eula: field(Eula::new(idx)),
+            yanfei: (Yanfei::record(), Yanfei::new(idx)),
+            eula: (Eula::record(), Eula::new(idx)),
             // version_1_6
-            kazuha: field(Kazuha::new(idx)),
+            kazuha: (Kazuha::record(), Kazuha::new(idx)),
             // version_2_0
-            ayaka: field(Ayaka::new(idx)),
-            yoimiya: field(Yoimiya::new(idx)),
-            sayu: field(Sayu::new(idx)),
+            ayaka: (Ayaka::record(), Ayaka::new(idx)),
+            yoimiya: (Yoimiya::record(), Yoimiya::new(idx)),
+            sayu: (Sayu::record(), Sayu::new(idx)),
             // version_2_1
-            raidenshogun: field(RaidenShogun::new(idx)),
-            sangonomiyakokomi: field(SangonomiyaKokomi::new(idx)),
-            sangonomiyakokomihp: field(SangonomiyaKokomiHp::new(idx)),
-            kujousara: field(KujouSara::new(idx)),
-            aloy: field(Aloy::new(idx)),
+            raidenshogun: (RaidenShogun::record(), RaidenShogun::new(idx)),
+            sangonomiyakokomi: (SangonomiyaKokomi::record(), SangonomiyaKokomi::new(idx)),
+            kujousara: (KujouSara::record(), KujouSara::new(idx)),
+            aloy: (Aloy::record(), Aloy::new(idx)),
         }
     }
 
     // #![feature(unsized_tuple_coercion)]
-    pub fn find<'a>(&'a mut self, name: &CharacterName) -> &'a mut (CharacterRecord, dyn CharacterAbility) {
+    pub fn find<'a>(&'a mut self, name: &CharacterName, builder: &mut FieldAbilityBuilder) -> &'a mut (CharacterRecord, dyn SpecialAbility + 'a) {
         use CharacterName::*;
         match name {
             // pyro
-            Amber => &mut self.amber,
-            Bennett => &mut self.bennett,
-            Xiangling => &mut self.xiangling,
-            Diluc => &mut self.diluc,
-            Klee => &mut self.klee,
+            Amber => { self.amber.1.build(builder); &mut self.amber },
+            Bennett => { self.bennett.1.build(builder); &mut self.bennett },
+            Xiangling => { self.xiangling.1.build(builder); &mut self.xiangling },
+            Diluc => { self.diluc.1.build(builder); &mut self.diluc },
+            Klee => { self.klee.1.build(builder); &mut self.klee },
             // hydro
-            Barbara => &mut self.barbara,
-            Xingqiu => &mut self.xingqiu,
-            Mona => &mut self.mona,
+            Barbara => { self.barbara.1.build(builder); &mut self.barbara },
+            Xingqiu => { self.xingqiu.1.build(builder); &mut self.xingqiu },
+            Mona => { self.mona.1.build(builder); &mut self.mona },
             // electro
-            Beidou => &mut self.beidou,
-            Fischl => &mut self.fischl,
-            Lisa => &mut self.lisa,
-            Razor => &mut self.razor,
-            Keqing => &mut self.keqing,
+            Beidou => { self.beidou.1.build(builder); &mut self.beidou },
+            Fischl => { self.fischl.1.build(builder); &mut self.fischl },
+            Lisa => { self.lisa.1.build(builder); &mut self.lisa },
+            Razor => { self.razor.1.build(builder); &mut self.razor },
+            Keqing => { self.keqing.1.build(builder); &mut self.keqing },
             // cryo
-            Chongyun => &mut self.chongyun,
-            Kaeya => &mut self.kaeya,
-            Qiqi => &mut self.qiqi,
+            Chongyun => { self.chongyun.1.build(builder); &mut self.chongyun },
+            Kaeya => { self.kaeya.1.build(builder); &mut self.kaeya },
+            Qiqi => { self.qiqi.1.build(builder); &mut self.qiqi },
             // anemo
-            Sucrose => &mut self.sucrose,
-            TravelerAnemo => &mut self.traveleranemo,
-            Jean => &mut self.jean,
-            Venti => &mut self.venti,
+            Sucrose => { self.sucrose.1.build(builder); &mut self.sucrose },
+            TravelerAnemo => { self.traveleranemo.1.build(builder); &mut self.traveleranemo },
+            Jean => { self.jean.1.build(builder); &mut self.jean },
+            Venti => { self.venti.1.build(builder); &mut self.venti },
             // geo
-            Ningguang => &mut self.ningguang,
-            Noelle => &mut self.noelle,
-            TravelerGeo => &mut self.travelergeo,
+            Ningguang => { self.ningguang.1.build(builder); &mut self.ningguang },
+            Noelle => { self.noelle.1.build(builder); &mut self.noelle },
+            TravelerGeo => { self.travelergeo.1.build(builder); &mut self.travelergeo },
             // version_1_1
-            Tartaglia => &mut self.tartaglia,
-            Diona => &mut self.diona,
-            Zhongli => &mut self.zhongli,
-            Xinyan => &mut self.xinyan,
+            Tartaglia => { self.tartaglia.1.build(builder); &mut self.tartaglia },
+            Diona => { self.diona.1.build(builder); &mut self.diona },
+            Zhongli => { self.zhongli.1.build(builder); &mut self.zhongli },
+            Xinyan => { self.xinyan.1.build(builder); &mut self.xinyan },
             // version_1_2
-            Albedo => &mut self.albedo,
-            Ganyu => &mut self.ganyu,
+            Albedo => { self.albedo.1.build(builder); &mut self.albedo },
+            Ganyu => { self.ganyu.1.build(builder); &mut self.ganyu },
             // version_1_3
-            Xiao => &mut self.xiao,
-            HuTao => &mut self.hutao,
+            Xiao => { self.xiao.1.build(builder); &mut self.xiao },
+            HuTao => { self.hutao.1.build(builder); &mut self.hutao },
             // version_1_4
-            Rosaria => &mut self.rosaria,
+            Rosaria => { self.rosaria.1.build(builder); &mut self.rosaria },
             // version_1_5
-            Yanfei => &mut self.yanfei,
-            Eula => &mut self.eula,
+            Yanfei => { self.yanfei.1.build(builder); &mut self.yanfei },
+            Eula => { self.eula.1.build(builder); &mut self.eula },
             // version_1_6
-            Kazuha => &mut self.kazuha,
+            Kazuha => { self.kazuha.1.build(builder); &mut self.kazuha },
             // version_2_0
-            Ayaka => &mut self.ayaka,
-            Yoimiya => &mut self.yoimiya,
-            Sayu => &mut self.sayu,
+            Ayaka => { self.ayaka.1.build(builder); &mut self.ayaka },
+            Yoimiya => { self.yoimiya.1.build(builder); &mut self.yoimiya },
+            Sayu => { self.sayu.1.build(builder); &mut self.sayu },
             // version_2_1
-            RaidenShogun => &mut self.raidenshogun,
-            SangonomiyaKokomi => &mut self.sangonomiyakokomi,
-            SangonomiyaKokomiHp => &mut self.sangonomiyakokomihp,
-            KujouSara => &mut self.kujousara,
-            Aloy => &mut self.aloy,
+            RaidenShogun => { self.raidenshogun.1.build(builder); &mut self.raidenshogun },
+            SangonomiyaKokomi => { self.sangonomiyakokomi.1.build(builder); &mut self.sangonomiyakokomi },
+            KujouSara => { self.kujousara.1.build(builder); &mut self.kujousara },
+            Aloy => { self.aloy.1.build(builder); &mut self.aloy },
         }
     }
 }
@@ -278,7 +270,6 @@ pub enum CharacterName {
     // version_2_1
     RaidenShogun,
     SangonomiyaKokomi,
-    SangonomiyaKokomiHp,
     KujouSara,
     Aloy,
 }
@@ -341,7 +332,6 @@ impl CharacterName {
     // version_2_1
     RaidenShogun,
     SangonomiyaKokomi,
-    SangonomiyaKokomiHp,
     KujouSara,
     Aloy,
         ]
@@ -443,26 +433,12 @@ impl<'a> From<&'a str> for CharacterName {
             // version_2_1
             "RaidenShogun" => RaidenShogun,
             "SangonomiyaKokomi" => SangonomiyaKokomi,
-            "SangonomiyaKokomiHp" => SangonomiyaKokomiHp,
             "KujouSara" => KujouSara,
             "Aloy" => Aloy,
             _ => unimplemented!(),
         }
     }
 }
-
-// pub fn setup(args: &Args) -> Vec<(CharacterRecord, Vision, Box<dyn SpecialAbility>)> {
-//     let all = all();
-//     let mut result: Vec<(CharacterRecord, Vision, Box<dyn SpecialAbility>)> = Vec::with_capacity(all.len());
-//     for ca in all {
-//         let r = ca.character();
-//         if r.version <= args.character_version {
-//             let vision = Vision::from(&r.vision);
-//             result.push((r, vision, ca));
-//         }
-//     }
-//     result
-// }
 
 // #[cfg(test)]
 // mod tests {

@@ -1,5 +1,6 @@
 // #![feature(destructuring_assignment)]
 #![feature(unsized_tuple_coercion)]
+#![allow(dead_code, unused)]
 
 use std::error::Error;
 use std::env;
@@ -29,9 +30,9 @@ use crate::state::State;
 use crate::characters::{AllCharacters, CharacterName};
 use crate::weapons::{AllWeapons, WeaponName};
 use crate::artifact::{Artifact, AllArtifacts, ArtifactName};
-use crate::action::{CharacterTimersBuilder};
-use crate::fc::{FieldCharacterIndex, CharacterRecord, WeaponRecord, CharacterData, Enemy, FieldCharacterData};
-use crate::types::{Vision, Preference};
+use crate::action::{Attack, ICDTimers};
+use crate::fc::{FieldCharacterIndex, FieldAbility, FieldAbilityBuilder, CharacterRecord, WeaponRecord, CharacterData, Enemy};
+use crate::types::{Vision, Preference, FieldEnergy};
 use crate::permutools::Permutation3;
 use crate::cli::Args;
 
@@ -75,7 +76,7 @@ impl NewRecorder<Vec<&'static str>> for Recorder {
 impl NewRecorder<&CharacterData<'_>> for Recorder {
     fn new(item: &CharacterData) -> Self {
         Self {
-            head: vec![item.cr.name, item.wr.name, item.ar.name],
+            head: vec![item.character.name, item.weapon.name, item.artifact.name],
             data: Vec::new()
         }
     }
@@ -116,51 +117,59 @@ fn near_eq(a: f32, b: f32) -> bool {
     diff <= 0.001
 }
 
-fn main_loop(members: &mut [FieldCharacterData], args: &Args) -> Recorder {
+fn main_loop(members: &mut [CharacterData], abilities: &mut [FieldAbility], args: &Args) -> Recorder {
+    let mut enemy = Enemy::hilichurl();
+    let mut state: Vec<State> = Vec::new();
+    let mut atk_queue: Vec<*const Attack> = Vec::new();
+    let mut field_energy: Vec<FieldEnergy> = Vec::new();
+    for i in 0..members.len() {
+        state.push(State::new());
+        members[i].init(&mut state[i]);
+    }
+    // println!("{:?}", state[0]);
+    // setup for Emulator
     let mut head: Vec<&str> = Vec::new();
     for m in members.iter() {
-        head.push(m.fc.data.cr.name);
-        head.push(m.fc.data.wr.name);
-        head.push(m.fc.data.ar.name);
+        head.push(m.character.name);
+        head.push(m.weapon.name);
+        head.push(m.artifact.name);
     }
     let mut rc = Recorder::new(head);
-    let mut enemy = Enemy::hilichurl();
-    // setup for Emulator
     let mut current_time = 0.0;
     let mut total_dmg = 0.0;
-    // accumulate passives of weapons and artifacts at the 0 second.
-    {
-        let mut modifiable_state: Vec<State> = Vec::with_capacity(members.len());
-        for _ in 0..members.len() {
-            modifiable_state.push(State::new());
-        }
-        for FieldCharacterData { fc, .. } in members.iter_mut() {
-            fc.modify(&mut modifiable_state, &mut enemy);
-        }
-        for (state, FieldCharacterData { fc, .. }) in modifiable_state.into_iter().zip(members.iter_mut()) {
-            fc.data.state.merge(&state);
-        }
-    }
+    // // accumulate passives of weapons and artifacts at the 0 second.
+    // {
+    //     let mut modifiable_state: Vec<State> = Vec::with_capacity(members.len());
+    //     for _ in 0..members.len() {
+    //         modifiable_state.push(State::new());
+    //     }
+    //     for FieldCharacterData { fc, .. } in members.iter_mut() {
+    //         fc.modify(&mut modifiable_state, &mut enemy);
+    //     }
+    //     for (state, FieldCharacterData { fc, .. }) in modifiable_state.into_iter().zip(members.iter_mut()) {
+    //         fc.data.state.merge(&state);
+    //     }
+    // }
     while current_time < args.simulation_time {
         if current_time == 0.0 {
             if args.start_energy < 0 {
                 for m in members.iter_mut() {
-                    m.fc.data.state.energy = m.fc.data.state.energy_cost;
+                    state[m.idx.0].energy = m.character.energy_cost;
                 }
             } else {
                 let e = args.start_energy as f32;
                 for m in members.iter_mut() {
-                    m.fc.data.state.energy = e;
+                    state[m.idx.0].energy = e;
                 }
             }
         }
         if near_eq(current_time, 5.0) || near_eq(current_time, 15.0) {
         // if near_eq(current_time, 5.0) {
             for m in members.iter_mut() {
-                m.fc.data.state.energy += 10.0 * m.fc.data.state.ER();
+                state[m.idx.0].energy += 10.0 * state[m.idx.0].ER();
             }
         }
-        total_dmg += simulate::simulate(members, &mut enemy, args.unit_time);
+        total_dmg += simulate::simulate(args.unit_time, members, &mut state, abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         current_time += args.unit_time;
         rc.record(current_time, total_dmg);
     }
@@ -220,7 +229,7 @@ fn combination_filter_supporter(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Ar
     } else {
         false
     };
-    for p in &ar.preference {
+    for p in ar.preference {
         if *p == cr.vision
         || *p == cr.weapon
         || *p == Preference::Supporter {
@@ -234,14 +243,14 @@ fn combination_filter_supporter(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Ar
 
 #[cfg(test)]
 mod tests {
-    use crate::fc::{CharacterAbility, WeaponAbility, ArtifactAbility};
+    use crate::fc::{SpecialAbility};
     use super::*;
 
     #[test]
     fn filter_1() {
-        let c = characters::pyro::Diluc::new(FieldCharacterIndex(0)).record();
-        let w = weapons::claymore_4star::RainslasherR5.record();
-        let a = artifact::ViridescentVenerer.record();
+        let c = characters::pyro::Diluc::record();
+        let w = weapons::claymore_4star::RainslasherR5::record();
+        let a = artifact::ViridescentVenerer::record();
         let args = Args::default();
         assert!(!combination_filter_attacker(&c, &w, &a, &args));
         assert!(!combination_filter_supporter(&c, &w, &a, &args));
@@ -249,9 +258,9 @@ mod tests {
 
     #[test]
     fn filter_2() {
-        let c = characters::pyro::Diluc::new(FieldCharacterIndex(0)).record();
-        let w = weapons::claymore_4star::RainslasherR5.record();
-        let a = artifact::GladiatorsFinale::new().record();
+        let c = characters::pyro::Diluc::record();
+        let w = weapons::claymore_4star::RainslasherR5::record();
+        let a = artifact::GladiatorsFinale::record();
         let args = Args::default();
         assert!(combination_filter_attacker(&c, &w, &a, &args));
         assert!(combination_filter_supporter(&c, &w, &a, &args));
@@ -259,9 +268,9 @@ mod tests {
 
     #[test]
     fn filter_3() {
-        let c = characters::electro::Razor::new(FieldCharacterIndex(0)).record();
-        let w = weapons::claymore_4star::RainslasherR5.record();
-        let a = artifact::PaleFlame::new().record();
+        let c = characters::electro::Razor::record();
+        let w = weapons::claymore_4star::RainslasherR5::record();
+        let a = artifact::PaleFlame::record();
         let args = Args::default();
         assert!(combination_filter_attacker(&c, &w, &a, &args));
         // assert!(combination_filter_supporter(&c, &w, &a, &args));
@@ -269,9 +278,9 @@ mod tests {
 
     #[test]
     fn filter_4() {
-        let c = characters::electro::Razor::new(FieldCharacterIndex(0)).record();
-        let w = weapons::claymore_4star::RainslasherR5.record();
-        let a = artifact::ThunderingFury::new().record();
+        let c = characters::electro::Razor::record();
+        let w = weapons::claymore_4star::RainslasherR5::record();
+        let a = artifact::ThunderingFury::record();
         let args = Args::default();
         assert!(combination_filter_attacker(&c, &w, &a, &args));
         assert!(combination_filter_supporter(&c, &w, &a, &args));
@@ -279,9 +288,9 @@ mod tests {
 
     #[test]
     fn filter_5() {
-        let c = characters::hydro::Xingqiu::new(FieldCharacterIndex(0)).record();
-        let w = weapons::sword_4star::PrototypeRancourR5::new().record();
-        let a = artifact::BlizzardStrayer.record();
+        let c = characters::hydro::Xingqiu::record();
+        let w = weapons::sword_4star::PrototypeRancourR5::record();
+        let a = artifact::BlizzardStrayer::record();
         let args = Args::default();
         assert!(combination_filter_attacker(&c, &w, &a, &args));
         assert!(combination_filter_supporter(&c, &w, &a, &args));
@@ -289,9 +298,9 @@ mod tests {
 
     #[test]
     fn filter_6() {
-        let c = characters::cryo::Kaeya::new(FieldCharacterIndex(0)).record();
-        let w = weapons::sword_4star::PrototypeRancourR5::new().record();
-        let a = artifact::BlizzardStrayer.record();
+        let c = characters::cryo::Kaeya::record();
+        let w = weapons::sword_4star::PrototypeRancourR5::record();
+        let a = artifact::BlizzardStrayer::record();
         let args = Args::default();
         assert!(combination_filter_attacker(&c, &w, &a, &args));
         assert!(combination_filter_supporter(&c, &w, &a, &args));
@@ -301,15 +310,15 @@ mod tests {
 fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
     let idx0 = FieldCharacterIndex(0);
     let idx1 = FieldCharacterIndex(1);
-    let mut timers0 = Box::new(CharacterTimersBuilder::new().build());
-    let mut timers1 = Box::new(CharacterTimersBuilder::new().build());
+    let mut timers0 = Box::new(ICDTimers::new());
+    let mut timers1 = Box::new(ICDTimers::new());
     let mut characters1 = AllCharacters::new(idx0);
     let mut characters2 = AllCharacters::new(idx1);
     let mut weapons1 = AllWeapons::new(idx0);
     let mut weapons2 = AllWeapons::new(idx1);
     let mut artifacts1 = AllArtifacts::new();
     let mut artifacts2 = AllArtifacts::new();
-    let input_characters: Vec<CharacterName> = CharacterName::vec().drain(start..end).collect();
+    let input_characters: Vec<CharacterName> = CharacterName::cryo().drain(start..end).collect();
     // TODO
     let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
 
@@ -319,14 +328,15 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         ArtifactName::vec(),
     );
     let mut member2 = Permutation3::new(
-        CharacterName::vec(),
+        CharacterName::electro(),
         WeaponName::vec(),
         ArtifactName::vec(),
     );
     for (character_name1, weapon_name1, artifact_name1) in member1.iter() {
-        let (cr1, ca1) = characters1.find(&character_name1);
-        let (wr1, wa1) = weapons1.find(&weapon_name1);
-        let (ar1, aa1) = artifacts1.find(&artifact_name1);
+        let mut builder1 = FieldAbilityBuilder::new();
+        let (cr1, ca1) = characters1.find(&character_name1, &mut builder1);
+        let (wr1, wa1) = weapons1.find(&weapon_name1, &mut builder1);
+        let (ar1, aa1) = artifacts1.find(&artifact_name1, &mut builder1);
         if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
             member1.back((character_name1, weapon_name1, artifact_name1));
             continue;
@@ -339,9 +349,12 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
 
         let mut items: Vec<Recorder> = Vec::new();
         for (character_name2, weapon_name2, artifact_name2) in member2.iter() {
-            let (cr2, ca2) = characters2.find(&character_name2);
-            let (wr2, wa2) = weapons2.find(&weapon_name2);
-            let (ar2, aa2) = artifacts2.find(&artifact_name2);
+            let mut builder2 = FieldAbilityBuilder::new();
+            let mut members: Vec<CharacterData> = Vec::with_capacity(2);
+            let mut abilities: Vec<FieldAbility> = Vec::with_capacity(2);
+            let (cr2, ca2) = characters2.find(&character_name2, &mut builder2);
+            let (wr2, wa2) = weapons2.find(&weapon_name2, &mut builder2);
+            let (ar2, aa2) = artifacts2.find(&artifact_name2, &mut builder2);
             // identical characters cannot be on the same field.
             if cr1.name == cr2.name ||
                !combination_filter_supporter(&cr2, &wr2, &ar2, args) {
@@ -353,19 +366,19 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
             } else {
                 ar2.infuse_goblet(&cr2.vision);
             }
-            let mut members = vec![
-                FieldCharacterData::new(&mut timers0, ca1, wa1, aa1, CharacterData::new(idx0, &cr1, &wr1, &ar1)),
-                FieldCharacterData::new(&mut timers1, ca2, wa2, aa2, CharacterData::new(idx1, &cr2, &wr2, &ar2)),
-            ];
-            // members[1].fc.timers.decelerate_naca(4.0);
-            members[1].fc.timers.disable_naca();
-            let rc = main_loop(&mut members, args);
+            members.push(CharacterData::new(idx0, &cr1, &wr1, &ar1));
+            members.push(CharacterData::new(idx1, &cr2, &wr2, &ar2));
+            abilities.push(builder1.build(&mut timers0));
+            abilities.push(builder2.build(&mut timers1));
+            let rc = main_loop(&mut members, &mut abilities, args);
             items.push(rc);
 
             // destruct objects
-            for m in members.iter_mut() {
-                m.fc.reset();
+            for a in abilities.iter_mut() {
+                a.reset();
             }
+            *timers0 = ICDTimers::new();
+            *timers1 = ICDTimers::new();
             ar1.dry_goblet();
             ar2.dry_goblet();
             member2.back((character_name2, weapon_name2, artifact_name2));
@@ -378,7 +391,7 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
 
 fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
     let idx = FieldCharacterIndex(0);
-    let mut timers = Box::new(CharacterTimersBuilder::new().build());
+    let mut timers = Box::new(ICDTimers::new());
     let mut characters = AllCharacters::new(idx);
     let mut weapons = AllWeapons::new(idx);
     let mut artifacts = AllArtifacts::new();
@@ -390,12 +403,14 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         WeaponName::vec(),
         ArtifactName::vec(),
     );
-    // let mut items: Vec<Recorder> = Vec::with_capacity(member1.size());
     let mut items: Vec<Recorder> = Vec::new();
     for (character_name, weapon_name, artifact_name) in member1.iter() {
-        let (cr1, ca1) = characters.find(&character_name);
-        let (wr1, wa1) = weapons.find(&weapon_name);
-        let (ar1, aa1) = artifacts.find(&artifact_name);
+        let mut builder = FieldAbilityBuilder::new();
+        let mut members: Vec<CharacterData> = Vec::with_capacity(1);
+        let mut abilities: Vec<FieldAbility> = Vec::with_capacity(1);
+        let (cr1, ca1) = characters.find(&character_name, &mut builder);
+        let (wr1, wa1) = weapons.find(&weapon_name, &mut builder);
+        let (ar1, aa1) = artifacts.find(&artifact_name, &mut builder);
         if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
             member1.back((character_name, weapon_name, artifact_name));
             continue;
@@ -405,16 +420,16 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         } else {
             ar1.infuse_goblet(&cr1.vision);
         }
-        let mut members = vec![
-            FieldCharacterData::new(&mut timers, ca1, wa1, aa1, CharacterData::new(idx, &cr1, &wr1, &ar1))
-        ];
-        let rc = main_loop(&mut members, args);
+        members.push(CharacterData::new(idx, &cr1, &wr1, &ar1));
+        abilities.push(builder.build(&mut timers));
+        let rc = main_loop(&mut members, &mut abilities, args);
         items.push(rc);
 
         // destruct objects
-        for m in members.iter_mut() {
-            m.fc.reset();
+        for a in abilities.iter_mut() {
+            a.reset();
         }
+        *timers = ICDTimers::new();
         ar1.dry_goblet();
         member1.back((character_name, weapon_name, artifact_name));
     }
@@ -423,13 +438,16 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
 
 fn debugging(args: &Args, debug_args: Vec<String>) -> () {
     let idx = FieldCharacterIndex(0);
-    let mut timers = Box::new(CharacterTimersBuilder::new().build());
+    let mut timers = Box::new(ICDTimers::new());
+    let mut builder = FieldAbilityBuilder::new();
     let mut characters = AllCharacters::new(idx);
     let mut weapons = AllWeapons::new(idx);
     let mut artifacts = AllArtifacts::new();
     let mut character_name = MaybeUninit::<CharacterName>::uninit();
     let mut weapon_name = MaybeUninit::<WeaponName>::uninit();
     let mut artifact_name = MaybeUninit::<ArtifactName>::uninit();
+    let mut members: Vec<CharacterData> = Vec::new();
+    let mut abilities: Vec<FieldAbility> = Vec::new();
     for i in 0..3 {
         match i {
             0 => unsafe { character_name.as_mut_ptr().write(CharacterName::from(debug_args[0].as_str())) },
@@ -438,20 +456,19 @@ fn debugging(args: &Args, debug_args: Vec<String>) -> () {
             _ => (),
         }
     };
-    let (cr1, ca1) = characters.find(unsafe { &character_name.assume_init() });
-    let (wr1, wa1) = weapons.find(unsafe { &weapon_name.assume_init() });
-    let (ar1, aa1) = artifacts.find(unsafe { &artifact_name.assume_init() });
+    let (cr1, ca1) = characters.find(unsafe { &character_name.assume_init() }, &mut builder);
+    let (wr1, wa1) = weapons.find(unsafe { &weapon_name.assume_init() }, &mut builder);
+    let (ar1, aa1) = artifacts.find(unsafe { &artifact_name.assume_init() }, &mut builder);
     let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
     if physical_infusion.contains(&cr1.name) {
         ar1.infuse_goblet(&Vision::Physical);
     } else {
         ar1.infuse_goblet(&cr1.vision);
     }
-    let mut members = vec![
-        FieldCharacterData::new(&mut timers, ca1, wa1, aa1, CharacterData::new(idx, &cr1, &wr1, &ar1))
-    ];
+    members.push(CharacterData::new(idx, &cr1, &wr1, &ar1));
+    abilities.push(builder.build(&mut timers));
     println!("debugging: {:?} {:?} {:?}", cr1.name, wr1.name, ar1.name);
-    main_loop(&mut members, args);
+    main_loop(&mut members, &mut abilities, args);
 }
 
 fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
@@ -461,25 +478,29 @@ fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
         return Ok(debugging(&args, debug_args));
     }
     let num_cpu = 4;
-    let character_size = CharacterName::vec().len();
+    let character_size = CharacterName::cryo().len();
     let chunk_size = character_size / num_cpu + 1;
     let (tx, rx) = mpsc::channel();
-    for i in 0..num_cpu {
-        let start = i * chunk_size;
-        let mut end = (i + 1) * chunk_size;
-        if start >= character_size {
-            break;
-        } else if end > character_size {
-            end = character_size;
+    if num_cpu == 1 {
+        permu3(tx, 0, character_size, &args);
+    } else {
+        for i in 0..num_cpu {
+            let start = i * chunk_size;
+            let mut end = (i + 1) * chunk_size;
+            if start >= character_size {
+                break;
+            } else if end > character_size {
+                end = character_size;
+            }
+            let txn = tx.clone();
+            match args.n_members {
+                1 => thread::spawn(move || permu3(txn, start, end, &args) ),
+                2 => thread::spawn(move || permu6(txn, start, end, &args) ),
+                _ => unimplemented!(),
+            };
         }
-        let txn = tx.clone();
-        match args.n_members {
-            1 => thread::spawn(move || permu3(txn, start, end, &args) ),
-            2 => thread::spawn(move || permu6(txn, start, end, &args) ),
-            _ => unimplemented!(),
-        };
+        drop(tx);
     }
-    drop(tx);
     let mut wtr = csv::Writer::from_writer(io::stdout());
     for mut received in rx {
         if args.truncate && args.n_members > 1 {

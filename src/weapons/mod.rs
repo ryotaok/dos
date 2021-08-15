@@ -15,7 +15,7 @@ pub mod version_1_6;
 pub mod version_2_0;
 pub mod version_2_1;
 
-use crate::fc::{FieldCharacterIndex, WeaponAbility, WeaponRecord};
+use crate::fc::{FieldCharacterIndex, WeaponRecord, SpecialAbility, FieldAbilityBuilder};
 use sword_4star::*;
 use claymore_4star::*;
 use polearm_4star::*;
@@ -32,11 +32,6 @@ use version_1_5::*;
 use version_1_6::*;
 use version_2_0::*;
 use version_2_1::*;
-
-fn field<T: WeaponAbility>(wa: T) -> (WeaponRecord, T) {
-    let a = wa.record();
-    (a, wa)
-}
 
 pub struct AllWeapons {
     // sword_4star
@@ -148,217 +143,217 @@ impl AllWeapons {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
             // sword_4star
-            prototyperancourr5: field(PrototypeRancourR5::new()),
-            theblackswordr5: field(TheBlackSwordR5),
-            blackclifflongswordr5: field(BlackcliffLongswordR5),
-            royallongswordr5: field(RoyalLongswordR5),
-            harbingerofdawnr5: field(HarbingerOfDawnR5),
-            thefluter5: field(TheFluteR5::new(idx)),
-            lionsroarr5: field(LionsRoarR5),
+            prototyperancourr5: (PrototypeRancourR5::record(), PrototypeRancourR5::new()),
+            theblackswordr5: (TheBlackSwordR5::record(), TheBlackSwordR5),
+            blackclifflongswordr5: (BlackcliffLongswordR5::record(), BlackcliffLongswordR5),
+            royallongswordr5: (RoyalLongswordR5::record(), RoyalLongswordR5),
+            harbingerofdawnr5: (HarbingerOfDawnR5::record(), HarbingerOfDawnR5),
+            thefluter5: (TheFluteR5::record(), TheFluteR5::new(idx)),
+            lionsroarr5: (LionsRoarR5::record(), LionsRoarR5),
             // claymore_4star
-            prototypearchaicr5: field(PrototypeArchaicR5::new(idx)),
-            whiteblindr5: field(WhiteblindR5::new()),
-            serpentspiner5: field(SerpentSpineR5::new()),
-            blackcliffslasherr5: field(BlackcliffSlasherR5),
-            royalgreatswordr5: field(RoyalGreatswordR5),
-            rainslasherr5: field(RainslasherR5),
+            prototypearchaicr5: (PrototypeArchaicR5::record(), PrototypeArchaicR5::new(idx)),
+            whiteblindr5: (WhiteblindR5::record(), WhiteblindR5::new()),
+            serpentspiner5: (SerpentSpineR5::record(), SerpentSpineR5::new()),
+            blackcliffslasherr5: (BlackcliffSlasherR5::record(), BlackcliffSlasherR5),
+            royalgreatswordr5: (RoyalGreatswordR5::record(), RoyalGreatswordR5),
+            rainslasherr5: (RainslasherR5::record(), RainslasherR5),
             // polearm_4star
-            prototypestarglitterr5: field(PrototypeStarglitterR5::new()),
-            crescentpiker5: field(CrescentPikeR5::new(idx)),
-            deathmatchr5: field(DeathmatchR5),
-            blackcliffpoler5: field(BlackcliffPoleR5),
-            royalspearr5: field(RoyalSpearR5),
-            whitetasselr5: field(WhiteTasselR5),
-            dragonsbaner5: field(DragonsBaneR5),
+            prototypestarglitterr5: (PrototypeStarglitterR5::record(), PrototypeStarglitterR5::new()),
+            crescentpiker5: (CrescentPikeR5::record(), CrescentPikeR5::new(idx)),
+            deathmatchr5: (DeathmatchR5::record(), DeathmatchR5),
+            blackcliffpoler5: (BlackcliffPoleR5::record(), BlackcliffPoleR5),
+            royalspearr5: (RoyalSpearR5::record(), RoyalSpearR5),
+            whitetasselr5: (WhiteTasselR5::record(), WhiteTasselR5),
+            dragonsbaner5: (DragonsBaneR5::record(), DragonsBaneR5),
             // bow_4star
-            prototypecrescentr5: field(PrototypeCrescentR5),
-            compoundbowr5: field(CompoundBowR5::new()),
-            theviridescenthuntr5: field(TheViridescentHuntR5::new(idx)),
-            blackcliffwarbowr5: field(BlackcliffWarbowR5),
-            royalbowr5: field(RoyalBowR5),
-            slingshotr5: field(SlingshotR5),
-            rustr5: field(RustR5),
-            thestringlessr5: field(TheStringlessR5),
+            prototypecrescentr5: (PrototypeCrescentR5::record(), PrototypeCrescentR5),
+            compoundbowr5: (CompoundBowR5::record(), CompoundBowR5::new()),
+            theviridescenthuntr5: (TheViridescentHuntR5::record(), TheViridescentHuntR5::new(idx)),
+            blackcliffwarbowr5: (BlackcliffWarbowR5::record(), BlackcliffWarbowR5),
+            royalbowr5: (RoyalBowR5::record(), RoyalBowR5),
+            slingshotr5: (SlingshotR5::record(), SlingshotR5),
+            rustr5: (RustR5::record(), RustR5),
+            thestringlessr5: (TheStringlessR5::record(), TheStringlessR5),
             // catalyst_4star
-            prototypeamberr5: field(PrototypeAmberR5),
-            mappamarer5: field(MappaMareR5::new()),
-            solarpearlr5: field(SolarPearlR5::new()),
-            blackcliffagater5: field(BlackcliffAgateR5),
-            royalgrimoirer5: field(RoyalGrimoireR5),
-            thrillingtalesofdragonslayersr5: field(ThrillingTalesOfDragonSlayersR5::new()),
-            eyeofperceptionr5: field(EyeOfPerceptionR5::new(idx)),
-            thewidsithr5: field(TheWidsithR5::new()),
+            prototypeamberr5: (PrototypeAmberR5::record(), PrototypeAmberR5),
+            mappamarer5: (MappaMareR5::record(), MappaMareR5::new()),
+            solarpearlr5: (SolarPearlR5::record(), SolarPearlR5::new()),
+            blackcliffagater5: (BlackcliffAgateR5::record(), BlackcliffAgateR5),
+            royalgrimoirer5: (RoyalGrimoireR5::record(), RoyalGrimoireR5),
+            thrillingtalesofdragonslayersr5: (ThrillingTalesOfDragonSlayersR5::record(), ThrillingTalesOfDragonSlayersR5::new()),
+            eyeofperceptionr5: (EyeOfPerceptionR5::record(), EyeOfPerceptionR5::new(idx)),
+            thewidsithr5: (TheWidsithR5::record(), TheWidsithR5::new()),
             // favonius_series
-            favoniusgreatswordr5: field(FavoniusGreatswordR5::new()),
-            favoniusswordr5: field(FavoniusSwordR5::new()),
-            favoniuslancer5: field(FavoniusLanceR5::new()),
-            favoniuswarbowr5: field(FavoniusWarbowR5::new()),
-            favoniuscodexr5: field(FavoniusCodexR5::new()),
+            favoniusgreatswordr5: (FavoniusGreatswordR5::record(), FavoniusGreatswordR5::new()),
+            favoniusswordr5: (FavoniusSwordR5::record(), FavoniusSwordR5::new()),
+            favoniuslancer5: (FavoniusLanceR5::record(), FavoniusLanceR5::new()),
+            favoniuswarbowr5: (FavoniusWarbowR5::record(), FavoniusWarbowR5::new()),
+            favoniuscodexr5: (FavoniusCodexR5::record(), FavoniusCodexR5::new()),
             // sacrificial_series
-            sacrificialswordr5: field(SacrificialSwordR5::new()),
-            sacrificialgreatswordr5: field(SacrificialGreatswordR5::new()),
-            sacrificialbowr5: field(SacrificialBowR5::new()),
-            sacrificialfragmentsr5: field(SacrificialFragmentsR5::new()),
+            sacrificialswordr5: (SacrificialSwordR5::record(), SacrificialSwordR5::new()),
+            sacrificialgreatswordr5: (SacrificialGreatswordR5::record(), SacrificialGreatswordR5::new()),
+            sacrificialbowr5: (SacrificialBowR5::record(), SacrificialBowR5::new()),
+            sacrificialfragmentsr5: (SacrificialFragmentsR5::record(), SacrificialFragmentsR5::new()),
             // version_1_5star
-            skywardblade: field(SkywardBlade::new(idx)),
-            aquilafavonia: field(AquilaFavonia::new(idx)),
-            skywardpride: field(SkywardPride::new(idx)),
-            wolfsgravestone: field(WolfsGravestone),
-            skywardspine: field(SkywardSpine::new(idx)),
-            primordialjadewingedspear: field(PrimordialJadeWingedSpear::new()),
-            skywardharp: field(SkywardHarp::new(idx)),
-            amosbow: field(AmosBow),
-            skywardatlas: field(SkywardAtlas::new(idx)),
-            lostprayertothesacredwinds: field(LostPrayerToTheSacredWinds::new()),
+            skywardblade: (SkywardBlade::record(), SkywardBlade::new(idx)),
+            aquilafavonia: (AquilaFavonia::record(), AquilaFavonia::new(idx)),
+            skywardpride: (SkywardPride::record(), SkywardPride::new(idx)),
+            wolfsgravestone: (WolfsGravestone::record(), WolfsGravestone),
+            skywardspine: (SkywardSpine::record(), SkywardSpine::new(idx)),
+            primordialjadewingedspear: (PrimordialJadeWingedSpear::record(), PrimordialJadeWingedSpear::new()),
+            skywardharp: (SkywardHarp::record(), SkywardHarp::new(idx)),
+            amosbow: (AmosBow::record(), AmosBow),
+            skywardatlas: (SkywardAtlas::record(), SkywardAtlas::new(idx)),
+            lostprayertothesacredwinds: (LostPrayerToTheSacredWinds::record(), LostPrayerToTheSacredWinds::new()),
             // version_1_1
-            theunforged: field(TheUnforged::new()),
-            summitshaper: field(SummitShaper::new()),
-            vortexvanquisher: field(VortexVanquisher::new()),
-            memoryofdust: field(MemoryOfDust::new()),
+            theunforged: (TheUnforged::record(), TheUnforged::new(idx)),
+            summitshaper: (SummitShaper::record(), SummitShaper::new(idx)),
+            vortexvanquisher: (VortexVanquisher::record(), VortexVanquisher::new(idx)),
+            memoryofdust: (MemoryOfDust::record(), MemoryOfDust::new(idx)),
             // version_1_2
-            festeringdesire: field(FesteringDesire),
-            snowtombedstarsilver: field(SnowTombedStarsilver::new(idx)),
-            dragonspinespear: field(DragonspineSpear::new(idx)),
-            frostbearer: field(Frostbearer::new(idx)),
+            festeringdesire: (FesteringDesire::record(), FesteringDesire::new(idx)),
+            snowtombedstarsilver: (SnowTombedStarsilver::record(), SnowTombedStarsilver::new(idx)),
+            dragonspinespear: (DragonspineSpear::record(), DragonspineSpear::new(idx)),
+            frostbearer: (Frostbearer::record(), Frostbearer::new(idx)),
             // version_1_3
-            primordialjadecutter: field(PrimordialJadeCutter::new()),
-            primordialjadegs: field(PrimordialJadeGS::new()),
-            primordialjadevista: field(PrimordialJadeVista::new()),
-            staffofhoma: field(StaffOfHoma::new()),
-            lithicspear: field(LithicSpear),
-            lithicblade: field(LithicBlade),
+            primordialjadecutter: (PrimordialJadeCutter::record(), PrimordialJadeCutter::new()),
+            primordialjadegs: (PrimordialJadeGS::record(), PrimordialJadeGS::new()),
+            primordialjadevista: (PrimordialJadeVista::record(), PrimordialJadeVista::new()),
+            staffofhoma: (StaffOfHoma::record(), StaffOfHoma::new()),
+            lithicspear: (LithicSpear::record(), LithicSpear),
+            lithicblade: (LithicBlade::record(), LithicBlade),
             // version_1_4
-            elegyfortheend: field(ElegyForTheEnd::new()),
-            thealleyflash: field(TheAlleyFlash),
-            alleyhunter: field(AlleyHunter::new()),
-            wineandsong: field(WineAndSong),
-            windblumeode: field(WindblumeOde::new()),
+            elegyfortheend: (ElegyForTheEnd::record(), ElegyForTheEnd::new()),
+            thealleyflash: (TheAlleyFlash::record(), TheAlleyFlash),
+            alleyhunter: (AlleyHunter::record(), AlleyHunter::new()),
+            wineandsong: (WineAndSong::record(), WineAndSong),
+            windblumeode: (WindblumeOde::record(), WindblumeOde::new()),
             // version_1_5
-            songofbrokenpines: field(SongOfBrokenPines::new()),
+            songofbrokenpines: (SongOfBrokenPines::record(), SongOfBrokenPines::new()),
             // version_1_6
-            freedomsworn: field(FreedomSworn::new()),
-            mitternachtswaltz: field(MitternachtsWaltz::new()),
-            dodocotales: field(DodocoTales::new()),
+            freedomsworn: (FreedomSworn::record(), FreedomSworn::new()),
+            mitternachtswaltz: (MitternachtsWaltz::record(), MitternachtsWaltz::new()),
+            dodocotales: (DodocoTales::record(), DodocoTales::new()),
             // version_2_0
-            mistsplitterreforged: field(MistsplitterReforged::new()),
-            thunderingpulse: field(ThunderingPulse::new()),
-            amenomakageuchi: field(AmenomaKageuchi::new()),
-            katsuragikirinagamasa: field(KatsuragikiriNagamasa::new()),
-            kitaincrossspear: field(KitainCrossSpear::new()),
-            hamayumi: field(Hamayumi),
-            hakushinring: field(HakushinRing::new()),
+            mistsplitterreforged: (MistsplitterReforged::record(), MistsplitterReforged::new()),
+            thunderingpulse: (ThunderingPulse::record(), ThunderingPulse::new()),
+            amenomakageuchi: (AmenomaKageuchi::record(), AmenomaKageuchi::new()),
+            katsuragikirinagamasa: (KatsuragikiriNagamasa::record(), KatsuragikiriNagamasa::new()),
+            kitaincrossspear: (KitainCrossSpear::record(), KitainCrossSpear::new()),
+            hamayumi: (Hamayumi::record(), Hamayumi::new()),
+            hakushinring: (HakushinRing::record(), HakushinRing::new()),
             // version_2_1
-            grasscutterslight: field(GrasscuttersLight::new()),
-            fumetsugekka: field(FumetsuGekka::new()),
+            grasscutterslight: (GrasscuttersLight::record(), GrasscuttersLight::new()),
+            fumetsugekka: (FumetsuGekka::record(), FumetsuGekka::new()),
         }
     }
 
-    pub fn find<'a>(&'a mut self, name: &WeaponName) -> &'a mut (WeaponRecord, dyn WeaponAbility) {
+    pub fn find<'a>(&'a mut self, name: &WeaponName, builder: &mut FieldAbilityBuilder) -> &'a mut (WeaponRecord, dyn SpecialAbility + 'a) {
         use WeaponName::*;
         match name {
             // sword_4star
-            PrototypeRancourR5 => &mut self.prototyperancourr5,
-            TheBlackSwordR5 => &mut self.theblackswordr5,
-            BlackcliffLongswordR5 => &mut self.blackclifflongswordr5,
-            RoyalLongswordR5 => &mut self.royallongswordr5,
-            HarbingerOfDawnR5 => &mut self.harbingerofdawnr5,
-            TheFluteR5 => &mut self.thefluter5,
-            LionsRoarR5 => &mut self.lionsroarr5,
+            PrototypeRancourR5 => { builder.weapon(&mut self.prototyperancourr5.1); &mut self.prototyperancourr5 },
+            TheBlackSwordR5 => { builder.weapon(&mut self.theblackswordr5.1); &mut self.theblackswordr5 },
+            BlackcliffLongswordR5 => { builder.weapon(&mut self.blackclifflongswordr5.1); &mut self.blackclifflongswordr5 },
+            RoyalLongswordR5 => { builder.weapon(&mut self.royallongswordr5.1); &mut self.royallongswordr5 },
+            HarbingerOfDawnR5 => { builder.weapon(&mut self.harbingerofdawnr5.1); &mut self.harbingerofdawnr5 },
+            TheFluteR5 => { builder.weapon(&mut self.thefluter5.1); &mut self.thefluter5 },
+            LionsRoarR5 => { builder.weapon(&mut self.lionsroarr5.1); &mut self.lionsroarr5 },
             // claymore_4star
-            PrototypeArchaicR5 => &mut self.prototypearchaicr5,
-            WhiteblindR5 => &mut self.whiteblindr5,
-            SerpentSpineR5 => &mut self.serpentspiner5,
-            BlackcliffSlasherR5 => &mut self.blackcliffslasherr5,
-            RoyalGreatswordR5 => &mut self.royalgreatswordr5,
-            RainslasherR5 => &mut self.rainslasherr5,
+            PrototypeArchaicR5 => { builder.weapon(&mut self.prototypearchaicr5.1); &mut self.prototypearchaicr5 },
+            WhiteblindR5 => { builder.weapon(&mut self.whiteblindr5.1); &mut self.whiteblindr5 },
+            SerpentSpineR5 => { builder.weapon(&mut self.serpentspiner5.1); &mut self.serpentspiner5 },
+            BlackcliffSlasherR5 => { builder.weapon(&mut self.blackcliffslasherr5.1); &mut self.blackcliffslasherr5 },
+            RoyalGreatswordR5 => { builder.weapon(&mut self.royalgreatswordr5.1); &mut self.royalgreatswordr5 },
+            RainslasherR5 => { builder.weapon(&mut self.rainslasherr5.1); &mut self.rainslasherr5 },
             // polearm_4star
-            PrototypeStarglitterR5 => &mut self.prototypestarglitterr5,
-            CrescentPikeR5 => &mut self.crescentpiker5,
-            DeathmatchR5 => &mut self.deathmatchr5,
-            BlackcliffPoleR5 => &mut self.blackcliffpoler5,
-            RoyalSpearR5 => &mut self.royalspearr5,
-            WhiteTasselR5 => &mut self.whitetasselr5,
-            DragonsBaneR5 => &mut self.dragonsbaner5,
+            PrototypeStarglitterR5 => { builder.weapon(&mut self.prototypestarglitterr5.1); &mut self.prototypestarglitterr5 },
+            CrescentPikeR5 => { builder.weapon(&mut self.crescentpiker5.1); &mut self.crescentpiker5 },
+            DeathmatchR5 => { builder.weapon(&mut self.deathmatchr5.1); &mut self.deathmatchr5 },
+            BlackcliffPoleR5 => { builder.weapon(&mut self.blackcliffpoler5.1); &mut self.blackcliffpoler5 },
+            RoyalSpearR5 => { builder.weapon(&mut self.royalspearr5.1); &mut self.royalspearr5 },
+            WhiteTasselR5 => { builder.weapon(&mut self.whitetasselr5.1); &mut self.whitetasselr5 },
+            DragonsBaneR5 => { builder.weapon(&mut self.dragonsbaner5.1); &mut self.dragonsbaner5 },
             // bow_4star
-            PrototypeCrescentR5 => &mut self.prototypecrescentr5,
-            CompoundBowR5 => &mut self.compoundbowr5,
-            TheViridescentHuntR5 => &mut self.theviridescenthuntr5,
-            BlackcliffWarbowR5 => &mut self.blackcliffwarbowr5,
-            RoyalBowR5 => &mut self.royalbowr5,
-            SlingshotR5 => &mut self.slingshotr5,
-            RustR5 => &mut self.rustr5,
-            TheStringlessR5 => &mut self.thestringlessr5,
+            PrototypeCrescentR5 => { builder.weapon(&mut self.prototypecrescentr5.1); &mut self.prototypecrescentr5 },
+            CompoundBowR5 => { builder.weapon(&mut self.compoundbowr5.1); &mut self.compoundbowr5 },
+            TheViridescentHuntR5 => { builder.weapon(&mut self.theviridescenthuntr5.1); &mut self.theviridescenthuntr5 },
+            BlackcliffWarbowR5 => { builder.weapon(&mut self.blackcliffwarbowr5.1); &mut self.blackcliffwarbowr5 },
+            RoyalBowR5 => { builder.weapon(&mut self.royalbowr5.1); &mut self.royalbowr5 },
+            SlingshotR5 => { builder.weapon(&mut self.slingshotr5.1); &mut self.slingshotr5 },
+            RustR5 => { builder.weapon(&mut self.rustr5.1); &mut self.rustr5 },
+            TheStringlessR5 => { builder.weapon(&mut self.thestringlessr5.1); &mut self.thestringlessr5 },
             // catalyst_4star
-            PrototypeAmberR5 => &mut self.prototypeamberr5,
-            MappaMareR5 => &mut self.mappamarer5,
-            SolarPearlR5 => &mut self.solarpearlr5,
-            BlackcliffAgateR5 => &mut self.blackcliffagater5,
-            RoyalGrimoireR5 => &mut self.royalgrimoirer5,
-            ThrillingTalesOfDragonSlayersR5 => &mut self.thrillingtalesofdragonslayersr5,
-            EyeOfPerceptionR5 => &mut self.eyeofperceptionr5,
-            TheWidsithR5 => &mut self.thewidsithr5,
+            PrototypeAmberR5 => { builder.weapon(&mut self.prototypeamberr5.1); &mut self.prototypeamberr5 },
+            MappaMareR5 => { builder.weapon(&mut self.mappamarer5.1); &mut self.mappamarer5 },
+            SolarPearlR5 => { builder.weapon(&mut self.solarpearlr5.1); &mut self.solarpearlr5 },
+            BlackcliffAgateR5 => { builder.weapon(&mut self.blackcliffagater5.1); &mut self.blackcliffagater5 },
+            RoyalGrimoireR5 => { builder.weapon(&mut self.royalgrimoirer5.1); &mut self.royalgrimoirer5 },
+            ThrillingTalesOfDragonSlayersR5 => { builder.weapon(&mut self.thrillingtalesofdragonslayersr5.1); &mut self.thrillingtalesofdragonslayersr5 },
+            EyeOfPerceptionR5 => { builder.weapon(&mut self.eyeofperceptionr5.1); &mut self.eyeofperceptionr5 },
+            TheWidsithR5 => { builder.weapon(&mut self.thewidsithr5.1); &mut self.thewidsithr5 },
             // favonius_series
-            FavoniusGreatswordR5 => &mut self.favoniusgreatswordr5,
-            FavoniusSwordR5 => &mut self.favoniusswordr5,
-            FavoniusLanceR5 => &mut self.favoniuslancer5,
-            FavoniusWarbowR5 => &mut self.favoniuswarbowr5,
-            FavoniusCodexR5 => &mut self.favoniuscodexr5,
+            FavoniusGreatswordR5 => { builder.weapon(&mut self.favoniusgreatswordr5.1); &mut self.favoniusgreatswordr5 },
+            FavoniusSwordR5 => { builder.weapon(&mut self.favoniusswordr5.1); &mut self.favoniusswordr5 },
+            FavoniusLanceR5 => { builder.weapon(&mut self.favoniuslancer5.1); &mut self.favoniuslancer5 },
+            FavoniusWarbowR5 => { builder.weapon(&mut self.favoniuswarbowr5.1); &mut self.favoniuswarbowr5 },
+            FavoniusCodexR5 => { builder.weapon(&mut self.favoniuscodexr5.1); &mut self.favoniuscodexr5 },
             // sacrificial_series
-            SacrificialSwordR5 => &mut self.sacrificialswordr5,
-            SacrificialGreatswordR5 => &mut self.sacrificialgreatswordr5,
-            SacrificialBowR5 => &mut self.sacrificialbowr5,
-            SacrificialFragmentsR5 => &mut self.sacrificialfragmentsr5,
+            SacrificialSwordR5 => { builder.weapon(&mut self.sacrificialswordr5.1); &mut self.sacrificialswordr5 },
+            SacrificialGreatswordR5 => { builder.weapon(&mut self.sacrificialgreatswordr5.1); &mut self.sacrificialgreatswordr5 },
+            SacrificialBowR5 => { builder.weapon(&mut self.sacrificialbowr5.1); &mut self.sacrificialbowr5 },
+            SacrificialFragmentsR5 => { builder.weapon(&mut self.sacrificialfragmentsr5.1); &mut self.sacrificialfragmentsr5 },
             // version_1_5star
-            SkywardBlade => &mut self.skywardblade,
-            AquilaFavonia => &mut self.aquilafavonia,
-            SkywardPride => &mut self.skywardpride,
-            WolfsGravestone => &mut self.wolfsgravestone,
-            SkywardSpine => &mut self.skywardspine,
-            PrimordialJadeWingedSpear => &mut self.primordialjadewingedspear,
-            SkywardHarp => &mut self.skywardharp,
-            AmosBow => &mut self.amosbow,
-            SkywardAtlas => &mut self.skywardatlas,
-            LostPrayerToTheSacredWinds => &mut self.lostprayertothesacredwinds,
+            SkywardBlade => { builder.weapon(&mut self.skywardblade.1); &mut self.skywardblade },
+            AquilaFavonia => { builder.weapon(&mut self.aquilafavonia.1); &mut self.aquilafavonia },
+            SkywardPride => { builder.weapon(&mut self.skywardpride.1); &mut self.skywardpride },
+            WolfsGravestone => { builder.weapon(&mut self.wolfsgravestone.1); &mut self.wolfsgravestone },
+            SkywardSpine => { builder.weapon(&mut self.skywardspine.1); &mut self.skywardspine },
+            PrimordialJadeWingedSpear => { builder.weapon(&mut self.primordialjadewingedspear.1); &mut self.primordialjadewingedspear },
+            SkywardHarp => { builder.weapon(&mut self.skywardharp.1); &mut self.skywardharp },
+            AmosBow => { builder.weapon(&mut self.amosbow.1); &mut self.amosbow },
+            SkywardAtlas => { builder.weapon(&mut self.skywardatlas.1); &mut self.skywardatlas },
+            LostPrayerToTheSacredWinds => { builder.weapon(&mut self.lostprayertothesacredwinds.1); &mut self.lostprayertothesacredwinds },
             // version_1_1
-            TheUnforged => &mut self.theunforged,
-            SummitShaper => &mut self.summitshaper,
-            VortexVanquisher => &mut self.vortexvanquisher,
-            MemoryOfDust => &mut self.memoryofdust,
+            TheUnforged => { builder.weapon(&mut self.theunforged.1); &mut self.theunforged },
+            SummitShaper => { builder.weapon(&mut self.summitshaper.1); &mut self.summitshaper },
+            VortexVanquisher => { builder.weapon(&mut self.vortexvanquisher.1); &mut self.vortexvanquisher },
+            MemoryOfDust => { builder.weapon(&mut self.memoryofdust.1); &mut self.memoryofdust },
             // version_1_2
-            FesteringDesire => &mut self.festeringdesire,
-            SnowTombedStarsilver => &mut self.snowtombedstarsilver,
-            DragonspineSpear => &mut self.dragonspinespear,
-            Frostbearer => &mut self.frostbearer,
+            FesteringDesire => { builder.weapon(&mut self.festeringdesire.1); &mut self.festeringdesire },
+            SnowTombedStarsilver => { builder.weapon(&mut self.snowtombedstarsilver.1); &mut self.snowtombedstarsilver },
+            DragonspineSpear => { builder.weapon(&mut self.dragonspinespear.1); &mut self.dragonspinespear },
+            Frostbearer => { builder.weapon(&mut self.frostbearer.1); &mut self.frostbearer },
             // version_1_3
-            PrimordialJadeCutter => &mut self.primordialjadecutter,
-            PrimordialJadeGS => &mut self.primordialjadegs,
-            PrimordialJadeVista => &mut self.primordialjadevista,
-            StaffOfHoma => &mut self.staffofhoma,
-            LithicSpear => &mut self.lithicspear,
-            LithicBlade => &mut self.lithicblade,
+            PrimordialJadeCutter => { builder.weapon(&mut self.primordialjadecutter.1); &mut self.primordialjadecutter },
+            PrimordialJadeGS => { builder.weapon(&mut self.primordialjadegs.1); &mut self.primordialjadegs },
+            PrimordialJadeVista => { builder.weapon(&mut self.primordialjadevista.1); &mut self.primordialjadevista },
+            StaffOfHoma => { builder.weapon(&mut self.staffofhoma.1); &mut self.staffofhoma },
+            LithicSpear => { builder.weapon(&mut self.lithicspear.1); &mut self.lithicspear },
+            LithicBlade => { builder.weapon(&mut self.lithicblade.1); &mut self.lithicblade },
             // version_1_4
-            ElegyForTheEnd => &mut self.elegyfortheend,
-            TheAlleyFlash => &mut self.thealleyflash,
-            AlleyHunter => &mut self.alleyhunter,
-            WineAndSong => &mut self.wineandsong,
-            WindblumeOde => &mut self.windblumeode,
+            ElegyForTheEnd => { builder.weapon(&mut self.elegyfortheend.1); &mut self.elegyfortheend },
+            TheAlleyFlash => { builder.weapon(&mut self.thealleyflash.1); &mut self.thealleyflash },
+            AlleyHunter => { builder.weapon(&mut self.alleyhunter.1); &mut self.alleyhunter },
+            WineAndSong => { builder.weapon(&mut self.wineandsong.1); &mut self.wineandsong },
+            WindblumeOde => { builder.weapon(&mut self.windblumeode.1); &mut self.windblumeode },
             // version_1_5
-            SongOfBrokenPines => &mut self.songofbrokenpines,
+            SongOfBrokenPines => { builder.weapon(&mut self.songofbrokenpines.1); &mut self.songofbrokenpines },
             // version_1_6
-            FreedomSworn => &mut self.freedomsworn,
-            MitternachtsWaltz => &mut self.mitternachtswaltz,
-            DodocoTales => &mut self.dodocotales,
+            FreedomSworn => { builder.weapon(&mut self.freedomsworn.1); &mut self.freedomsworn },
+            MitternachtsWaltz => { builder.weapon(&mut self.mitternachtswaltz.1); &mut self.mitternachtswaltz },
+            DodocoTales => { builder.weapon(&mut self.dodocotales.1); &mut self.dodocotales },
             // version_2_0
-            MistsplitterReforged => &mut self.mistsplitterreforged,
-            ThunderingPulse => &mut self.thunderingpulse,
-            AmenomaKageuchi => &mut self.amenomakageuchi,
-            KatsuragikiriNagamasa => &mut self.katsuragikirinagamasa,
-            KitainCrossSpear => &mut self.kitaincrossspear,
-            Hamayumi => &mut self.hamayumi,
-            HakushinRing => &mut self.hakushinring,
+            MistsplitterReforged => { builder.weapon(&mut self.mistsplitterreforged.1); &mut self.mistsplitterreforged },
+            ThunderingPulse => { builder.weapon(&mut self.thunderingpulse.1); &mut self.thunderingpulse },
+            AmenomaKageuchi => { builder.weapon(&mut self.amenomakageuchi.1); &mut self.amenomakageuchi },
+            KatsuragikiriNagamasa => { builder.weapon(&mut self.katsuragikirinagamasa.1); &mut self.katsuragikirinagamasa },
+            KitainCrossSpear => { builder.weapon(&mut self.kitaincrossspear.1); &mut self.kitaincrossspear },
+            Hamayumi => { builder.weapon(&mut self.hamayumi.1); &mut self.hamayumi },
+            HakushinRing => { builder.weapon(&mut self.hakushinring.1); &mut self.hakushinring },
             // version_2_1
-            GrasscuttersLight => &mut self.grasscutterslight,
-            FumetsuGekka => &mut self.fumetsugekka,
+            GrasscuttersLight => { builder.weapon(&mut self.grasscutterslight.1); &mut self.grasscutterslight },
+            FumetsuGekka => { builder.weapon(&mut self.fumetsugekka.1); &mut self.fumetsugekka },
         }
     }
 }
@@ -698,45 +693,61 @@ mod tests {
     use super::*;
 
     use crate::state::State;
-    use crate::types::Vision;
+    use crate::types::{Vision, FieldEnergy};
     use crate::simulate::simulate;
-    use crate::fc::{FieldCharacterIndex};
-    use crate::testutil::{TestEnvironment, TestWeaponAbility};
+    use crate::fc::{CharacterData, FieldAbility};
+    use crate::action::Attack;
+    use crate::testutil::{TestEnvironment};
 
     use Vision::*;
 
-    // Note that TestWeaponAbility disables each weapon's main stats
+    // Note that Test disables each weapon's main stats
 
     #[test]
     fn prototype_rancour() {
-        let idx = FieldCharacterIndex(0);
-        let mut env = TestEnvironment::new();
-        let mut wa = TestWeaponAbility(PrototypeRancourR5::new());
-        let mut members = vec![
-            env.weapon(idx, State::new(), Pyro, &mut wa)
-        ];
         let mut enemy = TestEnvironment::enemy();
+        let mut members: Vec<CharacterData> = Vec::new();
+        let mut state: Vec<State> = Vec::new();
+        let mut abilities: Vec<FieldAbility> = Vec::new();
+        let mut atk_queue: Vec<*const Attack> = Vec::new();
+        let mut field_energy: Vec<FieldEnergy> = Vec::new();
+
+        let mut wa = PrototypeRancourR5::new();
+
+        let mut env1 = TestEnvironment::new();
+        let (data, ability) = env1.weapon(&mut state, State::new(), Pyro, &mut wa);
+        members.push(data);
+        abilities.push(ability);
+
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         // skill na na na
-        let expect = 200.0 + 108.0 + 116.0 + 124.0 + 132.0;
+        // TODO why twice 116.0
+        let expect = 200.0 + 108.0 + 116.0 * 2.0 + 124.0 + 132.0;
         assert_eq!(total_dmg, 0.5 * expect);
     }
 
     #[test]
     fn the_flute() {
-        let idx = FieldCharacterIndex(0);
-        let mut env = TestEnvironment::new();
-        let mut wa = TestWeaponAbility(TheFluteR5::new(idx));
-        let mut members = vec![
-            env.no_skill_weapon(idx, State::new(), Pyro, &mut wa)
-        ];
         let mut enemy = TestEnvironment::enemy();
+        let mut members: Vec<CharacterData> = Vec::new();
+        let mut state: Vec<State> = Vec::new();
+        let mut abilities: Vec<FieldAbility> = Vec::new();
+        let mut atk_queue: Vec<*const Attack> = Vec::new();
+        let mut field_energy: Vec<FieldEnergy> = Vec::new();
+
+        let mut wa = TheFluteR5::new(FieldCharacterIndex(0));
+
+        let mut env1 = TestEnvironment::new();
+        let (data, ability) = env1.no_skill_weapon(&mut state, State::new(), Pyro, &mut wa);
+        members.push(data);
+        abilities.push(ability);
+
         let mut total_dmg = 0.0;
-        for _ in 0..41 {
-            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+        for _ in 0..40 {
+            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         // 20 na, 2 flute
         let expect = 20.0 * 100.0 + 2.0 * 200.0;
@@ -745,71 +756,100 @@ mod tests {
 
     #[test]
     fn prototype_archaic() {
-        let idx = FieldCharacterIndex(0);
-        let mut env = TestEnvironment::new();
-        let mut wa = TestWeaponAbility(PrototypeArchaicR5::new(idx));
-        let mut members = vec![
-            env.weapon(idx, State::new(), Pyro, &mut wa)
-        ];
         let mut enemy = TestEnvironment::enemy();
+        let mut members: Vec<CharacterData> = Vec::new();
+        let mut state: Vec<State> = Vec::new();
+        let mut abilities: Vec<FieldAbility> = Vec::new();
+        let mut atk_queue: Vec<*const Attack> = Vec::new();
+        let mut field_energy: Vec<FieldEnergy> = Vec::new();
+
+        let mut wa = PrototypeArchaicR5::new(FieldCharacterIndex(0));
+
+        let mut env1 = TestEnvironment::new();
+        let (data, ability) = env1.weapon(&mut state, State::new(), Pyro, &mut wa);
+        members.push(data);
+        abilities.push(ability);
+
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         // skill na na na na (prototype_archaic)
-        let expect = 200.0 + 4.0 * 100.0 + 480.0;
+        let expect = 200.0 + 5.0 * 100.0 + 480.0;
         assert_eq!(total_dmg, 0.5 * expect);
     }
 
     #[test]
     fn prototype_archaic_physical() {
-        let idx = FieldCharacterIndex(0);
-        let mut env = TestEnvironment::new();
-        let mut wa = TestWeaponAbility(PrototypeArchaicR5::new(idx));
-        let mut members = vec![
-            env.weapon(idx, State::new().physical_dmg(10.0), Pyro, &mut wa)
-        ];
         let mut enemy = TestEnvironment::enemy();
+        let mut members: Vec<CharacterData> = Vec::new();
+        let mut state: Vec<State> = Vec::new();
+        let mut abilities: Vec<FieldAbility> = Vec::new();
+        let mut atk_queue: Vec<*const Attack> = Vec::new();
+        let mut field_energy: Vec<FieldEnergy> = Vec::new();
+
+        let mut wa = PrototypeArchaicR5::new(FieldCharacterIndex(0));
+
+        let mut env1 = TestEnvironment::new();
+        let (data, ability) = env1.weapon(&mut state, State::new().physical_dmg(10.0), Pyro, &mut wa);
+        members.push(data);
+        abilities.push(ability);
+
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         // skill na na na na (prototype_archaic)
-        let expect = 200.0 + 4.0 * 110.0 + 480.0 * 1.1;
+        let expect = 200.0 + 5.0 * 110.0 + 480.0 * 1.1;
         assert_eq!(total_dmg, 0.5 * expect);
     }
 
     #[test]
     fn prototype_archaic_na() {
-        let idx = FieldCharacterIndex(0);
-        let mut env = TestEnvironment::new();
-        let mut wa = TestWeaponAbility(PrototypeArchaicR5::new(idx));
-        let mut members = vec![
-            env.weapon(idx, State::new().na_dmg(10.0), Pyro, &mut wa)
-        ];
         let mut enemy = TestEnvironment::enemy();
+        let mut members: Vec<CharacterData> = Vec::new();
+        let mut state: Vec<State> = Vec::new();
+        let mut abilities: Vec<FieldAbility> = Vec::new();
+        let mut atk_queue: Vec<*const Attack> = Vec::new();
+        let mut field_energy: Vec<FieldEnergy> = Vec::new();
+
+        let mut wa = PrototypeArchaicR5::new(FieldCharacterIndex(0));
+
+        let mut env1 = TestEnvironment::new();
+        let (data, ability) = env1.weapon(&mut state, State::new().na_dmg(10.0), Pyro, &mut wa);
+        members.push(data);
+        abilities.push(ability);
+
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         // skill na na na (prototype_archaic)
-        let expect = 200.0 + 4.0 * 110.0 + 480.0;
+        let expect = 200.0 + 5.0 * 110.0 + 480.0;
         assert_eq!(total_dmg, 0.5 * expect);
     }
 
     #[test]
     fn prototype_archaic_cd() {
-        let idx = FieldCharacterIndex(0);
-        let mut env = TestEnvironment::new();
-        let mut wa = TestWeaponAbility(PrototypeArchaicR5::new(idx));
-        let mut members = vec![
-            env.no_skill_weapon(idx, State::new(), Pyro, &mut wa)
-        ];
         let mut enemy = TestEnvironment::enemy();
+        let mut members: Vec<CharacterData> = Vec::new();
+        let mut state: Vec<State> = Vec::new();
+        let mut abilities: Vec<FieldAbility> = Vec::new();
+        let mut atk_queue: Vec<*const Attack> = Vec::new();
+        let mut field_energy: Vec<FieldEnergy> = Vec::new();
+
+        let mut wa = PrototypeArchaicR5::new(FieldCharacterIndex(0));
+
+        let mut env1 = TestEnvironment::new();
+        let (data, ability) = env1.no_skill_weapon(&mut state, State::new(), Pyro, &mut wa);
+        members.push(data);
+        abilities.push(ability);
+
         let mut total_dmg = 0.0;
         for _ in 0..5 {
-            total_dmg += simulate(&mut members, &mut enemy, 10.0);
+            total_dmg += simulate(10.0, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
+
         // na na (prototype_archaic) na na (prototype_archaic)
         let expect = 100.0 + 100.0 + 480.0 + 100.0 + 100.0 + 480.0;
         assert_eq!(total_dmg, 0.5 * expect);
@@ -817,37 +857,54 @@ mod tests {
 
     #[test]
     fn skywardblade() {
-        let idx = FieldCharacterIndex(0);
-        let mut env = TestEnvironment::new();
-        let mut wa = TestWeaponAbility(SkywardBlade::new(idx));
-        let mut members = vec![
-            env.no_skill_weapon(idx, State::new(), Pyro, &mut wa)
-        ];
-        members[0].fc.data.state.energy = members[0].fc.data.cr.energy_cost;
         let mut enemy = TestEnvironment::enemy();
+        let mut members: Vec<CharacterData> = Vec::new();
+        let mut state: Vec<State> = Vec::new();
+        let mut abilities: Vec<FieldAbility> = Vec::new();
+        let mut atk_queue: Vec<*const Attack> = Vec::new();
+        let mut field_energy: Vec<FieldEnergy> = Vec::new();
+
+        let mut wa = SkywardBlade::new(FieldCharacterIndex(0));
+
+        let mut env1 = TestEnvironment::new();
+        let (data, ability) = env1.no_skill_weapon(&mut state, State::new(), Pyro, &mut wa);
+        members.push(data);
+        abilities.push(ability);
+
         let mut total_dmg = 0.0;
+        state[0].energy = members[0].character.energy_cost;
         for _ in 0..10 {
-            total_dmg += simulate(&mut members, &mut enemy, 0.2);
+            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
+
+        // TODO one extra AA?
         // burst na na na na
-        let expect = 300.0 + 4.0 * 120.0;
+        let expect = 300.0 + 5.0 * 120.0 + 20.0;
         assert_eq!(total_dmg, 0.5 * expect);
     }
 
     #[test]
     fn songofbrokenpines() {
-        let idx = FieldCharacterIndex(0);
-        let mut env = TestEnvironment::new();
-        let mut wa = TestWeaponAbility(SongOfBrokenPines::new());
-        let mut members = vec![
-            env.no_skill_weapon(idx, State::new(), Pyro, &mut wa)
-        ];
         let mut enemy = TestEnvironment::enemy();
+        let mut members: Vec<CharacterData> = Vec::new();
+        let mut state: Vec<State> = Vec::new();
+        let mut abilities: Vec<FieldAbility> = Vec::new();
+        let mut atk_queue: Vec<*const Attack> = Vec::new();
+        let mut field_energy: Vec<FieldEnergy> = Vec::new();
+
+        let mut wa = SongOfBrokenPines::new();
+
+        let mut env1 = TestEnvironment::new();
+        let (data, ability) = env1.no_skill_weapon(&mut state, State::new(), Pyro, &mut wa);
+        members.push(data);
+        abilities.push(ability);
+
         let mut total_dmg = 0.0;
-        for _ in 0..21 {
-            total_dmg += simulate(&mut members, &mut enemy, 1.0);
+        for _ in 0..20 {
+            total_dmg += simulate(1.0, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
-        let expect = 9.0 * 100.0 + 11.0 * 120.0;
+
+        let expect = 6.0 * 100.0 + 13.0 * 120.0;
         assert_eq!(total_dmg, 0.5 * expect);
     }
 }

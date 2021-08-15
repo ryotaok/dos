@@ -1,9 +1,9 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, Vision, GAUGE1A};
-use crate::fc::{FieldCharacterIndex, SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, StackTimer, SigilTimer};
+use crate::types::{AttackType, WeaponType, FieldEnergy, Vision, PHYSICAL_GAUGE, LIONSROAR};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, AttackEvent, DurationTimer};
 
 use AttackType::*;
 use WeaponType::*;
@@ -12,38 +12,41 @@ use WeaponType::*;
 // version 1.0
 
 pub struct PrototypeRancourR5 {
-    timer: StackTimer,
+    timer: DurationTimer,
 }
 
 impl PrototypeRancourR5 {
     pub fn new() -> Self {
         Self {
-            timer: StackTimer::new(0.3, 6.0, 4),
+            timer: DurationTimer::new(6.0, &[0.3,0.3,0.3,0.3]),
         }
     }
-}
 
-impl WeaponAbility for PrototypeRancourR5 {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Prototype Rancour").type_(Sword).version(1.0)
             .base_atk(566.0)
-            .dmg_phy(34.5)
+            .physical_dmg(34.5)
     }
 }
 
 impl SpecialAbility for PrototypeRancourR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        // let should_update = timers.na_timer().is_active() || timers.ca_timer().is_active();
-        let should_update = guard.kind == Na || guard.kind == Ca;
-        self.timer.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event.idx == data.idx && (event.kind == Na || event.kind == Ca));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.timer.is_active() {
-            let mut state = &mut modifiable_state[data.idx.0];
-            state.atk += 8.0 * self.timer.n as f32;
-            state.def += 8.0 * self.timer.n as f32;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (self.timer.ping, self.timer.n > 0) {
+            (true, true) => {
+                state.atk += 8.0;
+                state.def += 8.0;
+            },
+            (true, false) => {
+                state.atk -= 8.0 * self.timer.previous_n as f32;
+                state.def -= 8.0 * self.timer.previous_n as f32;
+            },
+            _ => (),
         }
     }
 
@@ -57,13 +60,13 @@ impl SpecialAbility for PrototypeRancourR5 {
 pub struct TheBlackSwordR5;
 
 impl SpecialAbility for TheBlackSwordR5 {}
-impl WeaponAbility for TheBlackSwordR5 {
-    fn record(&self) -> WeaponRecord {
+impl TheBlackSwordR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("The Black Sword").type_(Sword).version(1.0)
             .base_atk(510.0)
             .cr(27.6)
-            .dmg_na(40.0).dmg_ca(40.0)
+            .na_dmg(40.0).ca_dmg(40.0)
     }
 }
 
@@ -71,8 +74,8 @@ impl WeaponAbility for TheBlackSwordR5 {
 pub struct BlackcliffLongswordR5;
 
 impl SpecialAbility for BlackcliffLongswordR5 {}
-impl WeaponAbility for BlackcliffLongswordR5 {
-    fn record(&self) -> WeaponRecord {
+impl BlackcliffLongswordR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Blackcliff Longsword").type_(Sword).version(1.0)
             .base_atk(565.0)
@@ -83,8 +86,8 @@ impl WeaponAbility for BlackcliffLongswordR5 {
 pub struct RoyalLongswordR5;
 
 impl SpecialAbility for RoyalLongswordR5 {}
-impl WeaponAbility for RoyalLongswordR5 {
-    fn record(&self) -> WeaponRecord {
+impl RoyalLongswordR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Royal Longsword").type_(Sword).version(1.0)
             .base_atk(565.0)
@@ -96,8 +99,8 @@ impl WeaponAbility for RoyalLongswordR5 {
 pub struct HarbingerOfDawnR5;
 
 impl SpecialAbility for HarbingerOfDawnR5 {}
-impl WeaponAbility for HarbingerOfDawnR5 {
-    fn record(&self) -> WeaponRecord {
+impl HarbingerOfDawnR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Harbinger of Dawn").type_(Sword).version(1.0)
             .base_atk(401.0)
@@ -106,17 +109,17 @@ impl WeaponAbility for HarbingerOfDawnR5 {
 }
 
 pub struct TheFluteR5 {
-    timer: SigilTimer,
+    timer: DurationTimer,
     aa: Attack,
 }
 
 impl TheFluteR5 {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
-            timer: SigilTimer::new(0.5, 0.5, 0.0, 5),
+            timer: DurationTimer::new(30.0, &[0.5,0.5,0.5,0.5,0.5]),
             aa: Attack {
                 kind: AdditionalAttack,
-                gauge: &GAUGE1A,
+                element: &PHYSICAL_GAUGE,
                 multiplier: 200.0,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
@@ -124,10 +127,8 @@ impl TheFluteR5 {
             }
         }
     }
-}
 
-impl WeaponAbility for TheFluteR5 {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("The Flute").type_(Sword).version(1.0)
             .base_atk(510.0)
@@ -136,14 +137,18 @@ impl WeaponAbility for TheFluteR5 {
 }
 
 impl SpecialAbility for TheFluteR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = guard.kind == Na || guard.kind == Ca;
-        self.timer.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 5) => self.timer.reset(),
+            _ => (),
+        };
+        self.timer.update(time, event.idx == data.idx && (event.kind == Na || event.kind == Ca));
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
-        if self.timer.is_active() {
-            atk_queue.push(ElementalAttack::physical(&self.aa))
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 5) => atk_queue.push(&self.aa),
+            _ => (),
         }
     }
 
@@ -154,8 +159,8 @@ impl SpecialAbility for TheFluteR5 {
 
 pub struct LionsRoarR5;
 
-impl WeaponAbility for LionsRoarR5 {
-    fn record(&self) -> WeaponRecord {
+impl LionsRoarR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Lion's Roar").type_(Sword).version(1.0)
             .base_atk(510.0)
@@ -164,10 +169,20 @@ impl WeaponAbility for LionsRoarR5 {
 }
 
 impl SpecialAbility for LionsRoarR5 {
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        match &enemy.aura.aura {
-            Vision::Electro |
-            Vision::Pyro => modifiable_state[data.idx.0].all_dmg += 36.0,
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (&enemy.aura.aura, state.stacked_buff != LIONSROAR) {
+            (Vision::Electro, true) |
+            (Vision::Pyro, true) => {
+                state.all_dmg += 36.0;
+                state.stacked_buff.turn_on(&LIONSROAR);
+            },
+            (Vision::Electro, false) |
+            (Vision::Pyro, false) => (),
+            (_, false) => {
+                state.all_dmg -= 36.0;
+                state.stacked_buff.turn_off(&LIONSROAR);
+            },
             _ => (),
         }
     }

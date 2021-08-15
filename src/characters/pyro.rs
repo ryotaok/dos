@@ -1,9 +1,9 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B};
-use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
-use crate::action::{Attack, ElementalAttack, ElementalAttackVector, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
+use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
+use crate::action::{Attack, AttackEvent, ElementalAbsorption, NaLoop, SimpleCa, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, Time, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
 use AttackType::*;
@@ -14,45 +14,13 @@ use Vision::*;
 
 pub struct Amber {
     ca_timer: DurationTimer,
-    ca: Attack,
-    press: Attack,
-    burst: Attack,
+    ca: SimpleCa,
+    skill: SimpleSkill,
+    burst: SimpleBurst,
 }
 
 impl Amber {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
-        Self {
-            ca_timer: DurationTimer::new(0.0, 10.0),
-            ca: Attack {
-                kind: AttackType::Ca,
-                gauge: &GAUGE2B,
-                multiplier: 223.2,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            press: Attack {
-                kind: AttackType::PressSkill,
-                gauge: &GAUGE2B,
-                multiplier: 221.76,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            burst: Attack {
-                kind: AttackType::Burst,
-                gauge: &GAUGE1A,
-                multiplier: 50.54,
-                hits: 18,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-        }
-    }
-}
-
-impl CharacterAbility for Amber {
-    fn record(&self) -> CharacterRecord {
+    pub fn record() -> CharacterRecord {
         CharacterRecord::default()
             .name("Amber").vision(Pyro).weapon(Bow).release_date("2020-09-28").version(1.0)
             .base_hp(9461.0).base_atk(223.0).base_def(601.0)
@@ -60,57 +28,62 @@ impl CharacterAbility for Amber {
             .energy_cost(40.0)
     }
 
-    fn timers(&self) -> FullCharacterTimers {
-        CharacterTimersBuilder::new()
-            .ca(HitsTimer::new(2.0, 1))
-            .stamina(StaminaTimer::new(0.0))
-            .press(DotTimer::single_hit(15.0))
-            .burst(DotTimer::single_hit(12.0))
-            .build()
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            ca_timer: DurationTimer::new(10.0, &[0.0]),
+            ca: SimpleCa::new(0.0, 2.0, Attack {
+                kind: AttackType::Ca,
+                element: &PYRO_GAUGE2B,
+                multiplier: 223.2,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+            skill: SimpleSkill::new(&[15.0], Particle::new(Pyro, 4.0), Attack {
+                kind: AttackType::PressSkill,
+                element: &PYRO_GAUGE2B,
+                multiplier: 221.76,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+            burst: SimpleBurst::new(&[12.0], Attack {
+                kind: AttackType::Burst,
+                element: &PYRO_GAUGE1A,
+                multiplier: 50.54,
+                hits: 18,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+        }
     }
 
-    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
-        self.ca.icd_timer = &mut timers.ca_icd;
-        self.press.icd_timer = &mut timers.skill_icd;
-        self.burst.icd_timer = &mut timers.burst_icd;
-    }
-
-    fn use_ca(&self) -> bool {
-        true
+    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
+        builder.ca(&mut self.ca).skill(&mut self.skill).burst(&mut self.burst).passive(self);
     }
 }
 
 impl SpecialAbility for Amber {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = guard.kind == Ca;
-        self.ca_timer.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.ca_timer.update(time, event.idx == data.idx && event.kind == Ca);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
-        if timers.burst_timer().is_active() {
-            atk_queue.push(ElementalAttack::pyro(&self.burst));
-        }
-        if timers.press_timer().is_active() {
-            atk_queue.push(ElementalAttack::pyro(&self.press));
-            particles.push_p(Particle::new(Pyro, 4.0));
-        }
-        if timers.ca_timer().is_active() {
-            atk_queue.push(ElementalAttack::pyro(&self.ca));
-        }
-    }
-
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.ca_timer.is_active() {
-            // a4
-            modifiable_state[data.idx.0].atk += 15.0;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        // a4
+        match (self.ca_timer.ping, self.ca_timer.n) {
+            (true, 1) => state.atk += 15.0,
+            (true, 0) => state.atk -= 15.0,
+            _ => (),
         }
     }
 
     // a1
     fn intensify(&self, attack: &Attack) -> Option<State> {
-        match &attack.kind {
-            Burst => Some(State::new().cr(10.0)),
-            _ => None,
+        if self.burst.attack.most_eq(attack) {
+            Some(State::new().cr(10.0))
+        } else {
+            None
         }
     }
 
@@ -120,84 +93,14 @@ impl SpecialAbility for Amber {
 }
 
 pub struct Bennett {
-    burst_timer: DurationTimer,
     bonus: f32,
-    na_1: Attack,
-    na_2: Attack,
-    na_3: Attack,
-    na_4: Attack,
-    na_5: Attack,
-    press: Attack,
-    burst: Attack,
+    na: NaLoop,
+    skill: SimpleSkill,
+    burst: SimpleBurst,
 }
 
 impl Bennett {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
-        Self {
-            burst_timer: DurationTimer::new(0.0, 12.0),
-            bonus: 1.008,
-            na_1: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 88.06,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_2: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 84.49,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_3: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 107.95,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_4: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 117.98,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_5: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 142.12,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            press: Attack {
-                kind: AttackType::PressSkill,
-                gauge: &GAUGE2B,
-                multiplier: 261.44,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            burst: Attack {
-                kind: AttackType::Burst,
-                gauge: &GAUGE2B,
-                multiplier: 419.04,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-        }
-    }
-}
-
-impl CharacterAbility for Bennett {
-    fn record(&self) -> CharacterRecord {
+    pub fn record() -> CharacterRecord {
         CharacterRecord::default()
             .name("Bennett").vision(Pyro).weapon(Sword).release_date("2020-09-28").version(1.0)
             .base_hp(12397.0).base_atk(191.0).base_def(771.0)
@@ -205,222 +108,139 @@ impl CharacterAbility for Bennett {
             .energy_cost(60.0)
     }
 
-    fn timers(&self) -> FullCharacterTimers {
-        CharacterTimersBuilder::new()
-            .na(LoopTimer::new(2.567, 5))
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            bonus: 1.008,
+            na: NaLoop::new(
+                // 5 attacks in 2.567 seconds
+                &[0.5134,0.5134,0.5134,0.5134,0.5134],
+                vec![
+                    Attack::na(88.06, 1, idx),
+                    Attack::na(84.49, 1, idx),
+                    Attack::na(107.95, 1, idx),
+                    Attack::na(117.98, 1, idx),
+                    Attack::na(142.12, 1, idx),
+                ]
+            ),
             // a1
-            .press(DotTimer::single_hit(5.0 * 0.8))
-            .burst(DotTimer::single_hit(15.0))
-            .build()
+            skill: SimpleSkill::new(&[5.0 * 0.8], Particle::new(Pyro, 2.0), Attack {
+                kind: AttackType::PressSkill,
+                element: &PYRO_GAUGE2B,
+                multiplier: 261.44,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+            burst: SimpleBurst::new(&[12.0, 3.0], Attack {
+                kind: AttackType::Burst,
+                element: &PYRO_GAUGE2B,
+                multiplier: 419.04,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+        }
     }
 
-    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
-        self.na_1.icd_timer = &mut timers.na_icd;
-        self.na_2.icd_timer = &mut timers.na_icd;
-        self.na_3.icd_timer = &mut timers.na_icd;
-        self.na_4.icd_timer = &mut timers.na_icd;
-        self.na_5.icd_timer = &mut timers.na_icd;
-        self.press.icd_timer = &mut timers.skill_icd;
-        self.burst.icd_timer = &mut timers.burst_icd;
+    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
+        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
     }
 }
 
 impl SpecialAbility for Bennett {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = guard.kind == Burst;
-        self.burst_timer.update(guard.second(should_update), time);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
-        if timers.burst_timer().is_active() {
-            atk_queue.push(ElementalAttack::pyro(&self.burst));
-        }
-        if timers.press_timer().is_active() {
-            atk_queue.push(ElementalAttack::pyro(&self.press));
-            particles.push_p(Particle::new(Pyro, 2.0));
-        }
-        let na = timers.na_timer();
-        if na.is_active() {
-            match na.n() {
-                1 => atk_queue.push_pyro(data, &self.na_1),
-                2 => atk_queue.push_pyro(data, &self.na_2),
-                3 => atk_queue.push_pyro(data, &self.na_3),
-                4 => atk_queue.push_pyro(data, &self.na_4),
-                5 => atk_queue.push_pyro(data, &self.na_5),
-                _ => (),
-            };
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        match (self.burst.timer.ping, self.burst.timer.n) {
+            (true, 1) => for s in modifiable_state.iter_mut() {
+                s.flat_atk += data.state().base_atk * self.bonus;
+            },
+            (true, 2) => for s in modifiable_state.iter_mut() {
+                s.flat_atk -= data.state().base_atk * self.bonus;
+            },
+            _ => (),
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.burst_timer.is_active() {
-            for s in modifiable_state.iter_mut() {
-                s.flat_atk += data.state.base_atk * self.bonus;
-            }
-        }
-    }
-
-    // TODO accelerate?
+    // TODO pass closure instead?
     // fn accelerate(&self, _na: &mut NormalAttackAction, skill: &mut SkillAction, _burst: &mut BurstAction) -> () {
     //     if self.burst_timer.is_active() {
     //         // a4
     //         skill.spd += 100.0;
     //     }
     // }
-
-    fn reset(&mut self) -> () {
-        self.burst_timer.reset();
-    }
 }
 
 pub struct Xiangling {
+    na: NaLoop,
+    skill: SimpleSkillDot,
+    burst: BurstDamage2Dot,
     skill_a4: DurationTimer,
-    na_1: Attack,
-    na_2: Attack,
-    na_3: Attack,
-    na_4: Attack,
-    na_5: Attack,
-    press: Attack,
-    burst: Attack,
-    burst_aa: Attack,
 }
 
 impl Xiangling {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
-        Self {
-            skill_a4: DurationTimer::new(0.0, 10.0),
-            na_1: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 83.13,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_2: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 83.3,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_3: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 103.02,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_4: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 111.52,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_5: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 140.42,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            press: Attack {
-                kind: AttackType::SkillDot,
-                gauge: &GAUGE1A,
-                multiplier: 200.3,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            burst: Attack {
-                kind: AttackType::Burst,
-                gauge: &GAUGE1A,
-                multiplier: (129.6 + 158.4 + 197.28) / 3.0,
-                hits: 3,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            burst_aa: Attack {
-                kind: AttackType::BurstDot,
-                gauge: &GAUGE1A,
-                multiplier: 201.6,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-        }
-    }
-}
-
-impl CharacterAbility for Xiangling {
-    fn record(&self) -> CharacterRecord {
+    pub fn record() -> CharacterRecord {
         CharacterRecord::default()
             .name("Xiangling").vision(Pyro).weapon(Polearm).release_date("2020-09-28").version(1.0)
             .base_hp(10875.0).base_atk(225.0).base_def(669.0)
             .em(96.0)
     }
 
-    fn timers(&self) -> FullCharacterTimers {
-        CharacterTimersBuilder::new()
-            .na(LoopTimer::new(2.4, 5))
-            .press(DotTimer::new(12.0, 2.0, 4))
-            .burst(DotTimer::new(20.0, 1.0, 10))
-            .build()
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            na: NaLoop::new(
+                // 5 attacks in 2.4 seconds
+                &[0.48,0.48,0.48,0.48,0.48],
+                vec![
+                    Attack::na(83.13, 1, idx),
+                    Attack::na(83.3, 1, idx),
+                    Attack::na(103.02, 1, idx),
+                    Attack::na(111.52, 1, idx),
+                    Attack::na(140.42, 1, idx),
+                ]
+            ),
+            skill: SimpleSkillDot::new(&[2.0,2.0,2.0,2.0,4.0], Particle::new(Pyro, 1.0), Attack {
+                kind: AttackType::SkillDot,
+                element: &PYRO_GAUGE1A,
+                multiplier: 200.3,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+            burst: BurstDamage2Dot::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 10.0], Attack {
+                kind: AttackType::Burst,
+                element: &PYRO_GAUGE1A,
+                multiplier: (129.6 + 158.4 + 197.28) / 3.0,
+                hits: 3,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }, Attack {
+                kind: AttackType::BurstDot,
+                element: &PYRO_GAUGE1A,
+                multiplier: 201.6,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+            skill_a4: DurationTimer::new(10.0, &[0.0]),
+        }
     }
 
-    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
-        self.na_1.icd_timer = &mut timers.na_icd;
-        self.na_2.icd_timer = &mut timers.na_icd;
-        self.na_3.icd_timer = &mut timers.na_icd;
-        self.na_4.icd_timer = &mut timers.na_icd;
-        self.na_5.icd_timer = &mut timers.na_icd;
-        self.press.icd_timer = &mut timers.skill_icd;
-        self.burst.icd_timer = &mut timers.burst_icd;
-        self.burst_aa.icd_timer = &mut timers.burst_icd;
+    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
+        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
     }
 }
 
 impl SpecialAbility for Xiangling {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = guard.kind == PressSkill;
-        self.skill_a4.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.skill_a4.update(time, self.skill.timer.ping && self.skill.timer.n == 5);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
-        let burst = timers.burst_timer();
-        if burst.is_active() {
-            if burst.n() == 1 {
-                atk_queue.push(ElementalAttack::pyro(&self.burst));
-                atk_queue.push(ElementalAttack::pyro(&self.burst_aa));
-            } else {
-                atk_queue.push(ElementalAttack::pyro(&self.burst_aa));
-            }
-        }
-        if timers.press_timer().is_active() {
-            atk_queue.push(ElementalAttack::pyro(&self.press));
-            particles.push_p(Particle::new(Pyro, 1.0));
-        }
-        let na = timers.na_timer();
-        if na.is_active() {
-            match na.n() {
-                1 => atk_queue.push_pyro(data, &self.na_1),
-                2 => atk_queue.push_pyro(data, &self.na_2),
-                3 => atk_queue.push_pyro(data, &self.na_3),
-                4 => atk_queue.push_pyro(data, &self.na_4),
-                5 => atk_queue.push_pyro(data, &self.na_5),
-                _ => (),
-            };
-        }
-    }
-
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.skill_a4.is_active() {
-            modifiable_state[0].atk += 10.0;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        // a4
+        let state = &mut modifiable_state[0];
+        match (self.skill_a4.ping, self.skill_a4.n) {
+            (true, 1) => state.atk += 10.0,
+            (true, 0) => state.atk -= 10.0,
+            _ => (),
         }
     }
 
@@ -429,83 +249,107 @@ impl SpecialAbility for Xiangling {
     }
 }
 
-pub struct Diluc {
-    burst_a4: DurationTimer,
-    na_1: Attack,
-    na_2: Attack,
-    na_3: Attack,
-    na_4: Attack,
-    press: Attack,
-    burst: Attack,
-    burst_aa: Attack,
+#[derive(Debug)]
+pub struct DilucSkill {
+    pub timer1: NTimer,
+    pub timer2: NTimer,
+    pub timer3: NTimer,
+    pub attack1: Attack,
+    pub attack2: Attack,
+    pub attack3: Attack,
+    pub particle: Particle,
 }
 
-impl Diluc {
+impl DilucSkill {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
-            burst_a4: DurationTimer::new(0.0, 12.0),
-            na_1: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 177.31,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_2: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 173.23,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_3: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 195.33,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_4: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 264.86,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            press: Attack {
+            timer1: NTimer::new(&[10.0]),
+            timer2: NTimer::new(&[10.0]),
+            timer3: NTimer::new(&[10.0]),
+            attack1: Attack {
                 kind: AttackType::PressSkill,
-                gauge: &GAUGE1A,
-                multiplier: (169.92 + 175.68 + 231.84) / 3.0,
-                hits: 3,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            burst: Attack {
-                kind: AttackType::Burst,
-                gauge: &GAUGE1A,
-                multiplier: 367.2,
+                element: &PYRO_GAUGE1A,
+                multiplier: 169.92,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
                 idx,
             },
-            burst_aa: Attack {
-                kind: AttackType::BurstDot,
-                gauge: &GAUGE1A,
-                multiplier: 367.2,
+            attack2: Attack {
+                kind: AttackType::PressSkill,
+                element: &PYRO_GAUGE1A,
+                multiplier: 175.68,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
                 idx,
             },
+            attack3: Attack {
+                kind: AttackType::PressSkill,
+                element: &PYRO_GAUGE1A,
+                multiplier: 231.84,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            particle: Particle::new(Pyro, 1.3333),
         }
     }
 }
 
-impl CharacterAbility for Diluc {
-    fn record(&self) -> CharacterRecord {
+impl SkillAbility for DilucSkill {
+    fn accelerate(&mut self, f: fn(&mut NTimer)) -> () {
+        f(&mut self.timer1);
+        f(&mut self.timer2);
+        f(&mut self.timer3);
+    }
+}
+
+impl SpecialAbility for DilucSkill {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack1.icd_timer = &mut timers.skill;
+        self.attack2.icd_timer = &mut timers.skill;
+        self.attack3.icd_timer = &mut timers.skill;
+    }
+
+    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
+        self.attack1.to_event(&self.timer1)
+            .or(self.attack2.to_event(&self.timer2))
+            .or(self.attack3.to_event(&self.timer3))
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        let guard = event == &self.attack1;
+        self.timer1.update(time, guard);
+        self.timer2.update(time, guard);
+        self.timer3.update(time, guard);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer1.ping, self.timer1.n, self.timer2.ping, self.timer2.n, self.timer3.ping, self.timer3.n, ) {
+            (true, 1, _, _, _, _) => {
+                atk_queue.push(&self.attack1);
+                particles.push_p(self.particle);
+            },
+            (_, _, true, 1, _, _) => {
+                atk_queue.push(&self.attack2);
+                particles.push_p(self.particle);
+            },
+            (_, _, _, _, true, 1) => {
+                atk_queue.push(&self.attack3);
+                particles.push_p(self.particle);
+            },
+            _ => (),
+        }
+    }
+}
+
+pub struct Diluc {
+    na: NaLoop,
+    skill: DilucSkill,
+    burst: BurstDamage2Dot,
+}
+
+impl Diluc {
+    pub fn record() -> CharacterRecord {
         CharacterRecord::default()
             .name("Diluc").vision(Pyro).weapon(Claymore).release_date("2020-09-28").version(1.0)
             .base_hp(12981.0).base_atk(335.0).base_def(784.0)
@@ -513,214 +357,261 @@ impl CharacterAbility for Diluc {
             .energy_cost(40.0)
     }
 
-    fn timers(&self) -> FullCharacterTimers {
-        CharacterTimersBuilder::new()
-            .na(LoopTimer::new(2.834, 4))
-            .press(DotTimer::single_hit(10.0))
-            .burst(DotTimer::new(12.0, 0.5, 3))
-            .build()
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            na: NaLoop::new(
+                // 4 attacks in 2.834 seconds
+                &[0.7085,0.7085,0.7085,0.7085],
+                vec![
+                    Attack::na(177.31, 1, idx),
+                    Attack::na(173.23, 1, idx),
+                    Attack::na(195.33, 1, idx),
+                    Attack::na(264.86, 1, idx),
+                ]
+            ),
+            skill: DilucSkill::new(idx),
+            burst: BurstDamage2Dot::new(&[0.5,0.5,0.5, 10.5], Attack {
+                kind: AttackType::Burst,
+                element: &PYRO_GAUGE1A,
+                multiplier: 367.2,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }, Attack {
+                kind: AttackType::BurstDot,
+                element: &PYRO_GAUGE1A,
+                multiplier: 114.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+        }
     }
 
-    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
-        self.na_1.icd_timer = &mut timers.na_icd;
-        self.na_2.icd_timer = &mut timers.na_icd;
-        self.na_3.icd_timer = &mut timers.na_icd;
-        self.na_4.icd_timer = &mut timers.na_icd;
-        self.press.icd_timer = &mut timers.skill_icd;
-        self.burst.icd_timer = &mut timers.burst_icd;
-        self.burst_aa.icd_timer = &mut timers.burst_icd;
+    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
+        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
     }
 }
 
 impl SpecialAbility for Diluc {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = guard.kind == Burst;
-        self.burst_a4.update(guard.second(should_update), time);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
-        let burst = timers.burst_timer();
-        if burst.is_active() {
-            if burst.n() == 1 {
-                atk_queue.push(ElementalAttack::pyro(&self.burst));
-                atk_queue.push(ElementalAttack::pyro(&self.burst_aa));
-            } else {
-                atk_queue.push(ElementalAttack::pyro(&self.burst_aa));
-            }
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        // a4
+        match (self.burst.timer.ping, self.burst.timer.n) {
+            (true, 1) => {
+                state.pyro_dmg += 20.0;
+                state.infusion = true;
+            },
+            (true, 0) => {
+                state.pyro_dmg -= 20.0;
+                state.infusion = false;
+            },
+            _ => (),
         }
-        if timers.press_timer().is_active() {
-            atk_queue.push(ElementalAttack::pyro(&self.press));
-            particles.push_p(Particle::new(Pyro, 4.0));
-        }
-        let na = timers.na_timer();
-        if na.is_active() {
-            match na.n() {
-                1 => atk_queue.push_pyro(data, &self.na_1),
-                2 => atk_queue.push_pyro(data, &self.na_2),
-                3 => atk_queue.push_pyro(data, &self.na_3),
-                4 => atk_queue.push_pyro(data, &self.na_4),
-                _ => (),
-            };
-        }
-    }
-
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.burst_a4.is_active() {
-            let mut state = &mut modifiable_state[data.idx.0];
-            state.pyro_dmg += 20.0;
-            state.infusion = true;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.burst_a4.reset();
     }
 }
 
-pub struct Klee {
-    ca_a4: HitsTimer,
-    na_a1: HitsTimer,
-    na_1: Attack,
-    na_2: Attack,
-    na_3: Attack,
-    press: Attack,
-    press_aa: Attack,
-    burst: Attack,
+#[derive(Debug)]
+pub struct KleeCa {
+    timer: NTimer,
+    attack: Attack,
+    na_count: usize,
 }
 
-impl Klee {
+impl KleeCa {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
-            ca_a4: HitsTimer::new(1.0, 1),
-            na_a1: HitsTimer::new(1.0, 1),
-            na_1: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 129.89,
+            timer: NTimer::with_condition(&[1.5]),
+            attack: Attack {
+                kind: AttackType::Ca,
+                element: &PYRO_GAUGE1A,
+                multiplier: 283.25,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
                 idx,
             },
-            na_2: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 112.32,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
+            na_count: 0,
+        }
+    }
+}
+
+impl SpecialAbility for KleeCa {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.ca;
+    }
+
+    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
+        self.attack.to_event(&self.timer)
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        if event.idx == self.attack.idx {
+            if event.kind == Na {
+                self.na_count += 1;
+            } else if event.kind == PressSkill {
+                self.na_count += 3;
+            }
+        }
+        let should_update = self.na_count >= 3;
+        self.timer.update(time, should_update);
+        if should_update {
+            self.na_count = 0;
+        }
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        // TODO
+        // match (self.timer.ping, self.timer.n, &self.timer.recovery) {
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => {
+                atk_queue.push(&self.attack);
             },
-            na_3: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 161.86,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            press: Attack {
+            _ => (),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct KleeSkill {
+    pub timer1: NTimer,
+    pub timer2: NTimer,
+    pub attack: Attack,
+    pub dot: Attack,
+    pub particle: Particle,
+}
+
+impl KleeSkill {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            timer1: NTimer::new(&[1.0,1.0, 18.0]),
+            timer2: NTimer::new(&[1.0,1.0, 18.0]),
+            attack: Attack {
                 kind: AttackType::PressSkill,
-                gauge: &GAUGE2B,
+                element: &PYRO_GAUGE2B,
                 multiplier: 171.36,
                 hits: 3,
                 icd_timer: ptr::null_mut(),
                 idx,
             },
-            press_aa: Attack {
+            dot: Attack {
                 kind: AttackType::SkillDot,
-                gauge: &GAUGE1A,
+                element: &PYRO_GAUGE1A,
                 multiplier: 59.04,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
                 idx,
             },
-            burst: Attack {
+            particle: Particle::new(Pyro, 4.0),
+        }
+    }
+}
+
+impl SkillAbility for KleeSkill {
+    fn accelerate(&mut self, f: fn(&mut NTimer)) -> () {
+        f(&mut self.timer1);
+        f(&mut self.timer2);
+    }
+}
+
+impl SpecialAbility for KleeSkill {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.skill;
+        self.dot.icd_timer = &mut timers.skill;
+    }
+
+    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
+        self.attack.to_event(&self.timer1)
+            .or(self.attack.to_event(&self.timer2))
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        let guard = event == &self.attack;
+        self.timer1.update(time, guard);
+        self.timer2.update(time, guard);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer1.ping, self.timer1.n) {
+            (true, 1) => {
+                atk_queue.push(&self.attack);
+                atk_queue.push(&self.dot);
+                particles.push_p(self.particle);
+            },
+            (true, 2) => atk_queue.push(&self.dot),
+            _ => (),
+        }
+        match (self.timer2.ping, self.timer2.n) {
+            (true, 1) => {
+                atk_queue.push(&self.attack);
+                atk_queue.push(&self.dot);
+                particles.push_p(self.particle);
+            },
+            (true, 2) => atk_queue.push(&self.dot),
+            _ => (),
+        }
+    }
+}
+
+pub struct Klee {
+    na: NaLoop,
+    ca: KleeCa,
+    skill: KleeSkill,
+    burst: SimpleBurstDot,
+}
+
+impl Klee {
+    pub fn record() -> CharacterRecord {
+        CharacterRecord::default()
+            .name("Klee").vision(Pyro).weapon(Catalyst).release_date("2020-09-28").version(1.0)
+            .infusion(true)
+            .base_hp(10287.0).base_atk(311.0).base_def(615.0)
+            .pyro_dmg(28.8)
+            .energy_cost(60.0)
+    }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            na: NaLoop::new(
+                // 3 attacks in 1.467 seconds
+                &[0.489,0.489,0.489,],
+                vec![
+                    Attack::na(129.89, 1, idx),
+                    Attack::na(112.32, 1, idx),
+                    Attack::na(161.86, 1, idx),
+                ]
+            ),
+            ca: KleeCa::new(idx),
+            skill: KleeSkill::new(idx),
+            burst: SimpleBurstDot::new(&[1.0,1.0,1.0,1.0,1.0,1.0, 9.0], Attack {
                 kind: AttackType::BurstDot,
-                gauge: &GAUGE1A,
+                element: &PYRO_GAUGE1A,
                 multiplier: 76.76,
                 hits: 4,
                 icd_timer: ptr::null_mut(),
                 idx,
-            },
+            }),
         }
     }
-}
 
-impl CharacterAbility for Klee {
-    fn record(&self) -> CharacterRecord {
-        CharacterRecord::default()
-            .name("Klee").vision(Pyro).weapon(Catalyst).release_date("2020-09-28").version(1.0)
-            .base_hp(10287.0).base_atk(311.0).base_def(615.0)
-            .dmg_pyro(28.8)
-            .energy_cost(60.0)
-    }
-
-    // TODO CA
-    fn timers(&self) -> FullCharacterTimers {
-        CharacterTimersBuilder::new()
-            .na(LoopTimer::new(1.467, 3))
-            .press(DotTimer::new(20.0, 1.0, 4))
-            .burst(DotTimer::new(15.0, 1.0, 6))
-            .build()
-    }
-
-    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
-        self.na_1.icd_timer = &mut timers.na_icd;
-        self.na_2.icd_timer = &mut timers.na_icd;
-        self.na_3.icd_timer = &mut timers.na_icd;
-        self.press.icd_timer = &mut timers.skill_icd;
-        self.press_aa.icd_timer = &mut timers.skill_icd;
-        self.burst.icd_timer = &mut timers.burst_icd;
+    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
+        builder.na(&mut self.na).ca(&mut self.ca).skill(&mut self.skill).burst(&mut self.burst).passive(self);
     }
 }
 
 impl SpecialAbility for Klee {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let ca = guard.kind == Ca;
-        let na_a1 = testutil::chance() < 0.5 && (guard.kind == Na || guard.kind == PressSkill);
-        self.ca_a4.update(guard.second(ca), time);
-        self.na_a1.update(guard.second(na_a1), time);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
-        let burst = timers.burst_timer();
-        if burst.is_active() {
-            atk_queue.push(ElementalAttack::pyro(&self.burst));
-        }
-        let press = timers.press_timer();
-        if press.is_active() {
-            if press.n() == 1 {
-                atk_queue.push(ElementalAttack::pyro(&self.press));
-                atk_queue.push(ElementalAttack::pyro(&self.press_aa));
-                particles.push_p(Particle::new(Pyro, 3.5));
-            } else {
-                atk_queue.push(ElementalAttack::pyro(&self.press_aa));
-            }
-        }
-        let na = timers.na_timer();
-        if na.is_active() {
-            match na.n() {
-                1 => atk_queue.push(ElementalAttack::pyro(&self.na_1)),
-                2 => atk_queue.push(ElementalAttack::pyro(&self.na_2)),
-                3 => atk_queue.push(ElementalAttack::pyro(&self.na_3)),
-                _ => (),
-            };
-        }
-        if self.ca_a4.is_active() {
-            particles.push_e(2.0 * data.state.cr / 100.0);
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
+        // a4
+        if self.ca.timer.ping && self.ca.timer.n == 1 {
+            particles.push_e(2.0 * data.state().cr / 100.0);
         }
     }
 
     // a1
     fn intensify(&self, attack: &Attack) -> Option<State> {
-        if attack.kind == Ca && self.na_a1.is_active() {
+        if self.ca.attack.most_eq(attack) {
             Some(State::new().ca_dmg(50.0))
         } else {
             None
         }
-    }
-
-    fn reset(&mut self) -> () {
-        self.ca_a4.reset();
-        self.na_a1.reset();
     }
 }

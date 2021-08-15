@@ -1,9 +1,9 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, Vision, GAUGE1A};
-use crate::fc::{FieldCharacterIndex, SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, StackTimer, DurationTimer};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, Vision, PHYSICAL_GAUGE, DRAGONSBANE};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, AttackEvent, DurationTimer, Time};
 // use crate::testutil;
 
 use AttackType::*;
@@ -14,19 +14,19 @@ use WeaponType::*;
 // version 1.0
 
 pub struct PrototypeStarglitterR5 {
-    timer: StackTimer,
+    timer: DurationTimer,
 }
 
 impl PrototypeStarglitterR5 {
     pub fn new() -> Self {
         Self {
-            timer: StackTimer::new(0.0, 12.0, 2),
+            timer: DurationTimer::new(12.0, &[0.0,0.0]),
         }
     }
 }
 
-impl WeaponAbility for PrototypeStarglitterR5 {
-    fn record(&self) -> WeaponRecord {
+impl PrototypeStarglitterR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Prototype Starglitter").type_(Polearm).version(1.0)
             .base_atk(510.0)
@@ -35,16 +35,23 @@ impl WeaponAbility for PrototypeStarglitterR5 {
 }
 
 impl SpecialAbility for PrototypeStarglitterR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = guard.kind == PressSkill || guard.kind == HoldSkill;
-        self.timer.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        let should_update = event.kind == PressSkill || event.kind == HoldSkill;
+        self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.timer.is_active() {
-            let mut state = &mut modifiable_state[data.idx.0];
-            state.na_dmg += 16.0 * self.timer.n as f32;
-            state.ca_dmg += 16.0 * self.timer.n as f32;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (self.timer.ping, self.timer.n > 0) {
+            (true, true) => {
+                state.na_dmg += 16.0;
+                state.ca_dmg += 16.0;
+            },
+            (true, false) => {
+                state.na_dmg -= 16.0 * self.timer.previous_n as f32;
+                state.ca_dmg -= 16.0 * self.timer.previous_n as f32;
+            },
+            _ => (),
         }
     }
 
@@ -56,43 +63,46 @@ impl SpecialAbility for PrototypeStarglitterR5 {
 pub struct CrescentPikeR5 {
     timer: DurationTimer,
     aa: Attack,
+    did_na: bool,
 }
 
 impl CrescentPikeR5 {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
-            timer: DurationTimer::new(0.0, 5.0),
+            timer: DurationTimer::new(5.0, &[0.0]),
             aa: Attack {
                 kind: AdditionalAttack,
-                gauge: &GAUGE1A,
+                element: &PHYSICAL_GAUGE,
                 multiplier: 40.0,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
                 idx,
-            }
+            },
+            did_na: false,
         }
     }
 }
 
-impl WeaponAbility for CrescentPikeR5 {
-    fn record(&self) -> WeaponRecord {
+impl CrescentPikeR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Crescent Pike").type_(Polearm).version(1.0)
             .base_atk(566.0)
-            .dmg_phy(34.5)
+            .physical_dmg(34.5)
     }
 }
 
 impl SpecialAbility for CrescentPikeR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         let should_update = particles.has_particles();
-        self.timer.update(guard.second(should_update), time);
+        self.timer.update(time, should_update);
+        self.did_na = event.idx == data.idx && (event.kind == Na || event.kind == Ca);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
-        let did_attack = timers.na_timer().is_active() || timers.ca_timer().is_active();
-        if self.timer.is_active() && did_attack {
-            atk_queue.push(ElementalAttack::physical(&self.aa));
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
+        match (self.did_na, &self.timer.dr) {
+            (true, Time::Waiting(_)) => atk_queue.push(&self.aa),
+            _ => (),
         }
     }
 
@@ -105,8 +115,8 @@ pub struct DeathmatchR5;
 
 impl SpecialAbility for DeathmatchR5 {}
 
-impl WeaponAbility for DeathmatchR5 {
-    fn record(&self) -> WeaponRecord {
+impl DeathmatchR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Deathmatch").type_(Polearm).version(1.0)
             .base_atk(454.0)
@@ -119,8 +129,8 @@ pub struct BlackcliffPoleR5;
 
 impl SpecialAbility for BlackcliffPoleR5 {}
 
-impl WeaponAbility for BlackcliffPoleR5 {
-    fn record(&self) -> WeaponRecord {
+impl BlackcliffPoleR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Blackcliff Pole").type_(Polearm).version(1.0)
             .base_atk(510.0)
@@ -132,8 +142,8 @@ pub struct RoyalSpearR5;
 
 impl SpecialAbility for RoyalSpearR5 {}
 
-impl WeaponAbility for RoyalSpearR5 {
-    fn record(&self) -> WeaponRecord {
+impl RoyalSpearR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Royal Spear").type_(Polearm).version(1.0)
             .base_atk(565.0)
@@ -145,20 +155,20 @@ pub struct WhiteTasselR5;
 
 impl SpecialAbility for WhiteTasselR5 {}
 
-impl WeaponAbility for WhiteTasselR5 {
-    fn record(&self) -> WeaponRecord {
+impl WhiteTasselR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("White Tassel").type_(Polearm).version(1.0)
             .base_atk(401.0)
             .cr(23.4)
-            .dmg_na(48.0)
+            .na_dmg(48.0)
     }
 }
 
 pub struct DragonsBaneR5;
 
-impl WeaponAbility for DragonsBaneR5 {
-    fn record(&self) -> WeaponRecord {
+impl DragonsBaneR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Dragon's Bane").type_(Polearm).version(1.0)
             .base_atk(454.0)
@@ -167,10 +177,20 @@ impl WeaponAbility for DragonsBaneR5 {
 }
 
 impl SpecialAbility for DragonsBaneR5 {
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        match &enemy.aura.aura {
-            Vision::Hydro |
-            Vision::Pyro => modifiable_state[data.idx.0].all_dmg += 36.0,
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (&enemy.aura.aura, state.stacked_buff != DRAGONSBANE) {
+            (Vision::Hydro, true) |
+            (Vision::Pyro, true) => {
+                state.all_dmg += 36.0;
+                state.stacked_buff.turn_on(&DRAGONSBANE);
+            },
+            (Vision::Hydro, false) |
+            (Vision::Pyro, false) => (),
+            (_, false) => {
+                state.all_dmg -= 36.0;
+                state.stacked_buff.turn_off(&DRAGONSBANE);
+            },
             _ => (),
         }
     }

@@ -1,49 +1,60 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, MILLENNIAL_MOVEMENT_SERIES};
-use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, DurationTimer, SigilTimer};
+use crate::types::{AttackType, WeaponType, FieldEnergy, MILLENNIAL_MOVEMENT_SERIES};
+use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, AttackEvent, DurationTimer};
 
 use AttackType::*;
 use WeaponType::*;
 // use Vision::*;
 
 pub struct FreedomSworn {
-    timer: SigilTimer,
+    timer: DurationTimer,
 }
 
 impl FreedomSworn {
     pub fn new() -> Self {
         Self {
-            timer: SigilTimer::new(0.5, 20.0, 12.0, 4),
+            timer: DurationTimer::new(12.0, &[0.5,0.5, 20.0]),
         }
     }
 }
 
-impl WeaponAbility for FreedomSworn {
-    fn record(&self) -> WeaponRecord {
+impl FreedomSworn {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Freedom-Sworn").type_(Sword).version(1.6)
             .base_atk(608.0)
-            .em(198.0).dmg_na(10.0).dmg_ca(10.0).dmg_skill(10.0).dmg_burst(10.0)
+            .em(198.0).na_dmg(10.0).ca_dmg(10.0).skill_dmg(10.0).burst_dmg(10.0)
     }
 }
 
 impl SpecialAbility for FreedomSworn {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        let should_update = attack.iter().any(|a| enemy.trigger_er(&a.element).is_triggered());
-        self.timer.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, _event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        let should_update = unsafe {
+            attack.iter().any(|&a| (*a).idx == data.idx && enemy.trigger_er(&(*a).element.aura).is_triggered())
+        };
+        self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.timer.is_active() {
-            for s in modifiable_state.iter_mut() {
+    fn modify(&self, modifiable_state: &mut [State], _data: &CharacterData, _enemy: &mut Enemy) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 2) => for s in modifiable_state.iter_mut() {
                 if s.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
                     s.atk += 20.0;
                     s.na_dmg += 16.0;
                     s.ca_dmg += 16.0;
-                    s.stacked_buff += MILLENNIAL_MOVEMENT_SERIES;
+                    s.stacked_buff.turn_on(&MILLENNIAL_MOVEMENT_SERIES);
                 }
-            }
+            },
+            (true, 0) => for s in modifiable_state.iter_mut() {
+                if s.stacked_buff == MILLENNIAL_MOVEMENT_SERIES {
+                    s.atk -= 20.0;
+                    s.na_dmg -= 16.0;
+                    s.ca_dmg -= 16.0;
+                    s.stacked_buff.turn_off(&MILLENNIAL_MOVEMENT_SERIES);
+                }
+            },
+            _ => (),
         }
     }
 
@@ -60,35 +71,39 @@ pub struct MitternachtsWaltz {
 impl MitternachtsWaltz {
     pub fn new() -> Self {
         Self {
-            na_timer: DurationTimer::new(0.0, 5.0),
-            skill_timer: DurationTimer::new(0.0, 5.0),
+            na_timer: DurationTimer::new(5.0, &[0.0]),
+            skill_timer: DurationTimer::new(5.0, &[0.0]),
         }
     }
 }
 
-impl WeaponAbility for MitternachtsWaltz {
-    fn record(&self) -> WeaponRecord {
+impl MitternachtsWaltz {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Mitternachts Waltz").type_(Bow).version(1.6)
             .base_atk(510.0)
-            .dmg_phy(51.7)
+            .physical_dmg(51.7)
     }
 }
 
 impl SpecialAbility for MitternachtsWaltz {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let na = guard.kind == Na;
-        let skill = guard.kind == PressSkill || guard.kind == HoldSkill;
-        self.na_timer.update(guard.second(na), time);
-        self.skill_timer.update(guard.second(skill), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        let check_idx = event.idx == data.idx;
+        self.na_timer.update(time, check_idx && event.kind == Na);
+        self.skill_timer.update(time, check_idx && (event.kind == PressSkill || event.kind == HoldSkill));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.na_timer.is_active() {
-            modifiable_state[data.idx.0].skill_dmg += 40.0;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (self.na_timer.ping, self.na_timer.n) {
+            (true, 1) => state.skill_dmg += 40.0,
+            (true, 0) => state.skill_dmg -= 40.0,
+            _ => (),
         }
-        if self.skill_timer.is_active() {
-            modifiable_state[data.idx.0].na_dmg += 40.0;
+        match (self.skill_timer.ping, self.skill_timer.n) {
+            (true, 1) => state.na_dmg += 40.0,
+            (true, 0) => state.na_dmg -= 40.0,
+            _ => (),
         }
     }
 
@@ -106,14 +121,14 @@ pub struct DodocoTales {
 impl DodocoTales {
     pub fn new() -> Self {
         Self {
-            na_timer: DurationTimer::new(0.0, 6.0),
-            ca_timer: DurationTimer::new(0.0, 6.0),
+            na_timer: DurationTimer::new(6.0, &[0.0]),
+            ca_timer: DurationTimer::new(6.0, &[0.0]),
         }
     }
 }
 
-impl WeaponAbility for DodocoTales {
-    fn record(&self) -> WeaponRecord {
+impl DodocoTales {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Dodoco Tales").type_(Catalyst).version(1.6)
             .base_atk(454.0)
@@ -122,19 +137,23 @@ impl WeaponAbility for DodocoTales {
 }
 
 impl SpecialAbility for DodocoTales {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let na = guard.kind == Na;
-        let ca = guard.kind == Ca;
-        self.na_timer.update(guard.second(na), time);
-        self.ca_timer.update(guard.second(ca), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        let check_idx = event.idx == data.idx;
+        self.na_timer.update(time, check_idx && event.kind == Na);
+        self.ca_timer.update(time, check_idx && event.kind == Ca);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.na_timer.is_active() {
-            modifiable_state[data.idx.0].ca_dmg += 32.0;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (self.na_timer.ping, self.na_timer.n) {
+            (true, 1) => state.ca_dmg += 32.0,
+            (true, 0) => state.ca_dmg -= 32.0,
+            _ => (),
         }
-        if self.ca_timer.is_active() {
-            modifiable_state[data.idx.0].atk += 16.0;
+        match (self.ca_timer.ping, self.ca_timer.n) {
+            (true, 1) => state.atk += 16.0,
+            (true, 0) => state.atk -= 16.0,
+            _ => (),
         }
     }
 

@@ -1,9 +1,9 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, GAUGE1A, GAUGE2B};
-use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterAbility, CharacterData, CharacterRecord, Enemy};
-use crate::action::{Attack, ElementalAttack, ElementalAttackVector, ElementalAbsorption, FullCharacterTimers, CharacterTimersBuilder, TimerGuard, EffectTimer, CDTimer, DurationTimer, HitsTimer, DotTimer, LoopTimer, StaminaTimer};
+use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
+use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
+use crate::action::{Attack, AttackEvent, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
 use AttackType::*;
@@ -12,37 +12,26 @@ use Vision::*;
 
 // version 1.0
 
-pub struct Ningguang {
+#[derive(Debug)]
+pub struct NingguangCa {
     star_jade: usize,
-    skill_a4: DurationTimer,
-    jade_screen: DurationTimer,
-    na: Attack,
-    ca: Attack,
+    na_count: usize,
+    timer: NTimer,
+    attack: Attack,
     ca_star_jade_1: Attack,
     ca_star_jade_2: Attack,
     ca_star_jade_3: Attack,
-    press: Attack,
-    burst: Attack,
-    burst_aa: Attack,
 }
 
-impl Ningguang {
+impl NingguangCa {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
             star_jade: 0,
-            skill_a4: DurationTimer::new(0.0, 10.0),
-            jade_screen: DurationTimer::new(0.0, 20.0),
-            na: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 50.4,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            ca: Attack {
+            na_count: 0,
+            timer: NTimer::with_condition(&[1.8]), // TODO 2.0?
+            attack: Attack {
                 kind: AttackType::Ca,
-                gauge: &GAUGE1A,
+                element: &GEO_GAUGE1A,
                 multiplier: 313.34,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
@@ -50,7 +39,7 @@ impl Ningguang {
             },
             ca_star_jade_1: Attack {
                 kind: AttackType::Ca,
-                gauge: &GAUGE1A,
+                element: &GEO_GAUGE1A,
                 multiplier: 89.28,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
@@ -58,7 +47,7 @@ impl Ningguang {
             },
             ca_star_jade_2: Attack {
                 kind: AttackType::Ca,
-                gauge: &GAUGE1A,
+                element: &GEO_GAUGE1A,
                 multiplier: 89.28,
                 hits: 2,
                 icd_timer: ptr::null_mut(),
@@ -66,196 +55,152 @@ impl Ningguang {
             },
             ca_star_jade_3: Attack {
                 kind: AttackType::Ca,
-                gauge: &GAUGE1A,
+                element: &GEO_GAUGE1A,
                 multiplier: 89.28,
                 hits: 3,
                 icd_timer: ptr::null_mut(),
                 idx,
             },
-            press: Attack {
+        }
+    }
+}
+
+impl SpecialAbility for NingguangCa {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.ca;
+        self.ca_star_jade_1.icd_timer = &mut timers.ca;
+        self.ca_star_jade_2.icd_timer = &mut timers.ca;
+        self.ca_star_jade_3.icd_timer = &mut timers.ca;
+    }
+
+    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
+        self.attack.to_event(&self.timer)
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        if event.idx == self.attack.idx {
+            if event.kind == Na {
+                self.star_jade += 1;
+            } else if event.kind == Ca {
+                self.star_jade = 0;
+            }
+        }
+        self.timer.update(time, self.star_jade >= 1);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n, self.star_jade) {
+            (true, 1, 0) => atk_queue.push(&self.attack),
+            (true, 1, 1) => {
+                atk_queue.push(&self.attack);
+                atk_queue.push(&self.ca_star_jade_1);
+            },
+            (true, 1, 2) => {
+                atk_queue.push(&self.attack);
+                atk_queue.push(&self.ca_star_jade_2);
+            },
+            (true, 1, 3) => {
+                atk_queue.push(&self.attack);
+                atk_queue.push(&self.ca_star_jade_3);
+            },
+            _ => (),
+        }
+    }
+}
+
+pub struct Ningguang {
+    na: NaLoop,
+    ca: NingguangCa,
+    skill: SimpleSkill,
+    burst: SimpleBurst,
+    burst_aa: Attack,
+}
+
+impl Ningguang {
+    pub fn record() -> CharacterRecord {
+        CharacterRecord::default()
+            .name("Ningguang").vision(Geo).weapon(Catalyst).release_date("2020-09-28").version(1.0)
+            .infusion(true)
+            .base_hp(9787.0).base_atk(212.0).base_def(573.0)
+            .geo_dmg(24.0)
+            .energy_cost(40.0)
+    }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            na: NaLoop::new(
+                // 1 attacks in 0.9 seconds
+                &[0.9],
+                vec![
+                    Attack::na(50.4, 1, idx),
+                ]
+            ),
+            ca: NingguangCa::new(idx),
+            skill: SimpleSkill::new(&[10.0, 2.0], Particle::new(Geo, 3.5), Attack {
                 kind: AttackType::PressSkill,
-                gauge: &GAUGE1A,
+                element: &GEO_GAUGE1A,
                 multiplier: 414.72,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
                 idx,
-            },
-            burst: Attack {
-                kind: AttackType::BurstDot,
-                gauge: &GAUGE1A,
+            }),
+            burst: SimpleBurst::new(&[12.0], Attack {
+                kind: AttackType::Burst,
+                element: &GEO_GAUGE1A,
                 multiplier: 156.53,
                 hits: 6,
                 icd_timer: ptr::null_mut(),
                 idx,
-            },
+            }),
             burst_aa: Attack {
                 kind: AttackType::BurstDot,
-                gauge: &GAUGE1A,
+                element: &GEO_GAUGE1A,
                 multiplier: 156.53,
                 hits: 4,
                 icd_timer: ptr::null_mut(),
                 idx,
-            },
+            }
         }
     }
-}
 
-impl CharacterAbility for Ningguang {
-    fn record(&self) -> CharacterRecord {
-        CharacterRecord::default()
-            .name("Ningguang").vision(Geo).weapon(Catalyst).release_date("2020-09-28").version(1.0)
-            .base_hp(9787.0).base_atk(212.0).base_def(573.0)
-            .dmg_geo(24.0)
-            .energy_cost(40.0)
-    }
-
-    fn timers(&self) -> FullCharacterTimers {
-        CharacterTimersBuilder::new()
-            .na(LoopTimer::new(0.9, 1))
-            .ca(HitsTimer::new(2.0, 1))
-            // a1
-            .stamina(StaminaTimer::new(0.0))
-            .press(DotTimer::single_hit(12.0))
-            .burst(DotTimer::single_hit(12.0))
-            .build()
-    }
-
-    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
-        self.na.icd_timer = &mut timers.na_icd;
-        self.ca.icd_timer = &mut timers.ca_icd;
-        self.ca_star_jade_1.icd_timer = &mut timers.ca_icd;
-        self.ca_star_jade_2.icd_timer = &mut timers.ca_icd;
-        self.ca_star_jade_3.icd_timer = &mut timers.ca_icd;
-        self.press.icd_timer = &mut timers.skill_icd;
-        self.burst.icd_timer = &mut timers.burst_icd;
-        self.burst_aa.icd_timer = &mut timers.burst_icd;
-    }
-
-    fn use_ca(&self) -> bool {
-        self.star_jade >= 1
+    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
+        builder.na(&mut self.na).ca(&mut self.ca).skill(&mut self.skill).burst(&mut self.burst).passive(self);
     }
 }
 
 impl SpecialAbility for Ningguang {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        guard.check_second(PressSkill);
-        self.skill_a4.update(guard, time);
-        self.jade_screen.update(guard, time);
-        match guard.kind {
-            Na => self.star_jade += 1,
-            Ca => self.star_jade = 0,
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.burst_aa.icd_timer = &mut timers.burst;
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
+        if self.burst.timer.ping && self.burst.timer.n == 1 && self.skill.timer.n == 1 {
+            atk_queue.push(&self.burst_aa);
+        }
+    }
+
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        // a4
+        match (self.skill.timer.ping, self.skill.timer.n) {
+            (true, 1) => for s in modifiable_state.iter_mut() {
+                s.geo_dmg += 12.0;
+            },
+            (true, 2) => for s in modifiable_state.iter_mut() {
+                s.geo_dmg -= 12.0;
+            },
             _ => (),
         }
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
-        if timers.burst_timer().is_active() {
-            atk_queue.push(ElementalAttack::geo(&self.burst));
-            if self.jade_screen.is_active() {
-                atk_queue.push(ElementalAttack::geo(&self.burst_aa));
-            }
-        }
-        if timers.press_timer().is_active() {
-            atk_queue.push(ElementalAttack::geo(&self.press));
-            particles.push_p(Particle::new(Geo, 3.0));
-        }
-        if timers.ca_timer().is_active() {
-            atk_queue.push(ElementalAttack::geo(&self.ca));
-            match self.star_jade {
-                1 => atk_queue.push(ElementalAttack::geo(&self.ca_star_jade_1)),
-                2 => atk_queue.push(ElementalAttack::geo(&self.ca_star_jade_2)),
-                3 => atk_queue.push(ElementalAttack::geo(&self.ca_star_jade_3)),
-                _ => (),
-            };
-        }
-        if timers.na_timer().is_active() {
-            atk_queue.push(ElementalAttack::geo(&self.na));
-        }
-    }
-
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        // a4
-        if self.skill_a4.is_active() {
-            for s in modifiable_state.iter_mut() {
-                s.geo_dmg += 12.0;
-            }
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.skill_a4.reset();
-        self.jade_screen.reset();
     }
 }
 
 pub struct Noelle {
-    burst_timer: CDTimer,
-    na_1: Attack,
-    na_2: Attack,
-    na_3: Attack,
-    na_4: Attack,
-    press: Attack,
-    burst: Attack,
+    na: NaLoop,
+    skill: SimpleSkill,
+    burst: SimpleBurst,
 }
 
 impl Noelle {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
-        Self {
-            burst_timer: CDTimer::new(15.0),
-            na_1: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 156.4,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_2: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 145.01,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_3: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 170.51,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_4: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 224.23,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            press: Attack {
-                kind: AttackType::PressSkill,
-                gauge: &GAUGE2B,
-                multiplier: 216.0,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            burst: Attack {
-                kind: AttackType::Burst,
-                gauge: &GAUGE1A,
-                multiplier: (120.96 + 167.76) / 2.0,
-                hits: 2,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-        }
-    }
-}
-
-impl CharacterAbility for Noelle {
-    fn record(&self) -> CharacterRecord {
+    pub fn record() -> CharacterRecord {
         CharacterRecord::default()
             .name("Noelle").vision(Geo).weapon(Claymore).release_date("2020-09-28").version(1.0)
             .base_hp(12071.0).base_atk(191.0).base_def(799.0)
@@ -263,154 +208,77 @@ impl CharacterAbility for Noelle {
             .energy_cost(60.0)
     }
 
-    fn timers(&self) -> FullCharacterTimers {
-        CharacterTimersBuilder::new()
-            .na(LoopTimer::new(2.616, 4))
-            .press(DotTimer::single_hit(24.0))
-            .burst(DotTimer::single_hit(15.0))
-            .build()
-    }
-
-    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
-        self.na_1.icd_timer = &mut timers.na_icd;
-        self.na_2.icd_timer = &mut timers.na_icd;
-        self.na_3.icd_timer = &mut timers.na_icd;
-        self.na_4.icd_timer = &mut timers.na_icd;
-        self.press.icd_timer = &mut timers.skill_icd;
-        self.burst.icd_timer = &mut timers.burst_icd;
-    }
-
-    fn accelerate(&self, timers: &mut FullCharacterTimers) -> () {
-        let na = timers.na_timer();
-        if na.is_active() && na.n() == 4 {
-            // a4
-            timers.reduce_cd(1.0);
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            na: NaLoop::new(
+                // 4 attacks in 2.616 seconds
+                &[0.654,0.654,0.654,0.654],
+                vec![
+                    Attack::na(156.4, 1, idx),
+                    Attack::na(145.01, 1, idx),
+                    Attack::na(170.51, 1, idx),
+                    Attack::na(224.23, 1, idx),
+                ]
+            ),
+            // a1
+            skill: SimpleSkill::new(&[24.0], Particle::new(Geo, 0.0), Attack {
+                kind: AttackType::PressSkill,
+                element: &GEO_GAUGE2B,
+                multiplier: 216.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+            burst: SimpleBurst::new(&[15.0], Attack {
+                kind: AttackType::Burst,
+                element: &GEO_GAUGE1A,
+                multiplier: (120.96 + 167.76) / 2.0,
+                hits: 2,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
         }
+    }
+
+    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
+        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
     }
 }
 
 impl SpecialAbility for Noelle {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.burst_timer.update(guard.check_second(Burst), time);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, _enemy: &Enemy) -> () {
-        let burst = timers.burst_timer();
-        if burst.is_active() {
-            atk_queue.push(ElementalAttack::geo(&self.burst));
-        }
-        if timers.press_timer().is_active() {
-            atk_queue.push(ElementalAttack::geo(&self.press));
-        }
-        let na = timers.na_timer();
-        if na.is_active() {
-            match na.n() {
-                1 => atk_queue.push_geo(data, &self.na_1),
-                2 => atk_queue.push_geo(data, &self.na_2),
-                3 => atk_queue.push_geo(data, &self.na_3),
-                4 => atk_queue.push_geo(data, &self.na_4),
-                _ => (),
-            };
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        // a4
+        match (self.na.timer.ping, self.na.timer.n) {
+            (true, 4) => self.skill.timer.update(1.0, false),
+            _ => (),
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        if self.burst_timer.is_active() {
-            let mut state = &mut modifiable_state[data.idx.0];
-            state.flat_atk += data.state.DEF() * 0.72;
-            state.infusion = true;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (self.burst.timer.ping, self.burst.timer.n) {
+            (true, 1) => {
+                state.flat_atk += state.DEF() * 0.72;
+                state.infusion = true;
+            },
+            (true, 0) => {
+                state.flat_atk -= state.DEF() * 0.72;
+                state.infusion = false;
+            },
+            _ => (),
         }
-    }
-
-    fn reset(&mut self) -> () {
-        self.burst_timer.reset();
     }
 }
 
 pub struct TravelerGeo {
-    na_1: Attack,
-    na_2: Attack,
-    na_3: Attack,
-    na_4: Attack,
-    na_5: Attack,
+    na: NaLoop,
     na_last: Attack,
-    press: Attack,
-    burst: Attack,
+    skill: SimpleSkill,
+    burst: SimpleBurst,
 }
 
 impl TravelerGeo {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
-        Self {
-            na_1: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 87.89,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_2: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 85.85,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_3: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 104.72,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_4: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 115.26,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_5: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 139.91,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            na_last: Attack {
-                kind: AttackType::Na,
-                gauge: &GAUGE1A,
-                multiplier: 60.0,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            press: Attack {
-                kind: AttackType::PressSkill,
-                gauge: &GAUGE2B,
-                multiplier: 446.4,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-            burst: Attack {
-                kind: AttackType::BurstDot,
-                gauge: &GAUGE2B,
-                multiplier: 266.4,
-                hits: 4,
-                icd_timer: ptr::null_mut(),
-                idx,
-            },
-        }
-    }
-}
-
-impl CharacterAbility for TravelerGeo {
-    fn record(&self) -> CharacterRecord {
+    pub fn record() -> CharacterRecord {
         CharacterRecord::default()
             .name("Traveler (Geo)").vision(Geo).weapon(Sword).release_date("2020-09-28").version(1.0)
             .base_hp(10875.0).base_atk(212.0).base_def(683.0)
@@ -418,51 +286,60 @@ impl CharacterAbility for TravelerGeo {
             .energy_cost(60.0)
     }
 
-    fn timers(&self) -> FullCharacterTimers {
-        CharacterTimersBuilder::new()
-            .na(LoopTimer::new(2.55, 5))
-            // a1
-            .press(DotTimer::single_hit(8.0 - 2.0))
-            .burst(DotTimer::single_hit(15.0))
-            .build()
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            na: NaLoop::new(
+                // 5 attacks in 2.55 seconds
+                &[0.51,0.51,0.51,0.51,0.51],
+                vec![
+                    Attack::na(87.89, 1, idx),
+                    Attack::na(85.85, 1, idx),
+                    Attack::na(104.72, 1, idx),
+                    Attack::na(115.26, 1, idx),
+                    Attack::na(139.91, 1, idx),
+                ]
+            ),
+            na_last: Attack {
+                kind: AttackType::Na,
+                element: &GEO_GAUGE1A,
+                multiplier: 60.0,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            },
+            skill: SimpleSkill::new(&[6.0], Particle::new(Geo, 3.5), Attack {
+                kind: AttackType::PressSkill,
+                element: &GEO_GAUGE2B,
+                multiplier: 446.4,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+            burst: SimpleBurst::new(&[15.0], Attack {
+                kind: AttackType::Burst,
+                element: &GEO_GAUGE2B,
+                multiplier: 266.4,
+                hits: 4,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }),
+        }
     }
 
-    fn init_attack(&mut self, timers: &mut FullCharacterTimers) -> () {
-        self.na_1.icd_timer = &mut timers.na_icd;
-        self.na_2.icd_timer = &mut timers.na_icd;
-        self.na_3.icd_timer = &mut timers.na_icd;
-        self.na_4.icd_timer = &mut timers.na_icd;
-        self.na_5.icd_timer = &mut timers.na_icd;
-        self.na_last.icd_timer = &mut timers.na_icd;
-        self.press.icd_timer = &mut timers.skill_icd;
-        self.burst.icd_timer = &mut timers.burst_icd;
+    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
+        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
     }
 }
 
 impl SpecialAbility for TravelerGeo {
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, particles: &mut Vec<FieldEnergy>, timers: &FullCharacterTimers, data: &CharacterData, enemy: &Enemy) -> () {
-        let burst = timers.burst_timer();
-        if burst.is_active() {
-            atk_queue.push(ElementalAttack::geo(&self.burst));
-        }
-        let press = timers.press_timer();
-        if press.is_active() {
-            atk_queue.push(ElementalAttack::geo(&self.press));
-            particles.push_p(Particle::new(Geo, 3.5));
-        }
-        let na = timers.na_timer();
-        if na.is_active() {
-            match na.n() {
-                1 => atk_queue.push_geo(data, &self.na_1),
-                2 => atk_queue.push_geo(data, &self.na_2),
-                3 => atk_queue.push_geo(data, &self.na_3),
-                4 => atk_queue.push_geo(data, &self.na_4),
-                5 => {
-                    atk_queue.push_geo(data, &self.na_5);
-                    atk_queue.push(ElementalAttack::geo(&self.na_last));
-                },
-                _ => (),
-            };
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.na_last.icd_timer = &mut timers.na;
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
+        match (self.na.timer.ping, self.na.timer.n) {
+            (true, 5) => atk_queue.push(&self.na_last),
+            _ => (),
         }
     }
 }

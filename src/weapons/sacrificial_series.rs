@@ -1,35 +1,38 @@
-use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle};
-use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, HitsTimer};
+use crate::types::{AttackType, WeaponType, FieldEnergy};
+use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, AttackEvent, NTimer};
 
 use AttackType::*;
 use WeaponType::*;
 // use Vision::*;
 
+fn reset_cd(timer: &mut NTimer) -> () {
+    timer.reset();
+}
+
 pub struct Composed {
-    timer: HitsTimer,
+    timer: NTimer,
 }
 
 impl Composed {
     pub fn new() -> Self {
         Self {
-            timer: HitsTimer::new(16.0, 1),
-        }
-    }
-}
-
-impl WeaponAbility for Composed {
-    fn accelerate(&self, timers: &mut FullCharacterTimers) -> () {
-        if self.timer.is_active() {
-            timers.reset_cd();
+            timer: NTimer::new(&[16.0]),
         }
     }
 }
 
 impl SpecialAbility for Composed {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = guard.kind == PressSkill || guard.kind == HoldSkill;
-        self.timer.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event.idx == data.idx && (event.kind == PressSkill || event.kind == HoldSkill));
+    }
+
+    fn accelerator(&self) -> Option<fn(&mut NTimer)> {
+        if self.timer.n == 0 {
+            Some(reset_cd)
+        } else {
+            None
+        }
     }
 
     fn reset(&mut self) -> () {
@@ -40,27 +43,25 @@ impl SpecialAbility for Composed {
 pub struct SacrificialSwordR5(Composed);
 
 impl SacrificialSwordR5 {
-    pub fn new() -> Self {
-        Self(Composed::new())
-    }
-}
-
-impl WeaponAbility for SacrificialSwordR5 {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Sacrificial Sword").type_(Sword).version(1.0)
             .base_atk(454.0)
             .er(61.3)
     }
 
-    fn accelerate(&self, timers: &mut FullCharacterTimers) -> () {
-        self.0.accelerate(timers);
+    pub fn new() -> Self {
+        Self(Composed::new())
     }
 }
 
 impl SpecialAbility for SacrificialSwordR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.0.update(guard, timers, attack, particles, data, enemy, time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
+    }
+
+    fn accelerator(&self) -> Option<fn(&mut NTimer)> {
+        self.0.accelerator()
     }
 
     fn reset(&mut self) -> () {
@@ -71,27 +72,25 @@ impl SpecialAbility for SacrificialSwordR5 {
 pub struct SacrificialGreatswordR5(Composed);
 
 impl SacrificialGreatswordR5 {
-    pub fn new() -> Self {
-        Self(Composed::new())
-    }
-}
-
-impl WeaponAbility for SacrificialGreatswordR5 {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Sacrificial Greatsword").type_(Claymore).version(1.0)
             .base_atk(565.0)
             .er(30.6).em(0.0).atk_spd(0.0)
     }
 
-    fn accelerate(&self, timers: &mut FullCharacterTimers) -> () {
-        self.0.accelerate(timers);
+    pub fn new() -> Self {
+        Self(Composed::new())
     }
 }
 
 impl SpecialAbility for SacrificialGreatswordR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.0.update(guard, timers, attack, particles, data, enemy, time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
+    }
+
+    fn accelerator(&self) -> Option<fn(&mut NTimer)> {
+        self.0.accelerator()
     }
 
     fn reset(&mut self) -> () {
@@ -104,27 +103,25 @@ impl SpecialAbility for SacrificialGreatswordR5 {
 pub struct SacrificialBowR5(Composed);
 
 impl SacrificialBowR5 {
-    pub fn new() -> Self {
-        Self(Composed::new())
-    }
-}
-
-impl WeaponAbility for SacrificialBowR5 {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Sacrificial Bow").type_(Bow).version(1.0)
             .base_atk(565.0)
             .er(30.6)
     }
 
-    fn accelerate(&self, timers: &mut FullCharacterTimers) -> () {
-        self.0.accelerate(timers);
+    pub fn new() -> Self {
+        Self(Composed::new())
     }
 }
 
 impl SpecialAbility for SacrificialBowR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.0.update(guard, timers, attack, particles, data, enemy, time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
+    }
+
+    fn accelerator(&self) -> Option<fn(&mut NTimer)> {
+        self.0.accelerator()
     }
 
     fn reset(&mut self) -> () {
@@ -135,27 +132,25 @@ impl SpecialAbility for SacrificialBowR5 {
 pub struct SacrificialFragmentsR5(Composed);
 
 impl SacrificialFragmentsR5 {
-    pub fn new() -> Self {
-        Self(Composed::new())
-    }
-}
-
-impl WeaponAbility for SacrificialFragmentsR5 {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Sacrificial Fragments").type_(Catalyst).version(1.0)
             .base_atk(454.0)
             .em(221.0)
     }
 
-    fn accelerate(&self, timers: &mut FullCharacterTimers) -> () {
-        self.0.accelerate(timers);
+    pub fn new() -> Self {
+        Self(Composed::new())
     }
 }
 
 impl SpecialAbility for SacrificialFragmentsR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.0.update(guard, timers, attack, particles, data, enemy, time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
+    }
+
+    fn accelerator(&self) -> Option<fn(&mut NTimer)> {
+        self.0.accelerator()
     }
 
     fn reset(&mut self) -> () {

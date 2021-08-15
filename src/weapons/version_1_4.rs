@@ -1,55 +1,62 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, MILLENNIAL_MOVEMENT_SERIES};
-use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, StackTimer, SigilTimer, DurationTimer};
+use crate::types::{AttackType, WeaponType, FieldEnergy, MILLENNIAL_MOVEMENT_SERIES};
+use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, AttackEvent, DurationTimer};
 
 use AttackType::*;
 use WeaponType::*;
 // use Vision::*;
 
 pub struct ElegyForTheEnd {
-    timer: SigilTimer,
+    timer: DurationTimer,
 }
 
 impl ElegyForTheEnd {
-    pub fn new() -> Self {
-        Self {
-            timer: SigilTimer::new(0.2, 20.0, 12.0, 4),
-        }
-    }
-}
-
-impl WeaponAbility for ElegyForTheEnd {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Elegy for the End").type_(Bow).version(1.4)
             .base_atk(608.0)
             .er(55.1).em(60.0)
     }
+
+    pub fn new() -> Self {
+        Self {
+            timer: DurationTimer::new(12.0, &[0.2,0.2,0.2,0.2, 20.0]),
+        }
+    }
 }
 
 impl SpecialAbility for ElegyForTheEnd {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, time: f32, _event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
         let should_update = unsafe {
-            attack.iter().any(|&a|
-                match (*a.atk).kind {
-                    PressSkill | HoldSkill | SkillDot | Burst | BurstDot => true,
+            attack.iter().any(|&a| {
+                let atk = & *a;
+                match atk.kind {
+                    PressSkill | HoldSkill | SkillDot | Burst | BurstDot => atk.idx == data.idx,
                     _ => false,
                 }
-            )
+            })
         };
-        self.timer.update(guard.second(should_update), time);
+        self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.timer.is_active() {
-            for s in modifiable_state.iter_mut() {
+    fn modify(&self, modifiable_state: &mut [State], _data: &CharacterData, _enemy: &mut Enemy) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 4) => for s in modifiable_state.iter_mut() {
                 if s.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
                     s.atk += 20.0;
                     s.em  += 100.0;
-                    s.stacked_buff += MILLENNIAL_MOVEMENT_SERIES;
+                    s.stacked_buff.turn_on(&MILLENNIAL_MOVEMENT_SERIES);
                 }
-            }
+            },
+            (true, 0) => for s in modifiable_state.iter_mut() {
+                if s.stacked_buff == MILLENNIAL_MOVEMENT_SERIES {
+                    s.atk -= 20.0;
+                    s.em  -= 100.0;
+                    s.stacked_buff.turn_off(&MILLENNIAL_MOVEMENT_SERIES);
+                }
+            },
+            _ => (),
         }
     }
 
@@ -60,45 +67,47 @@ impl SpecialAbility for ElegyForTheEnd {
 
 pub struct TheAlleyFlash;
 
-impl WeaponAbility for TheAlleyFlash {
-    fn record(&self) -> WeaponRecord {
+impl TheAlleyFlash {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("The Alley Flash").type_(Sword).version(1.4)
             .base_atk(620.0)
             .em(55.0)
-            .dmg_na(24.0).dmg_ca(24.0).dmg_skill(24.0).dmg_burst(24.0)
+            .na_dmg(24.0).ca_dmg(24.0).skill_dmg(24.0).burst_dmg(24.0)
     }
 }
 
 impl SpecialAbility for TheAlleyFlash {}
 
 pub struct AlleyHunter {
-    timer: StackTimer,
+    timer: DurationTimer,
 }
 
 impl AlleyHunter {
-    pub fn new() -> Self {
-        Self { timer: StackTimer::new(4.0, 8.0, 5) }
-    }
-}
-
-impl WeaponAbility for AlleyHunter {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Alley Hunter").type_(Bow).version(1.4)
             .base_atk(565.0)
             .atk(27.6)
     }
+
+    pub fn new() -> Self {
+        Self { timer: DurationTimer::new(8.0, &[4.0,4.0,4.0,4.0,4.0]) }
+    }
 }
 
 impl SpecialAbility for AlleyHunter {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(guard.second(true), time);
+    fn update(&mut self, time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, true);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.timer.is_active() {
-            modifiable_state[data.idx.0].all_dmg += 8.0 * (5 - self.timer.n) as f32;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (self.timer.ping, self.timer.n) {
+            (false, 0) => state.all_dmg += 40.0,
+            (true, 0) => (),
+            (true, _) => state.all_dmg -= 8.0,
+            _ => (),
         }
     }
 
@@ -109,8 +118,8 @@ impl SpecialAbility for AlleyHunter {
 
 pub struct WineAndSong;
 
-impl WeaponAbility for WineAndSong {
-    fn record(&self) -> WeaponRecord {
+impl WineAndSong {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Wine and Song").type_(Catalyst).version(1.4)
             .base_atk(565.0)
@@ -125,29 +134,29 @@ pub struct WindblumeOde {
 }
 
 impl WindblumeOde {
-    pub fn new() -> Self {
-        Self { timer: DurationTimer::new(0.0, 6.0) }
-    }
-}
-
-impl WeaponAbility for WindblumeOde {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Windblume Ode").type_(Bow).version(1.4)
             .base_atk(510.0)
             .em(165.0)
     }
+
+    pub fn new() -> Self {
+        Self { timer: DurationTimer::new(6.0, &[0.0]) }
+    }
 }
 
 impl SpecialAbility for WindblumeOde {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = guard.kind == PressSkill || guard.kind == HoldSkill;
-        self.timer.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event.idx == data.idx && (event.kind == PressSkill || event.kind == HoldSkill));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.timer.is_active() {
-            modifiable_state[data.idx.0].atk += 32.0;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (self.timer.ping, self.timer.n > 0) {
+            (true, true) => state.atk += 32.0,
+            (true, false) => state.atk -= 32.0,
+            _ => (),
         }
     }
 

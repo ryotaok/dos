@@ -1,4 +1,3 @@
-use std::ops::{Add, AddAssign};
 use std::cmp::PartialEq;
 
 use crate::action::Attack;
@@ -22,6 +21,7 @@ pub enum AttackType {
     Na,
     Ca,
     // Plunge,
+    Skill,
     PressSkill,
     HoldSkill,
     SkillDot,
@@ -78,7 +78,7 @@ pub enum FieldEnergy {
     Particle(Particle),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Particle {
     element: Vision,
     n: f32,
@@ -168,28 +168,29 @@ impl PartialEq<WeaponType> for Preference {
 pub struct UnstackableBuff(usize);
 
 pub const NOBLESSE_OBLIGE: UnstackableBuff = UnstackableBuff(1 << 0);
-
 pub const TENACITY_OF_THE_MILLELITH: UnstackableBuff = UnstackableBuff(1 << 1);
-
 pub const MILLENNIAL_MOVEMENT_SERIES: UnstackableBuff = UnstackableBuff(1 << 2);
+pub const THUNDERSOOTHER: UnstackableBuff = UnstackableBuff(1 << 3);
+pub const LAVAWALKER: UnstackableBuff = UnstackableBuff(1 << 4);
+pub const BLIZZARDSTRAYER1: UnstackableBuff = UnstackableBuff(1 << 5);
+pub const BLIZZARDSTRAYER2: UnstackableBuff = UnstackableBuff(1 << 6);
+pub const LIONSROAR: UnstackableBuff = UnstackableBuff(1 << 7);
+pub const RAINSLASHER: UnstackableBuff = UnstackableBuff(1 << 8);
+pub const DRAGONSBANE: UnstackableBuff = UnstackableBuff(1 << 9);
 
 impl UnstackableBuff {
     pub fn new() -> Self {
         Self(0)
     }
-}
 
-impl Add for UnstackableBuff {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        Self(self.0 | other.0)
+    pub fn turn_on(&mut self, other: &Self) -> &mut Self {
+        self.0 |= other.0;
+        self
     }
-}
 
-impl AddAssign for UnstackableBuff {
-    fn add_assign(&mut self, other: Self) {
-        *self = *self + other;
+    pub fn turn_off(&mut self, other: &Self) -> &mut Self {
+        self.0 &= !other.0;
+        self
     }
 }
 
@@ -210,6 +211,21 @@ pub enum Vision {
     Geo,
     Dendro,
     Physical,
+}
+
+impl Vision {
+    pub fn to_gauge(&self) -> &'static ElementalGauge {
+        match self {
+            Pyro => &PYRO_GAUGE1A,
+            Cryo => &CRYO_GAUGE1A,
+            Hydro => &HYDRO_GAUGE1A,
+            Electro => &ELECTRO_GAUGE1A,
+            Anemo => &ANEMO_GAUGE1A,
+            Geo => &GEO_GAUGE1A,
+            Dendro => &DENDRO_GAUGE1A,
+            Physical => &PHYSICAL_GAUGE,
+        }
+    }
 }
 
 impl From<String> for Vision {
@@ -258,42 +274,41 @@ impl ElementalGaugeDecay {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct BareElementalGauge {
-    pub unit: f32,
-    pub decay: ElementalGaugeDecay,
-}
-
-pub const GAUGE1A: BareElementalGauge = BareElementalGauge {
-    unit: 1.0,
-    decay: ElementalGaugeDecay::A,
-};
-
-pub const GAUGE2B: BareElementalGauge = BareElementalGauge {
-    unit: 2.0,
-    decay: ElementalGaugeDecay::B,
-};
-
-pub const GAUGE4C: BareElementalGauge = BareElementalGauge {
-    unit: 4.0,
-    decay: ElementalGaugeDecay::C,
-};
-
-impl BareElementalGauge {
-    pub fn to_gauge(&self, aura: &Vision) -> ElementalGauge {
-        ElementalGauge {
-            aura: *aura,
-            unit: self.unit,
-            decay: self.decay,
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct ElementalGauge {
     pub aura: Vision,
     pub unit: f32,
     pub decay: ElementalGaugeDecay,
 }
+
+pub const PHYSICAL_GAUGE: ElementalGauge = ElementalGauge { aura: Physical, unit: 1.0, decay: ElementalGaugeDecay::A, };
+
+pub const PYRO_GAUGE1A: ElementalGauge = ElementalGauge { aura: Pyro, unit: 1.0, decay: ElementalGaugeDecay::A, };
+pub const PYRO_GAUGE2B: ElementalGauge = ElementalGauge { aura: Pyro, unit: 2.0, decay: ElementalGaugeDecay::B, };
+pub const PYRO_GAUGE4C: ElementalGauge = ElementalGauge { aura: Pyro, unit: 4.0, decay: ElementalGaugeDecay::C, };
+
+pub const HYDRO_GAUGE1A: ElementalGauge = ElementalGauge { aura: Hydro, unit: 1.0, decay: ElementalGaugeDecay::A, };
+pub const HYDRO_GAUGE2B: ElementalGauge = ElementalGauge { aura: Hydro, unit: 2.0, decay: ElementalGaugeDecay::B, };
+pub const HYDRO_GAUGE4C: ElementalGauge = ElementalGauge { aura: Hydro, unit: 4.0, decay: ElementalGaugeDecay::C, };
+
+pub const ELECTRO_GAUGE1A: ElementalGauge = ElementalGauge { aura: Electro, unit: 1.0, decay: ElementalGaugeDecay::A, };
+pub const ELECTRO_GAUGE2B: ElementalGauge = ElementalGauge { aura: Electro, unit: 2.0, decay: ElementalGaugeDecay::B, };
+pub const ELECTRO_GAUGE4C: ElementalGauge = ElementalGauge { aura: Electro, unit: 4.0, decay: ElementalGaugeDecay::C, };
+
+pub const CRYO_GAUGE1A: ElementalGauge = ElementalGauge { aura: Cryo, unit: 1.0, decay: ElementalGaugeDecay::A, };
+pub const CRYO_GAUGE2B: ElementalGauge = ElementalGauge { aura: Cryo, unit: 2.0, decay: ElementalGaugeDecay::B, };
+pub const CRYO_GAUGE4C: ElementalGauge = ElementalGauge { aura: Cryo, unit: 4.0, decay: ElementalGaugeDecay::C, };
+
+pub const ANEMO_GAUGE1A: ElementalGauge = ElementalGauge { aura: Anemo, unit: 1.0, decay: ElementalGaugeDecay::A, };
+pub const ANEMO_GAUGE2B: ElementalGauge = ElementalGauge { aura: Anemo, unit: 2.0, decay: ElementalGaugeDecay::B, };
+pub const ANEMO_GAUGE4C: ElementalGauge = ElementalGauge { aura: Anemo, unit: 4.0, decay: ElementalGaugeDecay::C, };
+
+pub const GEO_GAUGE1A: ElementalGauge = ElementalGauge { aura: Geo, unit: 1.0, decay: ElementalGaugeDecay::A, };
+pub const GEO_GAUGE2B: ElementalGauge = ElementalGauge { aura: Geo, unit: 2.0, decay: ElementalGaugeDecay::B, };
+pub const GEO_GAUGE4C: ElementalGauge = ElementalGauge { aura: Geo, unit: 4.0, decay: ElementalGaugeDecay::C, };
+
+pub const DENDRO_GAUGE1A: ElementalGauge = ElementalGauge { aura: Dendro, unit: 1.0, decay: ElementalGaugeDecay::A, };
+pub const DENDRO_GAUGE2B: ElementalGauge = ElementalGauge { aura: Dendro, unit: 2.0, decay: ElementalGaugeDecay::B, };
+pub const DENDRO_GAUGE4C: ElementalGauge = ElementalGauge { aura: Dendro, unit: 4.0, decay: ElementalGaugeDecay::C, };
 
 impl ElementalGauge {
     pub fn new(aura: Vision, unit: f32, decay: ElementalGaugeDecay) -> Self {
@@ -304,10 +319,10 @@ impl ElementalGauge {
         }
     }
 
-    pub fn trigger(&mut self, attack: &Attack, attack_element: &Vision) -> () {
+    pub fn trigger(&mut self, attack: &Attack) -> () {
         if attack.icd_cleared() {
-            let other = attack.gauge.to_gauge(attack_element);
-            let er = ElementalReaction::new(self.aura, *attack_element);
+            let other = &attack.element;
+            let er = ElementalReaction::new(self.aura, other.aura);
             let before_negative = self.unit <= 0.0;
             let unit = er.gauge_modifier() * other.unit;
             if unit > 0.0 {
@@ -325,7 +340,7 @@ impl ElementalGauge {
                 self.aura = Physical;
             } else if before_negative && !after_negative {
                 // no aura was applied on the enemy
-                self.aura = *attack_element;
+                self.aura = other.aura;
                 self.unit = other.unit;
                 self.decay = other.decay;
             }
@@ -438,6 +453,13 @@ impl ElementalReactionType {
             _ => false,
         }
     }
+
+    pub fn is_crystallize(&self) -> bool {
+        match self {
+            Crystallize(_) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -517,12 +539,21 @@ mod tests {
 
     #[test]
     fn usb_add() {
+        let mut no = NOBLESSE_OBLIGE;
+        let tm = TENACITY_OF_THE_MILLELITH;
+        assert_eq!(*no.turn_on(&tm), UnstackableBuff(3));
+
+        let mut tm = TENACITY_OF_THE_MILLELITH;
+        let mm = MILLENNIAL_MOVEMENT_SERIES;
+        assert_eq!(*tm.turn_on(&mm), UnstackableBuff(6));
+
+        let mut mm = MILLENNIAL_MOVEMENT_SERIES;
         let no = NOBLESSE_OBLIGE;
+        assert_eq!(*mm.turn_on(&no), UnstackableBuff(5));
+
+        let mut no = NOBLESSE_OBLIGE;
         let tm = TENACITY_OF_THE_MILLELITH;
         let mm = MILLENNIAL_MOVEMENT_SERIES;
-        assert_eq!(no + tm, UnstackableBuff(3));
-        assert_eq!(tm + mm, UnstackableBuff(6));
-        assert_eq!(mm + no, UnstackableBuff(5));
-        assert_eq!(no + tm + mm, UnstackableBuff(7));
+        assert_eq!(*no.turn_on(&tm).turn_on(&mm), UnstackableBuff(7));
     }
 }

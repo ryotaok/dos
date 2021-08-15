@@ -1,49 +1,44 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle};
-use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, StackTimer};
+use crate::types::{AttackType, WeaponType, FieldEnergy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, AttackEvent, DurationTimer};
 
-use AttackType::*;
+// use AttackType::*;
 use WeaponType::*;
 // use Vision::*;
 
 pub struct GoldenMajesty {
-    timer: StackTimer,
+    idx: FieldCharacterIndex,
+    timer: DurationTimer,
 }
 
 impl GoldenMajesty {
-    pub fn new() -> Self {
-        Self {
-            timer: StackTimer::new(0.3, 8.0, 5),
-        }
-    }
-}
-
-impl WeaponAbility for GoldenMajesty {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .version(1.1)
             .base_atk(608.0)
             .atk(49.6)
     }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            timer: DurationTimer::new(8.0, &[0.3,0.3,0.3,0.3,0.3]),
+        }
+    }
 }
 
 impl SpecialAbility for GoldenMajesty {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = unsafe {
-            attack.iter().any(|&a|
-                match (*a.atk).kind {
-                    Na | Ca | PressSkill | HoldSkill | SkillDot | Burst | BurstDot => true,
-                    _ => false,
-                }
-            )
-        };
-        self.timer.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event.idx == self.idx);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.timer.is_active() {
-            modifiable_state[data.idx.0].atk += 8.0 * self.timer.n as f32;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (self.timer.ping, self.timer.n > 0) {
+            (true, true) => state.atk += 8.0,
+            (true, false) => state.atk -= 8.0 * self.timer.previous_n as f32,
+            _ => (),
         }
     }
 
@@ -55,24 +50,22 @@ impl SpecialAbility for GoldenMajesty {
 pub struct TheUnforged(GoldenMajesty);
 
 impl TheUnforged {
-    pub fn new() -> Self {
-        Self(GoldenMajesty::new())
+    pub fn record() -> WeaponRecord {
+        GoldenMajesty::record().name("The Unforged").type_(Claymore)
     }
-}
 
-impl WeaponAbility for TheUnforged {
-    fn record(&self) -> WeaponRecord {
-        self.0.record().name("The Unforged").type_(Claymore)
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(GoldenMajesty::new(idx))
     }
 }
 
 impl SpecialAbility for TheUnforged {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.0.update(guard, timers, attack, particles, data, enemy, time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, timers, data, enemy);
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_state, data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }
@@ -81,24 +74,22 @@ impl SpecialAbility for TheUnforged {
 pub struct SummitShaper(GoldenMajesty);
 
 impl SummitShaper {
-    pub fn new() -> Self {
-        Self(GoldenMajesty::new())
+    pub fn record() -> WeaponRecord {
+        GoldenMajesty::record().name("Summit shaper").type_(Sword)
     }
-}
 
-impl WeaponAbility for SummitShaper {
-    fn record(&self) -> WeaponRecord {
-        self.0.record().name("Summit shaper").type_(Sword)
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(GoldenMajesty::new(idx))
     }
 }
 
 impl SpecialAbility for SummitShaper {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.0.update(guard, timers, attack, particles, data, enemy, time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, timers, data, enemy);
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_state, data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }
@@ -107,24 +98,22 @@ impl SpecialAbility for SummitShaper {
 pub struct VortexVanquisher(GoldenMajesty);
 
 impl VortexVanquisher {
-    pub fn new() -> Self {
-        Self(GoldenMajesty::new())
+    pub fn record() -> WeaponRecord {
+        GoldenMajesty::record().name("Vortex Vanquisher").type_(Polearm)
     }
-}
 
-impl WeaponAbility for VortexVanquisher {
-    fn record(&self) -> WeaponRecord {
-        self.0.record().name("Vortex Vanquisher").type_(Polearm)
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(GoldenMajesty::new(idx))
     }
 }
 
 impl SpecialAbility for VortexVanquisher {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.0.update(guard, timers, attack, particles, data, enemy, time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, timers, data, enemy);
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_state, data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }
@@ -133,24 +122,22 @@ impl SpecialAbility for VortexVanquisher {
 pub struct MemoryOfDust(GoldenMajesty);
 
 impl MemoryOfDust {
-    pub fn new() -> Self {
-        Self(GoldenMajesty::new())
+    pub fn record() -> WeaponRecord {
+        GoldenMajesty::record().name("Memory of Dust").type_(Catalyst)
     }
-}
 
-impl WeaponAbility for MemoryOfDust {
-    fn record(&self) -> WeaponRecord {
-        self.0.record().name("Memory of Dust").type_(Catalyst)
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(GoldenMajesty::new(idx))
     }
 }
 
 impl SpecialAbility for MemoryOfDust {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, attack: &[ElementalAttack], particles: &[FieldEnergy], data: &CharacterData, enemy: &Enemy, time: f32) -> () {
-        self.0.update(guard, timers, attack, particles, data, enemy, time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, timers, data, enemy);
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_state, data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }

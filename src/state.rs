@@ -7,7 +7,7 @@ use crate::types::{AttackType, UnstackableBuff, Vision, NOBLESSE_OBLIGE};
 pub struct State {
     pub base_hp: f32, pub base_def: f32, pub base_atk: f32,
     pub hp: f32, pub def: f32, pub atk: f32, pub flat_atk: f32, pub cr: f32, pub cd: f32, pub er: f32, pub em: f32, pub atk_spd: f32,
-    pub energy: f32, pub energy_cost: f32,
+    pub energy: f32,
     pub na_dmg: f32, pub ca_dmg: f32, pub skill_dmg: f32, pub burst_dmg: f32, pub all_dmg: f32,
     pub pyro_dmg: f32, pub cryo_dmg: f32, pub hydro_dmg: f32, pub electro_dmg: f32,
     pub physical_dmg: f32, pub anemo_dmg: f32, pub geo_dmg: f32, pub dendro_dmg: f32, pub elemental_dmg: f32,
@@ -41,7 +41,7 @@ impl State {
         State {
             base_hp: 0.0, base_def: 0.0, base_atk: 0.0,
             hp: 0.0, def: 0.0, atk: 0.0, flat_atk: 0.0, cr: 0.0, cd: 0.0, er: 0.0, em: 0.0, atk_spd: 0.0,
-            energy: 0.0, energy_cost: 0.0,
+            energy: 0.0,
             na_dmg: 0.0, ca_dmg: 0.0, skill_dmg: 0.0, burst_dmg: 0.0, all_dmg: 0.0,
             pyro_dmg: 0.0, cryo_dmg: 0.0, hydro_dmg: 0.0, electro_dmg: 0.0,
             physical_dmg: 0.0, anemo_dmg: 0.0, geo_dmg: 0.0, dendro_dmg: 0.0, elemental_dmg: 0.0,
@@ -64,7 +64,6 @@ impl State {
         self.em = 0.0;
         self.atk_spd = 0.0;
         self.energy = 0.0;
-        self.energy_cost = 0.0;
         self.na_dmg = 0.0;
         self.ca_dmg = 0.0;
         self.skill_dmg = 0.0;
@@ -99,7 +98,7 @@ impl State {
     pub fn atk(mut self, atk: f32) -> Self { self.atk = atk; self }
     // pub fn flat_atk(mut self, flat_atk: f32) -> Self { self.flat_atk = flat_atk; self }
     pub fn cr(mut self, cr: f32) -> Self { self.cr = cr; self }
-    // pub fn cd(mut self, cd: f32) -> Self { self.cd = cd; self }
+    pub fn cd(mut self, cd: f32) -> Self { self.cd = cd; self }
     pub fn er(mut self, er: f32) -> Self { self.er = er; self }
     pub fn em(mut self, em: f32) -> Self { self.em = em; self }
     pub fn atk_spd(mut self, atk_spd: f32) -> Self { self.atk_spd = atk_spd; self }
@@ -125,7 +124,8 @@ impl State {
     pub fn skill_talent(mut self, skill_talent: f32) -> Self { self.skill_talent = skill_talent; self }
     pub fn burst_talent(mut self, burst_talent: f32) -> Self { self.burst_talent = burst_talent; self }
 
-    pub fn merge(&mut self, other: &State) -> &mut Self {
+    // pub fn merge(&mut self, other: &State) -> &mut Self {
+    pub fn merge(&mut self, other: &State) -> () {
         self.base_hp += other.base_hp;
         self.base_def += other.base_def;
         self.base_atk += other.base_atk;
@@ -139,7 +139,6 @@ impl State {
         self.em += other.em;
         self.atk_spd += other.atk_spd;
         self.energy += other.energy;
-        self.energy_cost += other.energy_cost;
         self.na_dmg += other.na_dmg;
         self.ca_dmg += other.ca_dmg;
         self.skill_dmg += other.skill_dmg;
@@ -155,14 +154,13 @@ impl State {
         self.dendro_dmg += other.dendro_dmg;
         self.elemental_dmg += other.elemental_dmg;
         self.infusion |= other.infusion;
-        self.stacked_buff += other.stacked_buff;
+        self.stacked_buff.turn_on(&other.stacked_buff);
         self.amplifying_bonus += other.amplifying_bonus;
         self.transformative_bonus += other.transformative_bonus;
         self.na_talent += other.na_talent;
         self.ca_talent += other.ca_talent;
         self.skill_talent += other.skill_talent;
         self.burst_talent += other.burst_talent;
-        self
     }
 
     #[allow(non_snake_case)]
@@ -315,7 +313,6 @@ mod tests {
             em: 1.0,
             atk_spd: 1.0,
             energy: 1.0,
-            energy_cost: 1.0,
             na_dmg: 1.0,
             ca_dmg: 1.0,
             skill_dmg: 1.0,
@@ -353,7 +350,6 @@ mod tests {
         assert_eq!(a.em, 1.0);
         assert_eq!(a.atk_spd, 1.0);
         assert_eq!(a.energy, 1.0);
-        assert_eq!(a.energy_cost, 1.0);
         assert_eq!(a.na_dmg, 1.0);
         assert_eq!(a.ca_dmg, 1.0);
         assert_eq!(a.skill_dmg, 1.0);

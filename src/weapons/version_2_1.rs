@@ -1,26 +1,28 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle};
-use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, DurationTimer};
+use crate::types::{AttackType, WeaponType, FieldEnergy};
+use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, AttackEvent, DurationTimer};
 
 use AttackType::*;
 use WeaponType::*;
 // use Vision::*;
 
 pub struct GrasscuttersLight {
+    once: bool,
     timer: DurationTimer,
 }
 
 impl GrasscuttersLight {
     pub fn new() -> Self {
         Self {
-            timer: DurationTimer::new(0.0, 12.0),
+            once: true,
+            timer: DurationTimer::new(12.0, &[0.0]),
         }
     }
 }
 
-impl WeaponAbility for GrasscuttersLight {
-    fn record(&self) -> WeaponRecord {
+impl GrasscuttersLight {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Grasscutter's Light").type_(Polearm).version(2.1)
             .base_atk(608.0)
@@ -29,37 +31,49 @@ impl WeaponAbility for GrasscuttersLight {
 }
 
 impl SpecialAbility for GrasscuttersLight {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(guard.check_second(Burst), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        if self.once {
+            self.once = false;
+        }
+        self.timer.update(time, event.idx == data.idx && event.kind == Burst);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
         let state = &mut modifiable_state[data.idx.0];
-        state.atk += 0.28 * data.state.er;
-        if self.timer.is_active() {
-            state.er += 30.0;
+        if self.once {
+            state.atk += 0.28 * data.state().er;
+        }
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => state.er += 30.0,
+            (true, 0) => state.er -= 30.0,
+            _ => (),
         }
     }
 
     fn reset(&mut self) -> () {
+        self.once = true;
         self.timer.reset();
     }
 }
 
 pub struct FumetsuGekka {
+    did_na: bool,
+    once: bool,
     timer: DurationTimer,
 }
 
 impl FumetsuGekka {
     pub fn new() -> Self {
         Self {
-            timer: DurationTimer::new(0.0, 12.0),
+            did_na: false,
+            once: true,
+            timer: DurationTimer::new(12.0, &[0.0]),
         }
     }
 }
 
-impl WeaponAbility for FumetsuGekka {
-    fn record(&self) -> WeaponRecord {
+impl FumetsuGekka {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Fumetsu Gekka").type_(Catalyst).version(2.1)
             .base_atk(608.0)
@@ -69,22 +83,28 @@ impl WeaponAbility for FumetsuGekka {
 }
 
 impl SpecialAbility for FumetsuGekka {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        self.timer.update(guard.check_second(Burst), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        if self.once {
+            self.once = false;
+        }
+        self.did_na = event.idx == data.idx && event.kind == Burst;
+        self.timer.update(time, event.idx == data.idx && event.kind == Burst);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if timers.na_timer().is_active() {
-            for s in modifiable_state.iter_mut() {
-                s.energy += 0.6;
-            }
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+        if self.once {
+            let state = &mut modifiable_state[data.idx.0];
+            // TODO incorrect
+            state.na_dmg += 0.0001 * data.state().HP();
         }
-        let state = &mut modifiable_state[data.idx.0];
-        // TODO incorrect
-        state.na_dmg += 0.0001 * data.state.HP();
+        if self.timer.n == 1 && self.did_na {
+            let state = &mut modifiable_state[data.idx.0];
+            state.energy += state.ER() * 0.6;
+        }
     }
 
     fn reset(&mut self) -> () {
+        self.once = true;
         self.timer.reset();
     }
 }

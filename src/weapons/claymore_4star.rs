@@ -1,9 +1,9 @@
 use std::ptr;
 
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, Vision, GAUGE1A};
-use crate::fc::{FieldCharacterIndex, SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, HitsTimer, StackTimer};
+use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, Vision, PHYSICAL_GAUGE, LIONSROAR};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, AttackEvent, ElementalAbsorption, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
 use AttackType::*;
@@ -13,17 +13,17 @@ use WeaponType::*;
 // version 1.0
 
 pub struct PrototypeArchaicR5 {
-    timer: HitsTimer,
+    timer: NTimer,
     aa: Attack,
 }
 
 impl PrototypeArchaicR5 {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
-            timer: HitsTimer::new(15.0, 1),
+            timer: NTimer::new(&[15.0]),
             aa: Attack {
                 kind: AdditionalAttack,
-                gauge: &GAUGE1A,
+                element: &PHYSICAL_GAUGE,
                 multiplier: 480.0,
                 hits: 1,
                 icd_timer: ptr::null_mut(),
@@ -31,10 +31,8 @@ impl PrototypeArchaicR5 {
             }
         }
     }
-}
 
-impl WeaponAbility for PrototypeArchaicR5 {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Prototype Archaic").type_(Claymore).version(1.0)
             .base_atk(566.0)
@@ -43,14 +41,15 @@ impl WeaponAbility for PrototypeArchaicR5 {
 }
 
 impl SpecialAbility for PrototypeArchaicR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = timers.na_timer().is_active() || timers.ca_timer().is_active();
-        self.timer.update(guard.second(testutil::chance() < 0.5 && should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        let should_update = event.idx == data.idx && (event.kind == Na || event.kind == Ca);
+        self.timer.update(time, testutil::chance() < 0.5 && should_update);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<ElementalAttack>, _particles: &mut Vec<FieldEnergy>, _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &Enemy) -> () {
-        if self.timer.is_active() {
-            atk_queue.push(ElementalAttack::physical(&self.aa))
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => atk_queue.push(&self.aa),
+            _ => (),
         }
     }
 
@@ -60,17 +59,15 @@ impl SpecialAbility for PrototypeArchaicR5 {
 }
 
 pub struct WhiteblindR5 {
-    timer: StackTimer,
+    timer: DurationTimer,
 }
 
 impl WhiteblindR5 {
     pub fn new() -> Self {
-        Self { timer: StackTimer::new(0.5, 6.0, 4) }
+        Self { timer: DurationTimer::new(6.0, &[0.5,0.5,0.5,0.5]) }
     }
-}
 
-impl WeaponAbility for WhiteblindR5 {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Whiteblind").type_(Claymore).version(1.0)
             .base_atk(510.0)
@@ -79,16 +76,22 @@ impl WeaponAbility for WhiteblindR5 {
 }
 
 impl SpecialAbility for WhiteblindR5 {
-    fn update(&mut self, guard: &mut TimerGuard, timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = timers.na_timer().is_active() || timers.ca_timer().is_active();
-        self.timer.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.timer.update(time, event.idx == data.idx && (event.kind == Na || event.kind == Ca));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.timer.is_active() {
-            let mut state = &mut modifiable_state[data.idx.0];
-            state.atk += 12.0 * self.timer.n as f32;
-            state.def += 12.0 * self.timer.n as f32;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (self.timer.ping, self.timer.n > 0) {
+            (true, true) => {
+                state.atk += 12.0;
+                state.def += 12.0;
+            },
+            (true, false) => {
+                state.atk -= 12.0 * self.timer.previous_n as f32;
+                state.def -= 12.0 * self.timer.previous_n as f32;
+            },
+            _ => (),
         }
     }
 
@@ -98,17 +101,15 @@ impl SpecialAbility for WhiteblindR5 {
 }
 
 pub struct SerpentSpineR5 {
-    timer: StackTimer,
+    timer: DurationTimer,
 }
 
 impl SerpentSpineR5 {
     pub fn new() -> Self {
-        Self { timer: StackTimer::new(4.0, 8.0, 5) }
+        Self { timer: DurationTimer::new(8.0, &[4.0,4.0,4.0,4.0,4.0]) }
     }
-}
 
-impl WeaponAbility for SerpentSpineR5 {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Serpent Spine").type_(Claymore).version(1.0)
             .base_atk(510.0)
@@ -117,14 +118,21 @@ impl WeaponAbility for SerpentSpineR5 {
 }
 
 impl SpecialAbility for SerpentSpineR5 {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         // only the attacker can activate the passive
-        self.timer.update(guard.second(data.idx.0 == 0), time);
+        self.timer.update(time, data.idx.0 == 0);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.timer.is_active() {
-            modifiable_state[data.idx.0].all_dmg += 10.0 * self.timer.n as f32;
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (self.timer.ping, self.timer.n > 0) {
+            (true, true) => {
+                state.all_dmg += 10.0;
+            },
+            (true, false) => {
+                state.all_dmg -= 10.0 * self.timer.previous_n as f32;
+            },
+            _ => (),
         }
     }
 
@@ -138,8 +146,8 @@ pub struct BlackcliffSlasherR5;
 
 impl SpecialAbility for BlackcliffSlasherR5 {}
 
-impl WeaponAbility for BlackcliffSlasherR5 {
-    fn record(&self) -> WeaponRecord {
+impl BlackcliffSlasherR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Blackcliff Slasher").type_(Claymore).version(1.0)
             .base_atk(510.0)
@@ -151,8 +159,8 @@ pub struct RoyalGreatswordR5;
 
 impl SpecialAbility for RoyalGreatswordR5 {}
 
-impl WeaponAbility for RoyalGreatswordR5 {
-    fn record(&self) -> WeaponRecord {
+impl RoyalGreatswordR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Royal Greatsword").type_(Claymore).version(1.0)
             .base_atk(565.0)
@@ -162,8 +170,8 @@ impl WeaponAbility for RoyalGreatswordR5 {
 
 pub struct RainslasherR5;
 
-impl WeaponAbility for RainslasherR5 {
-    fn record(&self) -> WeaponRecord {
+impl RainslasherR5 {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Rainslasher").type_(Claymore).version(1.0)
             .base_atk(510.0)
@@ -172,10 +180,20 @@ impl WeaponAbility for RainslasherR5 {
 }
 
 impl SpecialAbility for RainslasherR5 {
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        match &enemy.aura.aura {
-            Vision::Electro |
-            Vision::Hydro => modifiable_state[data.idx.0].all_dmg += 36.0,
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_state[data.idx.0];
+        match (&enemy.aura.aura, state.stacked_buff != LIONSROAR) {
+            (Vision::Electro, true) |
+            (Vision::Hydro, true) => {
+                state.all_dmg += 36.0;
+                state.stacked_buff.turn_on(&LIONSROAR);
+            },
+            (Vision::Electro, false) |
+            (Vision::Hydro, false) => (),
+            (_, false) => {
+                state.all_dmg -= 36.0;
+                state.stacked_buff.turn_off(&LIONSROAR);
+            },
             _ => (),
         }
     }

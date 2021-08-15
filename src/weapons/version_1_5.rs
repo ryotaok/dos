@@ -1,49 +1,54 @@
 use crate::state::State;
-use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, MILLENNIAL_MOVEMENT_SERIES};
-use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{ElementalAttack, FullCharacterTimers, TimerGuard, EffectTimer, SigilTimer};
+use crate::types::{AttackType, WeaponType, FieldEnergy, MILLENNIAL_MOVEMENT_SERIES};
+use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, AttackEvent, DurationTimer};
 
 use AttackType::*;
 use WeaponType::*;
 // use Vision::*;
 
 pub struct SongOfBrokenPines {
-    timer: SigilTimer,
+    timer: DurationTimer,
 }
 
 impl SongOfBrokenPines {
-    pub fn new() -> Self {
-        Self {
-            timer: SigilTimer::new(0.3, 20.0, 12.0, 4),
-        }
-    }
-}
-
-impl WeaponAbility for SongOfBrokenPines {
-    fn record(&self) -> WeaponRecord {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Song of Broken Pines").type_(Claymore).version(1.5)
             .base_atk(741.0)
             .atk(16.0)
-            .dmg_phy(20.7)
+            .physical_dmg(20.7)
+    }
+
+    pub fn new() -> Self {
+        Self {
+            timer: DurationTimer::new(12.0, &[0.3,0.3,0.3,0.3, 20.0]),
+        }
     }
 }
 
 impl SpecialAbility for SongOfBrokenPines {
-    fn update(&mut self, guard: &mut TimerGuard, _timers: &FullCharacterTimers, _attack: &[ElementalAttack], _particles: &[FieldEnergy], _data: &CharacterData, _enemy: &Enemy, time: f32) -> () {
-        let should_update = guard.kind == Na || guard.kind == Ca;
-        self.timer.update(guard.second(should_update), time);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event.idx == data.idx && (event.kind == Na || event.kind == Ca));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, _data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.timer.is_active() {
-            for s in modifiable_state.iter_mut() {
+    fn modify(&self, modifiable_state: &mut [State], _data: &CharacterData, _enemy: &mut Enemy) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 4) => for s in modifiable_state.iter_mut() {
                 if s.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
-                    s.atk     += 20.0;
+                    s.atk += 20.0;
                     s.atk_spd += 12.0;
-                    s.stacked_buff += MILLENNIAL_MOVEMENT_SERIES;
+                    s.stacked_buff.turn_on(&MILLENNIAL_MOVEMENT_SERIES);
                 }
-            }
+            },
+            (true, 0) => for s in modifiable_state.iter_mut() {
+                if s.stacked_buff == MILLENNIAL_MOVEMENT_SERIES {
+                    s.atk -= 20.0;
+                    s.atk_spd -= 12.0;
+                    s.stacked_buff.turn_off(&MILLENNIAL_MOVEMENT_SERIES);
+                }
+            },
+            _ => (),
         }
     }
 

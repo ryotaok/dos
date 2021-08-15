@@ -1,25 +1,61 @@
 use crate::state::State;
-use crate::types::{WeaponType};
-use crate::fc::{SpecialAbility, WeaponAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{FullCharacterTimers};
+use crate::types::{WeaponType, FieldEnergy};
+use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::action::{Attack, AttackEvent, ElementalAbsorption, NTimer, DurationTimer, ICDTimers};
 
 // use AttackType::*;
 use WeaponType::*;
 // use Vision::*;
 
-pub struct ProtectorsVirtue;
+pub struct ProtectorsVirtue(bool);
 
-impl SpecialAbility for ProtectorsVirtue {
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        modifiable_state[data.idx.0].flat_atk += data.state.HP() * 0.012;
+impl ProtectorsVirtue {
+    pub fn new() -> Self {
+        Self(true)
     }
 }
 
-pub struct RecklessCinnabar;
+impl SpecialAbility for ProtectorsVirtue {
+    fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        if self.0 {
+            self.0 = false;
+        }
+    }
+
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+        if self.0 {
+            modifiable_state[data.idx.0].flat_atk += data.state().HP() * 0.012;
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.0 = true;
+    }
+}
+
+pub struct RecklessCinnabar(bool);
+
+impl RecklessCinnabar {
+    pub fn new() -> Self {
+        Self(true)
+    }
+}
 
 impl SpecialAbility for RecklessCinnabar {
-    fn modify(&self, modifiable_state: &mut [State], _timers: &FullCharacterTimers, data: &CharacterData, _enemy: &mut Enemy) -> () {
-        modifiable_state[data.idx.0].flat_atk += data.state.HP() * 0.018;
+    fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        if self.0 {
+            self.0 = false;
+        }
+    }
+
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+        if self.0 {
+            modifiable_state[data.idx.0].flat_atk += data.state().HP() * 0.018;
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.0 = true;
     }
 }
 
@@ -27,12 +63,12 @@ pub struct PrimordialJadeCutter(ProtectorsVirtue);
 
 impl PrimordialJadeCutter {
     pub fn new() -> Self {
-        Self(ProtectorsVirtue)
+        Self(ProtectorsVirtue::new())
     }
 }
 
-impl WeaponAbility for PrimordialJadeCutter {
-    fn record(&self) -> WeaponRecord {
+impl PrimordialJadeCutter {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Primordial Jade Cutter").type_(Sword).version(1.3)
             .base_atk(542.0)
@@ -41,8 +77,16 @@ impl WeaponAbility for PrimordialJadeCutter {
 }
 
 impl SpecialAbility for PrimordialJadeCutter {
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, timers, data, enemy);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
+    }
+
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_state, data, enemy);
+    }
+
+    fn reset(&mut self) -> () {
+        self.0.reset();
     }
 }
 
@@ -50,12 +94,12 @@ pub struct PrimordialJadeGS(ProtectorsVirtue);
 
 impl PrimordialJadeGS {
     pub fn new() -> Self {
-        Self(ProtectorsVirtue)
+        Self(ProtectorsVirtue::new())
     }
 }
 
-impl WeaponAbility for PrimordialJadeGS {
-    fn record(&self) -> WeaponRecord {
+impl PrimordialJadeGS {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("PrimordialJadeGS").type_(Claymore).version(99.0)
             .base_atk(542.0)
@@ -64,8 +108,16 @@ impl WeaponAbility for PrimordialJadeGS {
 }
 
 impl SpecialAbility for PrimordialJadeGS {
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, timers, data, enemy);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
+    }
+
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_state, data, enemy);
+    }
+
+    fn reset(&mut self) -> () {
+        self.0.reset();
     }
 }
 
@@ -73,12 +125,12 @@ pub struct PrimordialJadeVista(ProtectorsVirtue);
 
 impl PrimordialJadeVista {
     pub fn new() -> Self {
-        Self(ProtectorsVirtue)
+        Self(ProtectorsVirtue::new())
     }
 }
 
-impl WeaponAbility for PrimordialJadeVista {
-    fn record(&self) -> WeaponRecord {
+impl PrimordialJadeVista {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("PrimordialJadeVista").type_(Bow).version(99.0)
             .base_atk(542.0)
@@ -87,8 +139,16 @@ impl WeaponAbility for PrimordialJadeVista {
 }
 
 impl SpecialAbility for PrimordialJadeVista {
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, timers, data, enemy);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
+    }
+
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_state, data, enemy);
+    }
+
+    fn reset(&mut self) -> () {
+        self.0.reset();
     }
 }
 
@@ -96,12 +156,12 @@ pub struct StaffOfHoma(RecklessCinnabar);
 
 impl StaffOfHoma {
     pub fn new() -> Self {
-        Self(RecklessCinnabar)
+        Self(RecklessCinnabar::new())
     }
 }
 
-impl WeaponAbility for StaffOfHoma {
-    fn record(&self) -> WeaponRecord {
+impl StaffOfHoma {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Staff of Homa").type_(Polearm).version(1.3)
             .base_atk(608.0)
@@ -110,15 +170,23 @@ impl WeaponAbility for StaffOfHoma {
 }
 
 impl SpecialAbility for StaffOfHoma {
-    fn modify(&self, modifiable_state: &mut [State], timers: &FullCharacterTimers, data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, timers, data, enemy);
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
+    }
+
+    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_state, data, enemy);
+    }
+
+    fn reset(&mut self) -> () {
+        self.0.reset();
     }
 }
 
 pub struct LithicSpear;
 
-impl WeaponAbility for LithicSpear {
-    fn record(&self) -> WeaponRecord {
+impl LithicSpear {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Lithic Spear").type_(Polearm).version(1.3)
             .base_atk(565.0)
@@ -130,8 +198,8 @@ impl SpecialAbility for LithicSpear {}
 
 pub struct LithicBlade;
 
-impl WeaponAbility for LithicBlade {
-    fn record(&self) -> WeaponRecord {
+impl LithicBlade {
+    pub fn record() -> WeaponRecord {
         WeaponRecord::default()
             .name("Lithic Blade").type_(Claymore).version(1.3)
             .base_atk(510.0)

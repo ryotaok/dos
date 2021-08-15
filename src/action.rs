@@ -1,8 +1,8 @@
 use std::ptr;
 
-use crate::fc::{CharacterData, FieldCharacterIndex, CharacterAbility, Enemy, Debuff};
-use crate::types::{AttackType, Vision, BareElementalGauge, ElementalReactionType, ElementalReaction, GAUGE1A};
 use crate::state::State;
+use crate::fc::{CharacterData, FieldCharacterIndex, SpecialAbility, SkillAbility, FieldAbilityBuilder, Enemy, Debuff};
+use crate::types::{AttackType, Vision, FieldEnergy, Particle, VecFieldEnergy, ElementalGauge, ElementalReactionType, ElementalReaction, PHYSICAL_GAUGE, PYRO_GAUGE1A, HYDRO_GAUGE1A, ELECTRO_GAUGE1A, CRYO_GAUGE1A, ANEMO_GAUGE1A, GEO_GAUGE1A, DENDRO_GAUGE1A};
 
 use AttackType::*;
 
@@ -13,13 +13,6 @@ pub struct AttackEvent {
 }
 
 impl AttackEvent {
-    pub fn new(kind: AttackType, idx: usize) -> Self {
-        Self {
-            kind,
-            idx: FieldCharacterIndex(idx),
-        }
-    }
-
     pub fn empty() -> Self {
         Self {
             kind: StandStill,
@@ -28,215 +21,9 @@ impl AttackEvent {
     }
 }
 
-// Because of `State.infusion`, infused element of every attack is determined at
-// the run time.
-#[derive(Debug, Clone, Copy)]
-pub struct ElementalAttack {
-    pub element: Vision,
-    pub atk: *const Attack,
-}
-
-impl ElementalAttack {
-    pub fn new(element: Vision, atk: *const Attack) -> Self {
-        Self {
-            element,
-            atk,
-        }
-    }
-
-    pub fn pyro(atk: *const Attack) -> Self {
-        Self {
-            element: Vision::Pyro,
-            atk,
-        }
-    }
-
-    pub fn hydro(atk: *const Attack) -> Self {
-        Self {
-            element: Vision::Hydro,
-            atk,
-        }
-    }
-
-    pub fn electro(atk: *const Attack) -> Self {
-        Self {
-            element: Vision::Electro,
-            atk,
-        }
-    }
-
-    pub fn cryo(atk: *const Attack) -> Self {
-        Self {
-            element: Vision::Cryo,
-            atk,
-        }
-    }
-
-    pub fn anemo(atk: *const Attack) -> Self {
-        Self {
-            element: Vision::Anemo,
-            atk,
-        }
-    }
-
-    pub fn geo(atk: *const Attack) -> Self {
-        Self {
-            element: Vision::Geo,
-            atk,
-        }
-    }
-
-    pub fn dendro(atk: *const Attack) -> Self {
-        Self {
-            element: Vision::Dendro,
-            atk,
-        }
-    }
-
-    pub fn physical(atk: *const Attack) -> Self {
-        Self {
-            element: Vision::Physical,
-            atk,
-        }
-    }
-
-    pub fn outgoing_damage(&self, attack_element: &Vision, state: Option<State>, fc: &CharacterData) -> f32 {
-        let atk = unsafe { &(*self.atk) };
-        atk.outgoing_damage(attack_element, state, fc)
-    }
-
-    pub fn incoming_damage(&self, attack_element: &Vision, outgoing_damage: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
-        let atk = unsafe { &(*self.atk) };
-        atk.incoming_damage(attack_element, outgoing_damage, fc, enemy)
-    }
-}
-
-pub trait ElementalAttackVector {
-    fn push_pyro(&mut self, data: &CharacterData, attack: *const Attack) -> ();
-    fn push_hydro(&mut self, data: &CharacterData, attack: *const Attack) -> ();
-    fn push_electro(&mut self, data: &CharacterData, attack: *const Attack) -> ();
-    fn push_cryo(&mut self, data: &CharacterData, attack: *const Attack) -> ();
-    fn push_anemo(&mut self, data: &CharacterData, attack: *const Attack) -> ();
-    fn push_geo(&mut self, data: &CharacterData, attack: *const Attack) -> ();
-    fn push_dendro(&mut self, data: &CharacterData, attack: *const Attack) -> ();
-}
-
-impl ElementalAttackVector for Vec<ElementalAttack> {
-    fn push_pyro(&mut self, data: &CharacterData, attack: *const Attack) -> () {
-        self.push(if data.state.infusion {
-            ElementalAttack::pyro(attack)
-        } else {
-            ElementalAttack::physical(attack)
-        });
-    }
-
-    fn push_hydro(&mut self, data: &CharacterData, attack: *const Attack) -> () {
-        self.push(if data.state.infusion {
-            ElementalAttack::hydro(attack)
-        } else {
-            ElementalAttack::physical(attack)
-        });
-    }
-
-    fn push_electro(&mut self, data: &CharacterData, attack: *const Attack) -> () {
-        self.push(if data.state.infusion {
-            ElementalAttack::electro(attack)
-        } else {
-            ElementalAttack::physical(attack)
-        });
-    }
-
-    fn push_cryo(&mut self, data: &CharacterData, attack: *const Attack) -> () {
-        self.push(if data.state.infusion {
-            ElementalAttack::cryo(attack)
-        } else {
-            ElementalAttack::physical(attack)
-        });
-    }
-
-    fn push_anemo(&mut self, data: &CharacterData, attack: *const Attack) -> () {
-        self.push(if data.state.infusion {
-            ElementalAttack::anemo(attack)
-        } else {
-            ElementalAttack::physical(attack)
-        });
-    }
-
-    fn push_geo(&mut self, data: &CharacterData, attack: *const Attack) -> () {
-        self.push(if data.state.infusion {
-            ElementalAttack::geo(attack)
-        } else {
-            ElementalAttack::physical(attack)
-        });
-    }
-
-    fn push_dendro(&mut self, data: &CharacterData, attack: *const Attack) -> () {
-        self.push(if data.state.infusion {
-            ElementalAttack::dendro(attack)
-        } else {
-            ElementalAttack::physical(attack)
-        });
-    }
-}
-
-impl PartialEq<Vision> for ElementalAttack {
-    fn eq(&self, other: &Vision) -> bool {
-        self.element.eq(other)
-    }
-}
-
-#[derive(Debug)]
-pub struct ElementalAbsorption {
-    element: Option<Vision>,
-    timer: DurationTimer,
-    attack: Attack,
-}
-
-impl ElementalAbsorption {
-    pub fn new(idx: FieldCharacterIndex, kind: AttackType, multiplier: f32, timer: DurationTimer) -> Self {
-        Self {
-            element: None,
-            timer,
-            attack: Attack {
-                kind,
-                gauge: &GAUGE1A,
-                multiplier,
-                hits: 1,
-                icd_timer: ptr::null_mut(),
-                idx,
-            }
-        }
-    }
-
-    pub fn icd(&mut self) -> &mut *mut ICDTimer {
-        &mut self.attack.icd_timer
-    }
-
-    pub fn did_absort(&self) -> bool {
-        self.element.is_some()
-    }
-
-    pub fn absorb(&mut self, guard: &TimerGuard, enemy: &Enemy, time: f32) -> () {
-        use Vision::*;
-        self.timer.update(guard, time);
-        if self.timer.is_active() {
-            if self.element.is_none() {
-                match &enemy.aura.aura {
-                    Pyro | Hydro | Electro | Cryo => self.element = Some(enemy.aura.aura),
-                    _ => (),
-                }
-            }
-        } else if self.element.is_some() {
-            self.element = None;
-        }
-    }
-
-    pub fn attack(&self) -> Option<ElementalAttack> {
-        if let Some(e) = self.element {
-            Some(ElementalAttack::new(e, &self.attack))
-        } else {
-            None
-        }
+impl PartialEq<Attack> for AttackEvent {
+    fn eq(&self, other: &Attack) -> bool {
+        self.kind.eq(&other.kind) && self.idx.eq(&other.idx)
     }
 }
 
@@ -248,7 +35,7 @@ pub struct Attack {
     pub kind: AttackType,
 
     // elemental gauge of this `Attack`.
-    pub gauge: &'static BareElementalGauge,
+    pub element: &'static ElementalGauge,
 
     pub multiplier: f32,
 
@@ -269,27 +56,52 @@ impl Attack {
     //     self
     // }
 
+    pub fn na(multiplier: f32, hits: usize, idx: FieldCharacterIndex) -> Self {
+        Self {
+            kind: AttackType::Na,
+            element: &PHYSICAL_GAUGE,
+            multiplier,
+            hits,
+            icd_timer: ptr::null_mut(),
+            idx,
+        }
+    }
+
+    pub fn most_eq(&self, other: &Self) -> bool {
+        self.kind == other.kind && self.idx == other.idx
+    }
+
+    pub fn to_event(&self, timer: &NTimer) -> Option<AttackEvent> {
+        if timer.n == 0 {
+            Some(AttackEvent {
+                kind: self.kind,
+                idx: self.idx,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn icd_cleared(&self) -> bool {
         unsafe {
             (*self.icd_timer).clear()
         }
     }
 
-    pub fn outgoing_damage(&self, attack_element: &Vision, state: Option<State>, fc: &CharacterData) -> f32 {
+    pub fn outgoing_damage(&self, state: Option<State>, fc: &CharacterData) -> f32 {
         // use ad-hoc state if available
         if let Some(mut state) = state {
-            state.merge(&fc.state);
-            self.outgoing_damage_inner(attack_element, &state, fc)
+            state.merge(&fc.state());
+            self.outgoing_damage_inner(&state, fc)
         } else {
-            self.outgoing_damage_inner(attack_element, &fc.state, fc)
+            self.outgoing_damage_inner(&fc.state(), fc)
         }
     }
 
-    fn outgoing_damage_inner(&self, attack_element: &Vision, state: &State, fc: &CharacterData) -> f32 {
-        let bonus = state.DMG_bonus(&self.kind, attack_element);
+    fn outgoing_damage_inner(&self, state: &State, fc: &CharacterData) -> f32 {
+        let bonus = state.DMG_bonus(&self.kind, &self.element.aura);
         let crcd = state.CRCD();
-        let atk = match (fc.cr.name, self.kind) {
-            ("Kokomi (HP scale)", AttackType::SkillDot) => state.HP(),
+        let atk = match (fc.character.name, self.kind) {
             ("Albedo", AttackType::SkillDot) => state.DEF(),
             ("Noelle", AttackType::PressSkill) => state.DEF(),
             _ => state.ATK(),
@@ -298,18 +110,18 @@ impl Attack {
         self.multiplier / 100.0 * power * state.get_talent_bonus(&self.kind)
     }
 
-    pub fn incoming_damage(&self, attack_element: &Vision, outgoing_damage: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
+    pub fn incoming_damage(&self, outgoing_damage: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
         let def_down = 1.0 - enemy.get_def_down() / 100.0;
         let enemy_defense = enemy.level / (enemy.level * def_down + enemy.level);
-        let resistance = self.resistance(attack_element, &enemy);
+        let resistance = self.resistance(&enemy);
         let dmg = outgoing_damage * resistance * enemy_defense;
-        self.elemental_reaction(attack_element, dmg, resistance, fc, enemy)
+        self.elemental_reaction(dmg, resistance, fc, enemy)
     }
 
-    fn resistance(&self, attack_element: &Vision, enemy: &Enemy) -> f32 {
+    fn resistance(&self, enemy: &Enemy) -> f32 {
         let enemy_res: f32;
         let res_decrease: f32;
-        if *attack_element == Vision::Physical {
+        if self.element.aura == Vision::Physical {
             enemy_res = enemy.physical_res;
             res_decrease = enemy.get_physical_res();
         } else {
@@ -324,28 +136,29 @@ impl Attack {
         (100.0 - res) / 100.0
     }
 
-    pub fn elemental_reaction(&self, attack_element: &Vision, outgoing_damage: f32, resistance: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
+    pub fn elemental_reaction(&self, outgoing_damage: f32, resistance: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
         use ElementalReactionType::*;
         let mut total_dmg = 0.0;
         for _ in 0..self.hits {
             // weapons do not have ICD timers.
             if self.kind != AdditionalAttack && self.icd_cleared() {
-                let elemental_reaction = ElementalReaction::new(enemy.aura.aura, *attack_element);
+                let state = fc.state();
+                let elemental_reaction = ElementalReaction::new(enemy.aura.aura, self.element.aura);
                 total_dmg += match elemental_reaction {
                     Overloaded(ref er) |
                     Shatter(ref er) |
                     ElectorCharged(ref er) |
                     Swirl(ref er) |
-                    Superconduct(ref er) => outgoing_damage + resistance * er.transformative_reaction(fc.state.em, fc.state.transformative_bonus),
+                    Superconduct(ref er) => outgoing_damage + resistance * er.transformative_reaction(state.em, state.transformative_bonus),
                     Vaporize(ref er) |
-                    Melt(ref er) => outgoing_damage * er.amplifying_reaction(fc.state.em, fc.state.amplifying_bonus),
+                    Melt(ref er) => outgoing_damage * er.amplifying_reaction(state.em, state.amplifying_bonus),
                     Crystallize(_) |
                     Equalize(_) |
                     Freeze(_) |
                     Burn(_) |
                     Neutralize(_) => outgoing_damage,
                 };
-                enemy.aura.trigger(self, attack_element);
+                enemy.aura.trigger(self);
                 if let Freeze(_) = elemental_reaction {
                     enemy.isfrozen = true;
                 }
@@ -366,475 +179,842 @@ impl Attack {
     }
 }
 
-pub trait EffectTimer {
-    fn is_cd_off(&self) -> bool;
-    fn is_active(&self) -> bool;
-    fn n(&self) -> usize;
-    fn update(&mut self, guard: &TimerGuard, time: f32) -> ();
-    fn reset(&mut self) -> ();
-}
-
+// `NTimer` should be constructed like: NTimer::new(&[ duration, cool_down ])
 #[derive(Debug)]
-pub struct NoopTimer;
-
-impl EffectTimer for NoopTimer {
-    fn is_cd_off(&self) -> bool { false }
-    fn is_active(&self) -> bool { false }
-    fn n(&self) -> usize { 0 }
-    fn update(&mut self, _guard: &TimerGuard, _time: f32) -> () {}
-    fn reset(&mut self) -> () {}
+pub struct ElementalAbsorption {
+    pub timer: NTimer,
+    pub attack: Attack,
 }
 
-// cool_down == duration
-#[derive(Debug)]
-pub struct CDTimer {
-    cool_down: f32,
-    cd: f32,
-}
-
-impl CDTimer {
-    pub fn new(cool_down: f32) -> Self {
-        Self { cool_down, cd: 0.0 }
-    }
-}
-
-impl EffectTimer for CDTimer {
-    fn is_cd_off(&self) -> bool {
-        self.cd <= 0.0
+impl ElementalAbsorption {
+    pub fn new(idx: FieldCharacterIndex, kind: AttackType, multiplier: f32, timer: NTimer) -> Self {
+        Self {
+            timer,
+            attack: Attack {
+                kind,
+                element: &PHYSICAL_GAUGE,
+                multiplier,
+                hits: 1,
+                icd_timer: ptr::null_mut(),
+                idx,
+            }
+        }
     }
 
-    fn is_active(&self) -> bool {
-        self.cd > 0.0
+    pub fn icd(&mut self) -> &mut *mut ICDTimer {
+        &mut self.attack.icd_timer
     }
 
-    fn n(&self) -> usize {
-        if self.is_active() {
-            1
+    pub fn did_absorb(&self) -> bool {
+        self.attack.element != &PHYSICAL_GAUGE
+    }
+
+    pub fn absorb(&mut self, time: f32, guard: bool, enemy: &Enemy) -> () {
+        use Vision::*;
+        self.timer.update(time, guard);
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => match &enemy.aura.aura {
+                Pyro => self.attack.element = &PYRO_GAUGE1A,
+                Hydro => self.attack.element = &HYDRO_GAUGE1A,
+                Electro => self.attack.element = &ELECTRO_GAUGE1A,
+                Cryo => self.attack.element = &CRYO_GAUGE1A,
+                _ => (),
+            },
+            (true, 2) => self.attack.element = &PHYSICAL_GAUGE,
+            _ => (),
+        }
+    }
+
+    pub fn attack(&self) -> Option<*const Attack> {
+        if self.did_absorb() {
+            Some(&self.attack)
         } else {
-            0
+            None
         }
-    }
-
-    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
-        if !guard.check(&*self) {
-            return;
-        }
-        if guard.second && self.is_cd_off() {
-            self.cd = self.cool_down;
-        }
-        self.cd -= time;
-    }
-
-    fn reset(&mut self) -> () {
-        self.cd = 0.0;
     }
 }
 
-// cool_down != duration
+#[derive(Debug, PartialEq)]
+pub enum Time {
+    Waiting(f32),
+    Done,
+}
+
+// n = 0 means inactive
+#[derive(Debug)]
+pub struct NTimer {
+    pub n: usize,
+    cool_down: &'static [f32],
+    pub ping: bool,
+    pub state: Time,
+    conditional_reset: bool,
+}
+
+impl NTimer {
+    pub fn new(cool_down: &'static [f32]) -> Self {
+        Self {
+            n: 0,
+            cool_down,
+            ping: false,
+            state: Time::Waiting(cool_down[0]),
+            conditional_reset: false,
+        }
+    }
+
+    pub fn with_condition(cool_down: &'static [f32]) -> Self {
+        Self {
+            n: 0,
+            cool_down,
+            ping: false,
+            state: Time::Waiting(cool_down[0]),
+            conditional_reset: true,
+        }
+    }
+
+    pub fn update(&mut self, time: f32, guard: bool) -> () {
+        let should_ping = self.n == 0;
+        if (guard && should_ping) || !should_ping {
+            self.update_inner(time, should_ping, true, guard);
+        } else {
+            self.ping = false;
+        }
+    }
+
+    pub fn update_na(&mut self, time: f32, guard: bool) -> () {
+        let should_ping = self.n == 0;
+        if (guard && should_ping) || !should_ping {
+            self.update_inner(time, should_ping, false, guard);
+        } else {
+            self.ping = false;
+        }
+    }
+
+    pub fn reset(&mut self) -> () {
+        self.n = 0;
+        self.ping = false;
+        self.state = Time::Waiting(self.cool_down[0]);
+    }
+
+    fn update_inner(&mut self, time: f32, should_ping: bool, has_terminus: bool, guard: bool) -> () {
+        use Time::*;
+        match (&mut self.state, self.conditional_reset, guard) {
+            (Waiting(ref mut t), _, _) => {
+                *t -= time;
+                self.ping = should_ping;
+                if should_ping {
+                    self.n += 1;
+                }
+                if *t <= 0.0 {
+                    let time = -1.0 * *t;
+                    if self.n == self.cool_down.len() {
+                        self.state = Done;
+                    } else {
+                        self.state = Waiting(self.cool_down[self.n]);
+                    }
+                    self.update_inner(time, true, has_terminus, guard);
+                }
+            },
+            (Done, true, false) => (),
+            (Done, true, true) |
+            (Done, false, _) => {
+                self.n = 0;
+                self.ping = true;
+                self.state = Waiting(self.cool_down[0]);
+                if !has_terminus {
+                    self.update_inner(time, self.ping, has_terminus, guard);
+                }
+            },
+        }
+    }
+}
+
+// n = 0 means inactive. This timer has `duration` to expire own states when it
+// has ended. Typical examples are: Prototype Rancour, Elegy for the End. So,
+// `NTimer` should be used in general.
 #[derive(Debug)]
 pub struct DurationTimer {
-    cool_down: f32,
+    pub previous_n: usize,
+    pub n: usize,
     duration: f32,
-    cd: f32,
-    dr: f32,
+    cool_down: &'static [f32],
+    pub ping: bool,
+    pub cd: f32,
+    pub dr: Time,
 }
 
 impl DurationTimer {
-    pub fn new(cool_down: f32, duration: f32) -> Self {
-        Self { cool_down, duration, cd: 0.0, dr: 0.0 }
-    }
-}
-
-impl EffectTimer for DurationTimer {
-    fn is_cd_off(&self) -> bool {
-        self.cd <= 0.0
-    }
-
-    fn is_active(&self) -> bool {
-        self.dr > 0.0
-    }
-
-    fn n(&self) -> usize {
-        if self.is_active() {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
-        if !guard.check(&*self) {
-            return;
-        }
-        if guard.second && self.is_cd_off() {
-            self.cd = self.cool_down - time;
-            self.dr = self.duration - time;
-        } else {
-            self.cd -= time;
-            self.dr -= time;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.cd = 0.0;
-        self.dr = 0.0;
-    }
-}
-
-#[derive(Debug)]
-pub struct HitsTimer {
-    cool_down: f32,
-    n_hits: usize,
-    cd: f32,
-    n: usize,
-}
-
-impl HitsTimer {
-    pub fn new(cool_down: f32, n_hits: usize) -> Self {
-        Self { cool_down, n_hits, cd: 0.0, n: 0 }
-    }
-
-    pub fn noop() -> Self {
+    pub fn new(duration: f32, cool_down: &'static [f32]) -> Self {
         Self {
-            cool_down: 10.0_f32.powf(6.0),
-            n_hits: 0,
-            cd: 10.0_f32.powf(6.0),
-            n: 0
-        }
-    }
-}
-
-impl EffectTimer for HitsTimer {
-    fn is_cd_off(&self) -> bool {
-        self.cd <= 0.0
-    }
-
-    fn is_active(&self) -> bool {
-        self.n > 0
-    }
-
-    fn n(&self) -> usize {
-        self.n
-    }
-
-    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
-        if !guard.check(&*self) {
-            return;
-        }
-        if self.n > 0 {
-            self.n -= 1;
-        }
-        if guard.second && self.is_cd_off() {
-            self.cd = self.cool_down - time;
-            self.n = self.n_hits;
-        } else {
-            self.cd -= time;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.cd = 0.0;
-        self.n = 0
-    }
-}
-
-// There is some "delay" between each DoT DMG. The delay is `dot_cd`.
-#[derive(Debug)]
-pub struct DotTimer {
-    cool_down: f32,
-    dot_cd: f32,
-    n_hits: usize,
-    cd: f32,
-    dcd: f32,
-    dcd_cleared: bool,
-    n: usize,
-}
-
-impl DotTimer {
-    pub fn new(cool_down: f32, dot_cd: f32, n_hits: usize) -> Self {
-        Self {
-            cool_down,
-            dot_cd,
-            n_hits,
-            cd: 0.0,
-            dcd: 0.0,
-            dcd_cleared: false,
-            n: 0
-        }
-    }
-
-    pub fn single_hit(cool_down: f32) -> Self {
-        Self {
-            cool_down,
-            dot_cd: 0.0,
-            n_hits: 1,
-            cd: 0.0,
-            dcd: 0.0,
-            dcd_cleared: false,
-            n: 0
-        }
-    }
-
-    pub fn noop() -> Self {
-        Self {
-            cool_down: 10.0_f32.powf(6.0),
-            dot_cd: 10.0_f32.powf(6.0),
-            n_hits: 1,
-            cd: 10.0_f32.powf(6.0),
-            dcd: 10.0_f32.powf(6.0),
-            dcd_cleared: false,
-            n: 0
-        }
-    }
-}
-
-impl EffectTimer for DotTimer {
-    fn is_cd_off(&self) -> bool {
-        self.cd <= 0.0
-    }
-
-    fn is_active(&self) -> bool {
-        self.n > 0 && self.dcd_cleared
-    }
-
-    fn n(&self) -> usize {
-        if self.is_active() {
-            self.n
-        } else {
-            0
-        }
-    }
-
-    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
-        if !guard.check(&*self) {
-            return;
-        }
-        if 0 < self.n && self.n < self.n_hits && self.dcd_cleared {
-            self.n += 1;
-            self.dcd = self.dot_cd;
-        } else if self.n == self.n_hits {
-            self.n = 0;
-        }
-        if guard.second && self.is_cd_off() {
-            self.cd = self.cool_down - time;
-            self.dcd = self.dot_cd - time;
-            self.n = 1;
-            self.dcd_cleared = true;
-        } else {
-            self.cd -= time;
-            self.dcd -= time;
-            self.dcd_cleared = self.dcd <= 0.0;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.cd = 0.0;
-        self.dcd = 0.0;
-        self.dcd_cleared = false;
-        self.n = 0;
-    }
-}
-
-#[derive(Debug)]
-pub struct StackTimer {
-    cool_down: f32,
-    duration: f32,
-    level: usize,
-    cd: f32,
-    dr: f32,
-    pub n: usize,
-}
-
-impl StackTimer {
-    pub fn new(cool_down: f32, duration: f32, level: usize) -> Self {
-        Self { cool_down, duration, level, cd: 0.0, dr: 0.0, n: 0 }
-    }
-}
-
-impl EffectTimer for StackTimer {
-    fn is_cd_off(&self) -> bool {
-        self.cd <= 0.0
-    }
-
-    fn is_active(&self) -> bool {
-        self.n > 0 && self.dr > 0.0
-    }
-
-    fn n(&self) -> usize {
-        if self.is_active() {
-            self.n
-        } else {
-            0
-        }
-    }
-
-    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
-        if !guard.check(&*self) {
-            return;
-        }
-        if guard.second && self.is_cd_off() {
-            self.cd = self.cool_down - time;
-            self.dr = self.duration - time;
-            self.n += 1;
-            if self.n > self.level {
-                self.n = self.level;
-            }
-        } else {
-            self.cd -= time;
-            self.dr -= time;
-        }
-        if self.dr <= 0.0 {
-            self.n = 0;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.cd = 0.0;
-        self.dr = 0.0;
-        self.n = 0
-    }
-}
-
-#[derive(Debug)]
-pub struct SigilTimer {
-    cool_down: f32,
-    effect_cd: f32,
-    effect_duration: f32,
-    max_level: usize,
-    cd: f32,
-    dr: f32,
-    pub n: usize,
-}
-
-impl SigilTimer {
-    pub fn new(cool_down: f32, effect_cd: f32, effect_duration: f32, max_level: usize) -> Self {
-        Self {
-            cool_down,
-            effect_cd,
-            effect_duration,
-            max_level,
-            cd: 0.0,
+            previous_n: 0,
             n: 0,
-            dr: 0.0,
+            duration,
+            cool_down,
+            ping: false,
+            cd: 0.0,
+            dr: Time::Done,
+        }
+    }
+
+    pub fn update(&mut self, time: f32, should_update: bool) -> () {
+        self.update_inner(time, false, should_update);
+    }
+
+    pub fn reset(&mut self) -> () {
+        self.previous_n = 0;
+        self.n = 0;
+        self.ping = false;
+        self.cd = 0.0;
+        self.dr = Time::Done;
+    }
+
+    fn update_inner(&mut self, time: f32, should_ping: bool, should_update: bool) -> () {
+        use Time::*;
+        match (&mut self.dr, self.cd > 0.0) {
+            (Done, true) => {
+                self.cd -= time;
+                self.ping = should_ping;
+                if should_update && self.cd <= 0.0 {
+                    self.previous_n = self.n;
+                    self.n = 1;
+                    self.cd = self.cool_down[self.n - 1];
+                    self.dr = Waiting(self.duration);
+                    self.ping = true;
+                }
+            },
+            (Waiting(ref mut dr), _) => {
+                self.cd -= time;
+                *dr -= time;
+                self.ping = should_ping;
+                if should_update && self.cd <= 0.0 {
+                    let mut changed = false;
+                    if self.n != self.cool_down.len() {
+                        self.previous_n = self.n;
+                        self.n += 1;
+                        changed = true;
+                    }
+                    self.cd = self.cool_down[self.n - 1];
+                    self.dr = Waiting(self.duration);
+                    self.ping = changed || should_ping;
+                } else if *dr <= 0.0 {
+                    self.dr = Done;
+                    self.previous_n = self.n;
+                    self.n = 0;
+                    self.ping = true;
+                }
+            },
+            (Done, _) => {
+                self.ping = should_ping;
+                if should_update {
+                    self.previous_n = self.n;
+                    self.n = 1;
+                    self.cd = self.cool_down[self.n - 1];
+                    self.dr = Waiting(self.duration);
+                    self.update_inner(time, true, should_update);
+                }
+            },
         }
     }
 }
 
-impl EffectTimer for SigilTimer {
-    fn is_cd_off(&self) -> bool {
-        self.cd <= 0.0
-    }
+// meaning of `n`:
+// 0 = inactive
+// 1 = performing the motion
+// 2 = out of stamina
+#[derive(Debug)]
+pub struct StaminaTimer {
+    pub n: usize,
+    cool_down: f32,
+    pub ping: bool,
+    pub motion: Time,
+    pub recovery: Time,
+    stamina: f32,
+}
 
-    fn is_active(&self) -> bool {
-        self.n == self.max_level
-    }
-
-    fn n(&self) -> usize {
-        self.n
-    }
-
-    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
-        if !guard.check(&*self) {
-            return;
+impl StaminaTimer {
+    pub fn new(cool_down: f32) -> Self {
+        Self {
+            n: 0,
+            cool_down,
+            ping: false,
+            motion: Time::Done,
+            recovery: Time::Done,
+            stamina: 240.0,
         }
-        if guard.second && self.cd <= 0.0 {
-            self.cd = self.cool_down - time;
-            // expire
-            if self.is_active() && self.dr <= 0.0 {
-                self.n = 0;
+    }
+
+    pub fn reset(&mut self) -> () {
+        self.n = 0;
+        self.motion = Time::Done;
+        self.recovery = Time::Done;
+        self.stamina = 240.0;
+    }
+
+    pub fn update(&mut self, time: f32, consumption: f32, guard: bool) -> () {
+        let should_ping = self.n == 0;
+        if (guard && should_ping) || !should_ping {
+            let consumption = if guard {
+                consumption
             } else {
-                self.n += 1;
-            }
-            if self.is_active() {
-                self.cd = self.effect_cd - time;
-                self.dr = self.effect_duration - time;
-            }
-            if self.n > self.max_level {
-                self.n = self.max_level;
-            }
+                0.0
+            };
+            self.update_inner(time, consumption, should_ping);
         } else {
-            self.cd -= time;
-            // expire
-            if self.is_active() {
-                self.dr -= time;
-            }
-            if self.is_active() && self.dr <= 0.0 {
-                self.n = 0;
+            self.ping = false;
+            if self.stamina < 240.0 {
+                self.stamina += 25.0 * time;
+                if self.stamina > 240.0 {
+                    self.stamina = 240.0;
+                }
             }
         }
     }
 
+    fn update_inner(&mut self, time: f32, consumption: f32, should_ping: bool) -> () {
+        use Time::*;
+        match (&mut self.motion, &mut self.recovery) {
+            (Done, Waiting(ref mut t)) => {
+                *t -= time;
+                self.ping = should_ping;
+                if *t <= 0.0 {
+                    self.n = 0;
+                    self.ping = true;
+                    self.recovery = Done;
+                    self.stamina = 240.0;
+                }
+            },
+            (Waiting(ref mut t), Done) => {
+                *t -= time;
+                self.stamina -= consumption - 25.0 * time;
+                if self.stamina > 240.0 {
+                    self.stamina = 240.0;
+                }
+                self.ping = should_ping;
+                if should_ping {
+                    self.n += 1;
+                }
+                if self.stamina <= 0.0 {
+                    self.n = 2;
+                    self.ping = true;
+                    self.motion = Done;
+                    // total stamina / recovery rate per second
+                    self.recovery = Waiting(240.0 / 25.0);
+                } else if *t <= 0.0 {
+                    self.n = 0;
+                    self.ping = true;
+                    self.motion = Done;
+                }
+            },
+            (Done, Done) => {
+                self.n = 0;
+                self.ping = true;
+                self.motion = Waiting(self.cool_down);
+                self.update_inner(time, consumption, self.ping);
+            },
+            (Waiting(_), Waiting(_)) => unimplemented!(),
+        }
+    }
+}
+
+// #[derive(Debug)]
+pub struct NaLoop {
+    idx: FieldCharacterIndex,
+    pub timer: NTimer,
+    // `Vec` is used because each `Attack` needs to be mutable.
+    pub attack: Vec<Attack>,
+    did_infuse: bool,
+}
+
+impl NaLoop {
+    pub fn new(cool_down: &'static [f32], attack: Vec<Attack>) -> Self {
+        let idx = attack[0].idx;
+        Self {
+            idx,
+            timer: NTimer::new(cool_down),
+            attack,
+            did_infuse: false,
+        }
+    }
+}
+
+impl SpecialAbility for NaLoop {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        for a in self.attack.iter_mut() {
+            a.icd_timer = &mut timers.na;
+        }
+    }
+
+    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
+        if (!self.timer.ping && self.timer.n == 0) || (self.timer.ping && self.timer.n > 0) {
+            Some(AttackEvent {
+                kind: AttackType::Na,
+                idx: self.idx,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        let state = data.state();
+        self.timer.update_na(time, event == &self.attack[0]);
+        if state.infusion && !self.did_infuse {
+            self.did_infuse = true;
+            match &data.character.vision {
+                Vision::Pyro => for a in self.attack.iter_mut() { a.element = &PYRO_GAUGE1A; },
+                Vision::Hydro => for a in self.attack.iter_mut() { a.element = &HYDRO_GAUGE1A; },
+                Vision::Electro => for a in self.attack.iter_mut() { a.element = &ELECTRO_GAUGE1A; },
+                Vision::Cryo => for a in self.attack.iter_mut() { a.element = &CRYO_GAUGE1A; },
+                Vision::Anemo => for a in self.attack.iter_mut() { a.element = &ANEMO_GAUGE1A; },
+                Vision::Geo => for a in self.attack.iter_mut() { a.element = &GEO_GAUGE1A; },
+                Vision::Dendro => for a in self.attack.iter_mut() { a.element = &DENDRO_GAUGE1A; },
+                _ => (),
+            }
+        } else if !state.infusion && self.did_infuse {
+            self.did_infuse = false;
+            for a in self.attack.iter_mut() { a.element = &PHYSICAL_GAUGE; }
+        }
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => atk_queue.push(&self.attack[0]),
+            (true, 2) => atk_queue.push(&self.attack[1]),
+            (true, 3) => atk_queue.push(&self.attack[2]),
+            (true, 4) => atk_queue.push(&self.attack[3]),
+            (true, 5) => atk_queue.push(&self.attack[4]),
+            (true, 6) => atk_queue.push(&self.attack[5]),
+            _ => (),
+        }
+    }
+
     fn reset(&mut self) -> () {
-        self.cd = 0.0;
-        self.dr = 0.0;
-        self.n = 0;
+        self.did_infuse = false;
+        self.timer.reset();
     }
 }
 
 #[derive(Debug)]
-pub struct LoopTimer {
-    cool_down: f32,
-    steps: usize,
-
-    cd: f32,
-    n: usize,
+pub struct SimpleCa {
+    pub consumption: f32,
+    pub timer: StaminaTimer,
+    pub attack: Attack,
 }
 
-impl LoopTimer {
-    pub fn new(total_time: f32, steps: usize) -> Self {
+impl SimpleCa {
+    pub fn new(consumption: f32, cool_down: f32, attack: Attack) -> Self {
         Self {
-            cool_down: total_time / steps as f32,
-            steps,
-            cd: 0.0,
-            n: 0,
-        }
-    }
-
-    pub fn noop() -> Self {
-        Self {
-            cool_down: 10.0_f32.powf(6.0),
-            steps: 1,
-            cd: 10.0_f32.powf(6.0),
-            n: 0,
+            consumption,
+            timer: StaminaTimer::new(cool_down),
+            attack,
         }
     }
 }
 
-impl EffectTimer for LoopTimer {
-    fn is_cd_off(&self) -> bool {
-        self.cd <= 0.0
+impl SpecialAbility for SimpleCa {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.ca;
     }
 
-    fn is_active(&self) -> bool {
-        // self.cd == self.cool_down
-        self.is_cd_off() && self.n > 0
-        // self.is_cd_off()
-    }
-
-    fn n(&self) -> usize {
-        self.n
-    }
-
-    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
-        if !guard.check(&*self) {
-            return;
-        }
-        if guard.second && self.is_cd_off() {
-            self.cd = self.cool_down - time;
-            self.n += 1;
-            if self.n > self.steps {
-                self.n = 1;
-            }
+    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
+        // TODO Attack.to_event
+        if self.timer.n == 0 {
+            Some(AttackEvent {
+                kind: self.attack.kind,
+                idx: self.attack.idx,
+            })
         } else {
-            self.cd -= time;
+            None
+        }
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, self.consumption, event == &self.attack);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n, &self.timer.recovery) {
+            (true, 1, Time::Done) => {
+                atk_queue.push(&self.attack);
+            },
+            _ => (),
         }
     }
 
     fn reset(&mut self) -> () {
-        self.n = 0;
-        self.cd = 0.0;
+        self.timer.reset();
+    }
+}
+
+#[derive(Debug)]
+pub struct SimpleSkill {
+    pub timer: NTimer,
+    pub attack: Attack,
+    pub particle: Particle,
+}
+
+impl SimpleSkill {
+    pub fn new(cool_down: &'static [f32], particle: Particle, attack: Attack) -> Self {
+        Self {
+            timer: NTimer::new(cool_down),
+            attack,
+            particle,
+        }
+    }
+}
+
+impl SkillAbility for SimpleSkill {
+    fn accelerate(&mut self, f: fn(&mut NTimer)) -> () {
+        f(&mut self.timer);
+    }
+}
+
+impl SpecialAbility for SimpleSkill {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.skill;
     }
 
+    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
+        self.attack.to_event(&self.timer)
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event == &self.attack);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => {
+                atk_queue.push(&self.attack);
+                particles.push_p(self.particle);
+            },
+            _ => (),
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.timer.reset();
+    }
+}
+
+#[derive(Debug)]
+pub struct SimpleSkillDot {
+    pub timer: NTimer,
+    pub attack: Attack,
+    pub particle: Particle,
+}
+
+impl SimpleSkillDot {
+    pub fn new(cool_down: &'static [f32], particle: Particle, attack: Attack) -> Self {
+        Self {
+            timer: NTimer::new(cool_down),
+            attack,
+            particle,
+        }
+    }
+}
+
+impl SkillAbility for SimpleSkillDot {
+    fn accelerate(&mut self, f: fn(&mut NTimer)) -> () {
+        f(&mut self.timer);
+    }
+}
+
+impl SpecialAbility for SimpleSkillDot {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.skill;
+    }
+
+    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
+        if self.timer.n == 0 {
+            Some(AttackEvent {
+                kind: AttackType::PressSkill,
+                idx: self.attack.idx,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event.idx == self.attack.idx && event.kind == AttackType::PressSkill);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n > 0) {
+            (true, true) => {
+                atk_queue.push(&self.attack);
+                particles.push_p(self.particle);
+            },
+            _ => (),
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.timer.reset();
+    }
+}
+
+#[derive(Debug)]
+pub struct SkillDamage2Dot {
+    pub timer: NTimer,
+    pub attack: Attack,
+    pub dot: Attack,
+    pub particle: Particle,
+}
+
+impl SkillDamage2Dot {
+    pub fn new(cool_down: &'static [f32], particle: Particle, attack: Attack, dot: Attack) -> Self {
+        Self {
+            timer: NTimer::new(cool_down),
+            attack,
+            dot,
+            particle,
+        }
+    }
+}
+
+impl SkillAbility for SkillDamage2Dot {
+    fn accelerate(&mut self, f: fn(&mut NTimer)) -> () {
+        f(&mut self.timer);
+    }
+}
+
+impl SpecialAbility for SkillDamage2Dot {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.skill;
+        self.dot.icd_timer = &mut timers.skill;
+    }
+
+    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
+        self.attack.to_event(&self.timer)
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event == &self.attack);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => {
+                atk_queue.push(&self.attack);
+                atk_queue.push(&self.dot);
+                particles.push_p(self.particle);
+            },
+            (true, _) => {
+                atk_queue.push(&self.dot);
+            },
+            _ => (),
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.timer.reset();
+    }
+}
+
+#[derive(Debug)]
+pub struct SkillDamage2DotParticle {
+    pub timer: NTimer,
+    pub attack: Attack,
+    pub dot: Attack,
+    pub particle: Particle,
+}
+
+impl SkillDamage2DotParticle {
+    pub fn new(cool_down: &'static [f32], particle: Particle, attack: Attack, dot: Attack) -> Self {
+        Self {
+            timer: NTimer::new(cool_down),
+            attack,
+            dot,
+            particle,
+        }
+    }
+}
+
+impl SkillAbility for SkillDamage2DotParticle {
+    fn accelerate(&mut self, f: fn(&mut NTimer)) -> () {
+        f(&mut self.timer);
+    }
+}
+
+impl SpecialAbility for SkillDamage2DotParticle {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.skill;
+        self.dot.icd_timer = &mut timers.skill;
+    }
+
+    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
+        self.attack.to_event(&self.timer)
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event == &self.attack);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => {
+                atk_queue.push(&self.attack);
+                atk_queue.push(&self.dot);
+            },
+            (true, _) => {
+                atk_queue.push(&self.dot);
+                particles.push_p(self.particle);
+            },
+            _ => (),
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.timer.reset();
+    }
+}
+
+#[derive(Debug)]
+pub struct SimpleBurst {
+    pub timer: NTimer,
+    pub attack: Attack,
+}
+
+impl SimpleBurst {
+    pub fn new(cool_down: &'static [f32], attack: Attack) -> Self {
+        Self {
+            timer: NTimer::new(cool_down),
+            attack,
+        }
+    }
+}
+
+impl SpecialAbility for SimpleBurst {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.burst;
+    }
+
+    fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
+        if data.can_burst() {
+            self.attack.to_event(&self.timer)
+        } else {
+            None
+        }
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event == &self.attack);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => {
+                atk_queue.push(&self.attack);
+            },
+            _ => (),
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.timer.reset();
+    }
+}
+
+#[derive(Debug)]
+pub struct SimpleBurstDot {
+    pub timer: NTimer,
+    pub attack: Attack,
+}
+
+impl SimpleBurstDot {
+    pub fn new(cool_down: &'static [f32], attack: Attack) -> Self {
+        Self {
+            timer: NTimer::new(cool_down),
+            attack,
+        }
+    }
+}
+
+impl SpecialAbility for SimpleBurstDot {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.burst;
+    }
+
+    fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
+        if self.timer.n == 0 && data.can_burst() {
+            Some(AttackEvent {
+                kind: AttackType::Burst,
+                idx: self.attack.idx,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event.idx == self.attack.idx && event.kind == Burst);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n > 0) {
+            (true, true) => atk_queue.push(&self.attack),
+            _ => (),
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.timer.reset();
+    }
+}
+
+#[derive(Debug)]
+pub struct BurstDamage2Dot {
+    pub timer: NTimer,
+    pub attack: Attack,
+    pub dot: Attack,
+}
+
+impl BurstDamage2Dot {
+    pub fn new(cool_down: &'static [f32], attack: Attack, dot: Attack) -> Self {
+        Self {
+            timer: NTimer::new(cool_down),
+            attack,
+            dot,
+        }
+    }
+}
+
+impl SpecialAbility for BurstDamage2Dot {
+    fn init(&mut self, timers: &mut ICDTimers) -> () {
+        self.attack.icd_timer = &mut timers.burst;
+        self.dot.icd_timer = &mut timers.burst;
+    }
+
+    fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
+        if data.can_burst() {
+            self.attack.to_event(&self.timer)
+        } else {
+            None
+        }
+    }
+
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
+        self.timer.update(time, event == &self.attack);
+    }
+
+    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => {
+                atk_queue.push(&self.attack);
+                atk_queue.push(&self.dot);
+            },
+            // TODO up to a certain hit?
+            (true, _) => {
+                atk_queue.push(&self.dot);
+            },
+            _ => (),
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.timer.reset();
+    }
 }
 
 #[derive(Debug)]
@@ -879,439 +1059,28 @@ impl ICDTimer {
 }
 
 #[derive(Debug)]
-pub struct StaminaTimer {
-    stamina: f32,
-    recovery: bool,
-    consumption: f32,
+pub struct ICDTimers {
+    pub na: ICDTimer,
+    pub ca: ICDTimer,
+    pub skill: ICDTimer,
+    pub burst: ICDTimer,
 }
 
-impl StaminaTimer {
-    pub fn new(consumption: f32) -> Self {
-        Self {
-            stamina: 240.0,
-            recovery: false,
-            consumption,
-        }
-    }
-
-    pub fn noop() -> Self {
-        Self {
-            stamina: 240.0,
-            recovery: false,
-            consumption: 0.0,
-        }
-    }
-}
-
-impl EffectTimer for StaminaTimer {
-    fn is_cd_off(&self) -> bool {
-        !self.recovery && 0.0 < self.stamina
-    }
-
-    fn is_active(&self) -> bool {
-        !self.recovery && 0.0 < self.stamina
-    }
-
-    fn n(&self) -> usize {
-        self.stamina as usize
-    }
-
-    fn update(&mut self, guard: &TimerGuard, time: f32) -> () {
-        if !guard.check(&*self) {
-            return;
-        }
-        if self.stamina >= 240.0 {
-            self.recovery = false;
-        }
-        if guard.second && self.is_cd_off() {
-            // TODO recovery rate of energy
-            self.stamina -= self.consumption + time * 25.0;
-        } else {
-            self.stamina += time * 10.0;
-        }
-        if self.stamina <= 0.0 {
-            self.recovery = true;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.stamina = 240.0;
-        self.recovery = false;
-    }
-}
-
-pub trait TimerGuardCheck<T> {
-    fn check(&self, timer: T) -> bool;
-}
-
-#[derive(Debug)]
-pub struct TimerGuard {
-    pub kind: AttackType,
-
-    // 1. the `Attack` was created by this owner
-    // example: attack.on_field_character_index == fc.idx.0
-    pub first:  bool,
-
-    // 2. the `Attack` is the same kind as this action
-    // alternatively, `should_update` condition is satisfied
-    // example: na.action == attack.kind
-    pub second: bool,
-
-    // 3. action's timer is cooling down
-    // example: timer.cd > 0.0
-    pub third: bool,
-
-    // If the 1st and 2nd conditions are true, it means this skill, timer or
-    // ability was used. Otherwise, `TimerGuard` needs to check the 3rd
-    // condition. If all the conditions are false, it means the ability has not
-    // been used yet. In that case, the timer should should not update itself.
-}
-
-impl TimerGuard {
-    // test?
-    fn first_ok() -> Self {
-        Self {
-            kind: StandStill,
-            first: true,
-            second: false,
-            third: false,
-        }
-    }
-
-    pub fn with_first(attack: &Attack, fc: &CharacterData) -> Self {
-        Self {
-            kind: attack.kind, // should be cheap
-            first: attack.idx == fc.idx,
-            second: false,
-            third: false,
-        }
-    }
-
-    // TODO refactor the method
-    pub fn with_first_2(attack: &AttackEvent, fc: &CharacterData) -> Self {
-        Self {
-            kind: attack.kind, // should be cheap
-            first: attack.idx.0 == fc.idx.0,
-            second: false,
-            third: false,
-        }
-    }
-
-    // pub fn first(mut self, first: bool) -> Self {
-    //     self.first = first;
-    //     self
-    // }
-
-    pub fn second(&mut self, second: bool) -> &mut Self {
-        self.second = second;
-        self
-    }
-
-    pub fn check_second(&mut self, attack: AttackType) -> &mut Self {
-        self.second = self.kind == attack;
-        self
-    }
-
-    pub fn third(&mut self, third: bool) -> &mut Self {
-        self.third = third;
-        self
-    }
-}
-
-
-impl<T: EffectTimer> TimerGuardCheck<&T> for TimerGuard {
-    fn check(&self, timer: &T) -> bool {
-        (self.first && self.second) || !timer.is_cd_off() || timer.is_active()
-    }
-}
-
-// for ad-hoc types which cannot implement `EffectTimer`
-impl TimerGuardCheck<()> for TimerGuard {
-    fn check(&self, _timer: ()) -> bool {
-        (self.first && self.second) || self.third
-    }
-}
-
-#[derive(Debug)]
-pub struct FullCharacterTimers {
-    noop: NoopTimer,
-
-    define_na: bool,
-    na: LoopTimer,
-    pub na_icd: ICDTimer,
-
-    define_ca: bool,
-    stamina: StaminaTimer,
-    ca: HitsTimer,
-    pub ca_icd: ICDTimer,
-
-    define_press: bool,
-    define_hold: bool,
-    press: DotTimer,
-    hold: DotTimer,
-    pub skill_icd: ICDTimer,
-
-    burst: DotTimer,
-    pub burst_icd: ICDTimer,
-}
-
-impl FullCharacterTimers {
-    pub fn maybe_attack(&self, fc: &CharacterData, ca: &dyn CharacterAbility) -> Option<AttackType> {
-        // na combo blocks other actions.
-        // if self.define_na && self.na.n() > 0 && self.na.is_active() {
-        //     Some(Na)
-        // } else if fc.can_burst() && self.burst.is_cd_off() {
-        if fc.can_burst() && self.burst.is_cd_off() {
-            Some(Burst)
-        } else if self.define_hold && ca.use_hold() && self.should_hold() {
-            Some(HoldSkill)
-        } else if self.define_press && self.should_press() {
-            Some(PressSkill)
-        } else if self.define_ca && ca.use_ca() && self.should_ca() {
-            Some(Ca)
-        } else if self.define_na && self.should_na() {
-            Some(Na)
-        } else {
-            None
-        }
-    }
-
-    pub fn disable_naca(&mut self) -> () {
-        self.define_na = false;
-        self.define_ca = false;
-    }
-
-    pub fn decelerate_naca(&mut self, r: f32) -> () {
-        self.na.cool_down *= r;
-        self.ca.cool_down *= r;
-    }
-
-    pub fn update(&mut self, guard: &mut TimerGuard, _attack: &[ElementalAttack], fc: &CharacterData, time: f32) -> () {
-        if self.define_na {
-            self.na.update(guard.check_second(Na), time * (1.0 + fc.state.atk_spd / 100.0));
-            self.na_icd.update(time);
-        }
-
-        if self.define_ca {
-            self.ca.update(guard.check_second(Ca), time);
-            self.stamina.update(guard, time);
-            self.ca_icd.update(time);
-        }
-
-        if self.define_press && self.define_hold {
-            self.hold.update(guard.check_second(HoldSkill), time);
-            self.press.update(guard.check_second(PressSkill), time);
-            self.skill_icd.update(time);
-        } else if self.define_press {
-            self.press.update(guard.check_second(PressSkill), time);
-            self.skill_icd.update(time);
-        }
-
-        self.burst.update(guard.check_second(Burst), time);
-        self.burst_icd.update(time);
-    }
-
-    fn should_hold(&self) -> bool {
-        if self.define_hold {
-            self.hold.is_cd_off()
-        } else {
-            false
-        }
-    }
-
-    fn should_press(&self) -> bool {
-        if self.define_press && self.define_hold {
-            // TODO Because hold CD is longer than press CD, hold skill needs to be off to use press skill
-            self.press.is_cd_off() && self.hold.is_cd_off()
-        } else if self.define_press {
-            self.press.is_cd_off()
-        } else {
-            false
-        }
-    }
-
-    fn should_ca(&self) -> bool {
-        if self.define_ca {
-            self.ca.is_cd_off() && self.stamina.is_active()
-        } else {
-            false
-        }
-    }
-
-    fn should_na(&self) -> bool {
-        if self.define_na {
-            self.na.is_cd_off()
-        } else {
-            false
-        }
-    }
-
-    pub fn na_timer(&self) -> &dyn EffectTimer {
-        if self.define_na {
-            &self.na
-        } else {
-            &self.noop
-        }
-    }
-
-    pub fn ca_timer(&self) -> &dyn EffectTimer {
-        if self.define_ca {
-            &self.ca
-        } else {
-            &self.noop
-        }
-    }
-
-    pub fn press_timer(&self) -> &dyn EffectTimer {
-        if self.define_press {
-            &self.press
-        } else {
-            &self.noop
-        }
-    }
-
-    pub fn hold_timer(&self) -> &dyn EffectTimer {
-        if self.define_hold {
-            &self.hold
-        } else {
-            &self.noop
-        }
-    }
-
-    pub fn burst_timer(&self) -> &dyn EffectTimer {
-        &self.burst
-    }
-
-    // accumulate
-
-    pub fn reset_cd(&mut self) -> () {
-        if self.define_press {
-            self.press.reset();
-        }
-        if self.define_hold {
-            self.hold.reset();
-        }
-    }
-
-    pub fn reduce_cd(&mut self, time: f32) -> () {
-        if self.define_press {
-            self.press.cd -= time;
-            self.press.dcd -= time;
-        }
-        if self.define_hold {
-            self.press.cd -= time;
-            self.press.dcd -= time;
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct CharacterTimersBuilder {
-    na_timer: Option<LoopTimer>,
-    ca_timer: Option<HitsTimer>,
-    stamina: Option<StaminaTimer>,
-    press_timer: Option<DotTimer>,
-    hold_timer:  Option<DotTimer>,
-    burst_timer: Option<DotTimer>,
-}
-
-impl CharacterTimersBuilder {
+impl ICDTimers {
     pub fn new() -> Self {
         Self {
-            na_timer: None,
-            ca_timer: None,
-            stamina: None,
-            press_timer: None,
-            hold_timer:  None,
-            burst_timer: None,
+            na: ICDTimer::new(),
+            ca: ICDTimer::new(),
+            skill: ICDTimer::new(),
+            burst: ICDTimer::new(),
         }
     }
 
-    pub fn na(mut self, t: LoopTimer) -> Self {
-        self.na_timer = Some(t);
-        self
-    }
-
-    pub fn ca(mut self, t: HitsTimer) -> Self {
-        self.ca_timer = Some(t);
-        self
-    }
-
-    pub fn stamina(mut self, t: StaminaTimer) -> Self {
-        self.stamina = Some(t);
-        self
-    }
-
-    pub fn press(mut self, t: DotTimer) -> Self {
-        self.press_timer = Some(t);
-        self
-    }
-
-    pub fn hold(mut self, t: DotTimer) -> Self {
-        self.hold_timer = Some(t);
-        self
-    }
-
-    pub fn burst(mut self, t: DotTimer) -> Self {
-        self.burst_timer = Some(t);
-        self
-    }
-
-    pub fn build(self) -> FullCharacterTimers {
-        let CharacterTimersBuilder {
-            na_timer,
-            ca_timer,
-            stamina,
-            press_timer,
-            hold_timer,
-            burst_timer,
-        } = self;
-        let mut define_na = false;
-        let mut define_ca = false;
-        let mut define_press = false;
-        let mut define_hold = false;
-        let na = if let Some(x) = na_timer {
-            define_na = true;
-            x
-        } else {
-            LoopTimer::noop()
-        };
-        let (ca, stamina) = match (ca_timer, stamina) {
-            (Some(ca), Some(stamina)) => {
-                define_ca = true;
-                (ca, stamina)
-            },
-            _ => (HitsTimer::noop(), StaminaTimer::noop()),
-        };
-        let press = if let Some(x) = press_timer {
-            define_press = true;
-            x
-        } else {
-            DotTimer::noop()
-        };
-        let hold = if let Some(x) = hold_timer {
-            define_hold = true;
-            x
-        } else {
-            DotTimer::noop()
-        };
-        FullCharacterTimers {
-            noop: NoopTimer,
-            define_na,
-            na,
-            na_icd: ICDTimer::new(),
-            define_ca,
-            stamina,
-            ca,
-            ca_icd: ICDTimer::new(),
-            define_press,
-            press,
-            define_hold,
-            hold,
-            skill_icd: ICDTimer::new(),
-            burst: if let Some(x) = burst_timer { x } else { DotTimer::noop() },
-            burst_icd: ICDTimer::new(),
-        }
+    pub fn update(&mut self, time: f32) -> () {
+        self.na.update(time);
+        self.ca.update(time);
+        self.skill.update(time);
+        self.burst.update(time);
     }
 }
 
@@ -1319,321 +1088,262 @@ impl CharacterTimersBuilder {
 mod tests {
     use super::*;
 
-    fn durationtimer() -> DurationTimer {
-        DurationTimer::new(0.3, 2.0)
+#[derive(Debug)]
+struct ShortLoop {
+    timer: NTimer
+}
+
+impl ShortLoop {
+    fn new() -> Self {
+        Self {
+            timer: NTimer::new(&[0.5, 0.8]),
+        }
+    }
+
+    fn maybe_attack(&self) -> bool {
+        self.timer.ping || self.timer.n == 0
+    }
+
+    fn update(&mut self, time: f32) -> () {
+        self.timer.update_na(time, true);
+    }
+
+    fn attack(&self) -> Option<f32> {
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => Some(10.0),
+            (true, 2) => Some(20.0),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct KeqingSkill {
+    timer: NTimer
+}
+
+impl KeqingSkill {
+    fn new() -> Self {
+        Self {
+            timer: NTimer::new(&[5.0, 2.5]),
+        }
+    }
+
+    fn maybe_attack(&self) -> bool {
+        self.timer.n == 0
+    }
+
+    fn update(&mut self, time: f32) -> () {
+        self.timer.update(time, true);
+    }
+
+    // (mut queue) -> ()
+    fn attack(&self) -> Option<f32> {
+        match (self.timer.ping, self.timer.n) {
+            (true, 1) => Some(100.0),
+            _ => None,
+        }
+    }
+
+    fn modify(&self) -> bool {
+        match (&self.timer.state, self.timer.n) {
+            (Time::Waiting(_), 1) => true,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct SoBP {
+    timer: DurationTimer
+}
+
+impl SoBP {
+    fn new() -> Self {
+        Self {
+            timer: DurationTimer::new(12.0, &[0.3, 0.3, 20.0]),
+        }
+    }
+
+    fn update(&mut self, time: f32, should_update: bool) -> () {
+        self.timer.update(time, should_update);
+    }
+
+    fn modify(&self) -> usize {
+        match &self.timer.dr {
+            Time::Waiting(_) => self.timer.n,
+            _ => 0,
+        }
+    }
+}
+
+    #[test]
+    fn keqing_1() {
+        let k = KeqingSkill::new();
+        assert!(k.maybe_attack());
     }
 
     #[test]
-    fn durationtimer_0() {
-        let mut timer = durationtimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.0);
-        assert_eq!(timer.is_active(), true);
+    fn keqing_2() {
+        let mut k = KeqingSkill::new();
+        k.update(1.0);
+        assert!(!k.maybe_attack());
+        assert_eq!(k.attack(), Some(100.0));
+        assert_eq!(k.modify(), true);
     }
 
     #[test]
-    fn durationtimer_1() {
-        let mut timer = durationtimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.0);
-        timer.update(guard.second(false), 2.0);
-        assert_eq!(timer.is_active(), false);
-    }
-
-    fn hitstimer() -> HitsTimer {
-        HitsTimer::new(1.0, 2)
+    fn keqing_3() {
+        let mut k = KeqingSkill::new();
+        k.update(5.0);
+        assert!(!k.maybe_attack());
+        assert_eq!(k.attack(), None);
+        assert_eq!(k.modify(), false);
     }
 
     #[test]
-    fn hitstimer_0() {
-        let mut timer = hitstimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.0);
-        assert_eq!(timer.is_active(), true);
+    fn keqing_4() {
+        let mut k = KeqingSkill::new();
+        k.update(7.5);
+        assert!(k.maybe_attack());
     }
 
     #[test]
-    fn hitstimer_1() {
-        let mut timer = hitstimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.0);
-        timer.update(guard.second(true), 0.3);
-        assert_eq!(timer.is_active(), true);
+    fn naloop_1() {
+        let na = ShortLoop::new();
+        assert!(na.maybe_attack());
     }
 
     #[test]
-    fn hitstimer_2() {
-        let mut timer = hitstimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.0);
-        timer.update(guard.second(true), 0.3);
-        timer.update(guard.second(true), 0.3);
-        assert_eq!(timer.is_active(), false);
+    fn naloop_2() {
+        let mut na = ShortLoop::new();
+        na.update(0.25);
+        assert!(na.maybe_attack());
+        assert_eq!(na.attack(), Some(10.0));
     }
 
     #[test]
-    fn hitstimer_3() {
-        let mut timer = HitsTimer::new(0.0, 1);
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.2);
-        assert_eq!(timer.is_active(), true);
-        timer.update(guard.second(false), 0.2);
-        assert_eq!(timer.is_active(), false);
-    }
-
-    fn dottimer() -> DotTimer {
-        DotTimer::new(3.0, 0.5, 2)
+    fn naloop_3() {
+        let mut na = ShortLoop::new();
+        na.update(0.25);
+        na.update(0.1);
+        assert!(!na.maybe_attack());
+        assert_eq!(na.attack(), None);
     }
 
     #[test]
-    fn dottimer_0() {
-        let mut timer = dottimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.0);
-        assert_eq!(timer.is_active(), true);
-        assert_eq!(timer.n, 1);
+    fn naloop_4() {
+        let mut na = ShortLoop::new();
+        na.update(0.5);
+        assert!(na.maybe_attack());
+        assert_eq!(na.attack(), Some(20.0));
     }
 
     #[test]
-    fn dottimer_1() {
-        let mut timer = dottimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.0);
-        timer.update(guard.second(false), 0.2);
-        assert_eq!(timer.is_active(), false);
-        assert_eq!(timer.n, 2);
+    fn sobp_1() {
+        let sobp = SoBP::new();
+        assert_eq!(sobp.modify(), 0);
     }
 
     #[test]
-    fn dottimer_2() {
-        let mut timer = dottimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.0);
-        timer.update(guard.second(false), 0.5);
-        assert_eq!(timer.is_active(), true);
-        assert_eq!(timer.n, 2);
+    fn sobp_2() {
+        let mut sobp = SoBP::new();
+        sobp.update(0.0, true);
+        assert_eq!(sobp.modify(), 1);
     }
 
     #[test]
-    fn dottimer_3() {
-        let mut timer = dottimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.0);
-        timer.update(guard.second(false), 0.5);
-        timer.update(guard.second(false), 0.5);
-        assert_eq!(timer.is_active(), false);
-        assert_eq!(timer.n, 0);
+    fn sobp_3() {
+        let mut sobp = SoBP::new();
+        sobp.update(0.3, true);
+        assert_eq!(sobp.modify(), 2);
     }
 
     #[test]
-    fn dottimer_4() {
-        let mut timer = dottimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.0);
-        timer.update(guard.second(false), 0.5);
-        timer.update(guard.second(false), 0.5);
-        timer.update(guard.second(false), 0.5);
-        assert_eq!(timer.is_active(), false);
-        assert_eq!(timer.n, 0);
-    }
-
-    fn stacktimer() -> StackTimer {
-        StackTimer::new(0.3, 3.0, 2)
+    fn sobp_4() {
+        let mut sobp = SoBP::new();
+        sobp.update(0.3, true);
+        sobp.update(0.3, true);
+        assert_eq!(sobp.modify(), 3);
     }
 
     #[test]
-    fn stacktimer_0() {
-        let mut timer = stacktimer();
-        let mut guard = TimerGuard::first_ok();
-        // too fast to get stacks
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        assert!(timer.is_active());
-        assert_eq!(timer.n, 1);
+    fn sobp_5() {
+        let mut sobp = SoBP::new();
+        sobp.update(0.3, true);
+        sobp.update(0.3, true);
+        assert_eq!(sobp.modify(), 3);
+        sobp.update(12.0, true);
+        assert_eq!(sobp.modify(), 0);
     }
 
     #[test]
-    fn stacktimer_1() {
-        let mut timer = stacktimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.3);
-        timer.update(guard.second(true), 0.3);
-        assert!(timer.is_active());
-        assert_eq!(timer.n, 2);
+    fn stamina_1() {
+        let mut stamina = StaminaTimer::new(1.0);
+        stamina.update(0.0, 0.0, true);
+        assert_eq!(stamina.n, 1);
+        assert_eq!(stamina.ping, true);
+        assert_eq!(stamina.motion, Time::Waiting(1.0));
+        assert_eq!(stamina.recovery, Time::Done);
     }
 
     #[test]
-    fn stacktimer_2() {
-        let mut timer = stacktimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.3);
-        timer.update(guard.second(true), 0.3);
-        timer.update(guard.second(true), 0.3);
-        // cannot exceed the max level
-        assert!(timer.is_active());
-        assert_eq!(timer.n, 2);
+    fn stamina_2() {
+        let mut stamina = StaminaTimer::new(1.0);
+        stamina.update(0.5, 0.0, true);
+        assert_eq!(stamina.n, 1);
+        assert_eq!(stamina.ping, true);
+        assert_eq!(stamina.motion, Time::Waiting(0.5));
+        assert_eq!(stamina.recovery, Time::Done);
     }
 
     #[test]
-    fn stacktimer_3() {
-        let mut timer = stacktimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.3);
-        timer.update(guard.second(true), 0.3);
-        assert!(timer.is_active());
-        assert_eq!(timer.n, 2);
-        // expire
-        timer.update(guard.second(false), 3.0);
-        assert!(!timer.is_active());
-        assert_eq!(timer.n, 0);
-    }
-
-    fn sigiltimer() -> SigilTimer {
-        SigilTimer::new(0.1, 5.0, 3.0, 3)
+    fn stamina_3() {
+        let mut stamina = StaminaTimer::new(1.0);
+        stamina.update(1.0, 0.0, true);
+        assert_eq!(stamina.n, 0);
+        assert_eq!(stamina.ping, true);
+        assert_eq!(stamina.motion, Time::Done);
+        assert_eq!(stamina.recovery, Time::Done);
     }
 
     #[test]
-    fn sigiltimer_1() {
-        let mut timer = sigiltimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        // sigil enterd effect CD
-        assert!(timer.is_active());
-        assert_eq!(timer.n, 3);
+    fn stamina_4() {
+        let mut stamina = StaminaTimer::new(1.0);
+        stamina.update(0.5, 0.0, true);
+        stamina.update(0.2, 0.0, true);
+        assert_eq!(stamina.n, 1);
+        assert_eq!(stamina.ping, false);
+        assert_eq!(stamina.motion, Time::Waiting(0.3));
+        assert_eq!(stamina.recovery, Time::Done);
+        let mut stamina = StaminaTimer::new(1.0);
+        stamina.update(0.5, 0.0, true);
+        stamina.update(0.2, 0.0, false);
+        assert_eq!(stamina.n, 1);
+        assert_eq!(stamina.ping, false);
+        assert_eq!(stamina.motion, Time::Waiting(0.3));
+        assert_eq!(stamina.recovery, Time::Done);
     }
 
     #[test]
-    fn sigiltimer_2() {
-        let mut timer = sigiltimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        // sigil expired effect duration
-        timer.update(guard.second(true), 3.0);
-        assert_eq!(timer.n, 0);
+    fn stamina_5() {
+        let mut stamina = StaminaTimer::new(1.0);
+        stamina.update(1.0, 0.0, true);
+        stamina.update(0.5, 0.0, true);
+        assert_eq!(stamina.n, 1);
+        assert_eq!(stamina.ping, true);
+        assert_eq!(stamina.motion, Time::Waiting(0.5));
+        assert_eq!(stamina.recovery, Time::Done);
     }
 
     #[test]
-    fn sigiltimer_2_() {
-        let mut timer = sigiltimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        // sigil expired effect duration
-        timer.update(guard.second(false), 3.0);
-        assert_eq!(timer.n, 0);
+    fn stamina_6() {
+        let mut stamina = StaminaTimer::new(1.0);
+        stamina.update(1.0, 0.0, true);
+        stamina.update(0.5, 0.0, false);
+        assert_eq!(stamina.n, 0);
+        assert_eq!(stamina.ping, false);
+        assert_eq!(stamina.motion, Time::Done);
+        assert_eq!(stamina.recovery, Time::Done);
     }
-
-    #[test]
-    fn sigiltimer_3() {
-        let mut timer = sigiltimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        // cannot gain another sigil because it is in CD
-        timer.update(guard.second(true), 4.0);
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        assert_eq!(timer.n, 0);
-    }
-
-    #[test]
-    fn sigiltimer_3_() {
-        let mut timer = sigiltimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        // cannot gain another sigil because it is in CD
-        timer.update(guard.second(false), 4.0);
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        assert_eq!(timer.n, 0);
-    }
-
-    #[test]
-    fn sigiltimer_4() {
-        let mut timer = sigiltimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        // can gain another sigil
-        // note the last stack only takes effect
-        timer.update(guard.second(true), 5.0);
-        timer.update(guard.second(true), 0.1);
-        assert_eq!(timer.n, 1);
-        timer.update(guard.second(true), 0.1);
-        assert_eq!(timer.n, 2);
-    }
-
-    #[test]
-    fn sigiltimer_4_() {
-        let mut timer = sigiltimer();
-        let mut guard = TimerGuard::first_ok();
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        timer.update(guard.second(true), 0.1);
-        // can gain another sigil
-        // note the last stack only takes effect
-        timer.update(guard.second(false), 5.0);
-        timer.update(guard.second(true), 0.1);
-        assert_eq!(timer.n, 1);
-        timer.update(guard.second(true), 0.1);
-        assert_eq!(timer.n, 2);
-    }
-
-    // fn looptimer() -> LoopTimer {
-    //     LoopTimer::new(3.0, 3)
-    // }
-
-    // #[test]
-    // fn looptimer_1() {
-    //     let mut timer = looptimer();
-    //     let mut guard = TimerGuard::first_ok();
-    //     timer.update(guard.second(true), 0.0);
-    //     assert_eq!(timer.n, 1);
-    // }
-
-    // #[test]
-    // fn looptimer_too_early_1() {
-    //     let mut timer = looptimer();
-    //     let mut guard = TimerGuard::first_ok();
-    //     timer.update(guard.second(true), 0.0);
-    //     timer.update(guard.second(false), 0.3);
-    //     assert_eq!(timer.n, 1);
-    // }
-
-    // #[test]
-    // fn looptimer_too_early_2() {
-    //     let mut timer = looptimer();
-    //     let mut guard = TimerGuard::first_ok();
-    //     timer.update(guard.second(true), 0.0);
-    //     timer.update(guard.second(true), 0.3);
-    //     assert_eq!(timer.n, 1);
-    // }
-
-    // #[test]
-    // fn looptimer_2() {
-    //     let mut timer = looptimer();
-    //     let mut guard = TimerGuard::first_ok();
-    //     timer.update(guard.second(true), 0.0);
-    //     timer.update(guard.second(true), 1.0);
-    //     assert_eq!(timer.n, 1);
-    // }
-
-    // #[test]
-    // fn looptimer_3() {
-    //     let mut timer = looptimer();
-    //     let mut guard = TimerGuard::first_ok();
-    //     timer.update(guard.second(true), 0.0);
-    //     timer.update(guard.second(true), 1.0);
-    //     timer.update(guard.second(true), 0.0);
-    //     assert_eq!(timer.n, 2);
-    // }
 }
