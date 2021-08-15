@@ -8,6 +8,8 @@ use std::io;
 use std::process;
 use std::cmp::Ordering;
 use std::mem::MaybeUninit;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use std::thread;
 use std::sync::mpsc;
@@ -310,12 +312,12 @@ mod tests {
 fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
     let idx0 = FieldCharacterIndex(0);
     let idx1 = FieldCharacterIndex(1);
-    let mut timers0 = Box::new(ICDTimers::new());
-    let mut timers1 = Box::new(ICDTimers::new());
-    let mut characters1 = AllCharacters::new(idx0);
-    let mut characters2 = AllCharacters::new(idx1);
-    let mut weapons1 = AllWeapons::new(idx0);
-    let mut weapons2 = AllWeapons::new(idx1);
+    let mut timers0 = ICDTimers::new();
+    let mut timers1 = ICDTimers::new();
+    let mut characters1 = AllCharacters::new(idx0, &timers0);
+    let mut characters2 = AllCharacters::new(idx1, &timers1);
+    let mut weapons1 = AllWeapons::new(idx0, &timers0);
+    let mut weapons2 = AllWeapons::new(idx1, &timers1);
     let mut artifacts1 = AllArtifacts::new();
     let mut artifacts2 = AllArtifacts::new();
     let input_characters: Vec<CharacterName> = CharacterName::cryo().drain(start..end).collect();
@@ -391,9 +393,9 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
 
 fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
     let idx = FieldCharacterIndex(0);
-    let mut timers = Box::new(ICDTimers::new());
-    let mut characters = AllCharacters::new(idx);
-    let mut weapons = AllWeapons::new(idx);
+    let mut timers0 = ICDTimers::new();
+    let mut characters = AllCharacters::new(idx, &timers0);
+    let mut weapons = AllWeapons::new(idx, &timers0);
     let mut artifacts = AllArtifacts::new();
     let input_characters: Vec<CharacterName> = CharacterName::vec().drain(start..end).collect();
     // TODO

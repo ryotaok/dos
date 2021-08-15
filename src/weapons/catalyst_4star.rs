@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, PHYSICAL_GAUGE};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, NTimer, DurationTimer};
+use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, DurationTimer};
 use crate::testutil;
 
 use AttackType::*;
@@ -199,7 +200,7 @@ impl EyeOfPerceptionR5 {
             .atk(55.1)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: NTimer::new(&[8.0]),
             aa: Attack {
@@ -207,7 +208,7 @@ impl EyeOfPerceptionR5 {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 360.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }

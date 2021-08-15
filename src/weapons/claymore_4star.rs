@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, Vision, PHYSICAL_GAUGE, LIONSROAR};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ElementalAbsorption, NTimer, DurationTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
 use AttackType::*;
@@ -18,7 +19,7 @@ pub struct PrototypeArchaicR5 {
 }
 
 impl PrototypeArchaicR5 {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: NTimer::new(&[15.0]),
             aa: Attack {
@@ -26,7 +27,7 @@ impl PrototypeArchaicR5 {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 480.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }

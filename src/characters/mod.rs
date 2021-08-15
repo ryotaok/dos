@@ -1,3 +1,9 @@
+use std::rc::Rc;
+use std::cell::RefCell;
+
+use crate::fc::{FieldCharacterIndex, CharacterRecord, SpecialAbility, FieldAbilityBuilder};
+use crate::action::{ICDTimer};
+
 pub mod pyro;
 pub mod hydro;
 pub mod electro;
@@ -13,7 +19,6 @@ pub mod version_1_6;
 pub mod version_2_0;
 pub mod version_2_1;
 
-use crate::fc::{FieldCharacterIndex, CharacterRecord, SpecialAbility, FieldAbilityBuilder};
 use pyro::*;
 use hydro::*;
 use electro::*;
@@ -89,64 +94,64 @@ pub struct AllCharacters {
 }
 
 impl AllCharacters {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             // pyro
-            amber: (Amber::record(), Amber::new(idx)),
-            bennett: (Bennett::record(), Bennett::new(idx)),
-            xiangling: (Xiangling::record(), Xiangling::new(idx)),
-            diluc: (Diluc::record(), Diluc::new(idx)),
-            klee: (Klee::record(), Klee::new(idx)),
+            amber: (Amber::record(), Amber::new(idx, icd_timer)),
+            bennett: (Bennett::record(), Bennett::new(idx, icd_timer)),
+            xiangling: (Xiangling::record(), Xiangling::new(idx, icd_timer)),
+            diluc: (Diluc::record(), Diluc::new(idx, icd_timer)),
+            klee: (Klee::record(), Klee::new(idx, icd_timer)),
             // hydro
-            barbara: (Barbara::record(), Barbara::new(idx)),
-            xingqiu: (Xingqiu::record(), Xingqiu::new(idx)),
-            mona: (Mona::record(), Mona::new(idx)),
+            barbara: (Barbara::record(), Barbara::new(idx, icd_timer)),
+            xingqiu: (Xingqiu::record(), Xingqiu::new(idx, icd_timer)),
+            mona: (Mona::record(), Mona::new(idx, icd_timer)),
             // electro
-            beidou: (Beidou::record(), Beidou::new(idx)),
-            fischl: (Fischl::record(), Fischl::new(idx)),
-            lisa: (Lisa::record(), Lisa::new(idx)),
-            razor: (Razor::record(), Razor::new(idx)),
-            keqing: (Keqing::record(), Keqing::new(idx)),
+            beidou: (Beidou::record(), Beidou::new(idx, icd_timer)),
+            fischl: (Fischl::record(), Fischl::new(idx, icd_timer)),
+            lisa: (Lisa::record(), Lisa::new(idx, icd_timer)),
+            razor: (Razor::record(), Razor::new(idx, icd_timer)),
+            keqing: (Keqing::record(), Keqing::new(idx, icd_timer)),
             // cryo
-            chongyun: (Chongyun::record(), Chongyun::new(idx)),
-            kaeya: (Kaeya::record(), Kaeya::new(idx)),
-            qiqi: (Qiqi::record(), Qiqi::new(idx)),
+            chongyun: (Chongyun::record(), Chongyun::new(idx, icd_timer)),
+            kaeya: (Kaeya::record(), Kaeya::new(idx, icd_timer)),
+            qiqi: (Qiqi::record(), Qiqi::new(idx, icd_timer)),
             // anemo
-            sucrose: (Sucrose::record(), Sucrose::new(idx)),
-            traveleranemo: (TravelerAnemo::record(), TravelerAnemo::new(idx)),
-            jean: (Jean::record(), Jean::new(idx)),
-            venti: (Venti::record(), Venti::new(idx)),
+            sucrose: (Sucrose::record(), Sucrose::new(idx, icd_timer)),
+            traveleranemo: (TravelerAnemo::record(), TravelerAnemo::new(idx, icd_timer)),
+            jean: (Jean::record(), Jean::new(idx, icd_timer)),
+            venti: (Venti::record(), Venti::new(idx, icd_timer)),
             // geo
-            ningguang: (Ningguang::record(), Ningguang::new(idx)),
-            noelle: (Noelle::record(), Noelle::new(idx)),
-            travelergeo: (TravelerGeo::record(), TravelerGeo::new(idx)),
+            ningguang: (Ningguang::record(), Ningguang::new(idx, icd_timer)),
+            noelle: (Noelle::record(), Noelle::new(idx, icd_timer)),
+            travelergeo: (TravelerGeo::record(), TravelerGeo::new(idx, icd_timer)),
             // version_1_1
-            tartaglia: (Tartaglia::record(), Tartaglia::new(idx)),
-            diona: (Diona::record(), Diona::new(idx)),
-            zhongli: (Zhongli::record(), Zhongli::new(idx)),
-            xinyan: (Xinyan::record(), Xinyan::new(idx)),
+            tartaglia: (Tartaglia::record(), Tartaglia::new(idx, icd_timer)),
+            diona: (Diona::record(), Diona::new(idx, icd_timer)),
+            zhongli: (Zhongli::record(), Zhongli::new(idx, icd_timer)),
+            xinyan: (Xinyan::record(), Xinyan::new(idx, icd_timer)),
             // version_1_2
-            albedo: (Albedo::record(), Albedo::new(idx)),
-            ganyu: (Ganyu::record(), Ganyu::new(idx)),
+            albedo: (Albedo::record(), Albedo::new(idx, icd_timer)),
+            ganyu: (Ganyu::record(), Ganyu::new(idx, icd_timer)),
             // version_1_3
-            xiao: (Xiao::record(), Xiao::new(idx)),
-            hutao: (HuTao::record(), HuTao::new(idx)),
+            xiao: (Xiao::record(), Xiao::new(idx, icd_timer)),
+            hutao: (HuTao::record(), HuTao::new(idx, icd_timer)),
             // version_1_4
-            rosaria: (Rosaria::record(), Rosaria::new(idx)),
+            rosaria: (Rosaria::record(), Rosaria::new(idx, icd_timer)),
             // version_1_5
-            yanfei: (Yanfei::record(), Yanfei::new(idx)),
-            eula: (Eula::record(), Eula::new(idx)),
+            yanfei: (Yanfei::record(), Yanfei::new(idx, icd_timer)),
+            eula: (Eula::record(), Eula::new(idx, icd_timer)),
             // version_1_6
-            kazuha: (Kazuha::record(), Kazuha::new(idx)),
+            kazuha: (Kazuha::record(), Kazuha::new(idx, icd_timer)),
             // version_2_0
-            ayaka: (Ayaka::record(), Ayaka::new(idx)),
-            yoimiya: (Yoimiya::record(), Yoimiya::new(idx)),
-            sayu: (Sayu::record(), Sayu::new(idx)),
+            ayaka: (Ayaka::record(), Ayaka::new(idx, icd_timer)),
+            yoimiya: (Yoimiya::record(), Yoimiya::new(idx, icd_timer)),
+            sayu: (Sayu::record(), Sayu::new(idx, icd_timer)),
             // version_2_1
-            raidenshogun: (RaidenShogun::record(), RaidenShogun::new(idx)),
-            sangonomiyakokomi: (SangonomiyaKokomi::record(), SangonomiyaKokomi::new(idx)),
-            kujousara: (KujouSara::record(), KujouSara::new(idx)),
-            aloy: (Aloy::record(), Aloy::new(idx)),
+            raidenshogun: (RaidenShogun::record(), RaidenShogun::new(idx, icd_timer)),
+            sangonomiyakokomi: (SangonomiyaKokomi::record(), SangonomiyaKokomi::new(idx, icd_timer)),
+            kujousara: (KujouSara::record(), KujouSara::new(idx, icd_timer)),
+            aloy: (Aloy::record(), Aloy::new(idx, icd_timer)),
         }
     }
 

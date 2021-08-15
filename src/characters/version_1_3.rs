@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
 use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, StaminaTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, StaminaTimer, ICDTimers};
 
 use AttackType::*;
 use WeaponType::*;
@@ -19,7 +20,7 @@ pub struct XiaoSkill {
 }
 
 impl XiaoSkill {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer1: NTimer::new(&[10.0]),
             timer2: NTimer::new(&[10.0]),
@@ -28,7 +29,7 @@ impl XiaoSkill {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 455.04,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             attack2: Attack {
@@ -36,7 +37,7 @@ impl XiaoSkill {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 455.04,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             particle: Particle::new(Anemo, 3.0),
@@ -101,7 +102,7 @@ impl Xiao {
             .energy_cost(70.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 6 attacks in 3.75 seconds
@@ -120,7 +121,7 @@ impl Xiao {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 404.02,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             ca_timer: NTimer::new(&[1.7]),
@@ -131,7 +132,7 @@ impl Xiao {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 0.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }
@@ -215,7 +216,7 @@ impl HuTao {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 6 attacks in 2.925 seconds
@@ -234,7 +235,7 @@ impl HuTao {
                 element: &PYRO_GAUGE1A,
                 multiplier: 242.57,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             stamina: StaminaTimer::new(0.915),
@@ -244,7 +245,7 @@ impl HuTao {
                 element: &PYRO_GAUGE1A,
                 multiplier: 115.2,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurst::new(&[15.0], Attack {
@@ -252,7 +253,7 @@ impl HuTao {
                 element: &PYRO_GAUGE2B,
                 multiplier: 617.44,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }

@@ -1,4 +1,5 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::fc::{CharacterData, FieldCharacterIndex, SpecialAbility, SkillAbility, FieldAbilityBuilder, Enemy, Debuff};
@@ -41,28 +42,19 @@ pub struct Attack {
 
     pub hits: usize,
 
-    // A pointer to `ICDTimer` of the respective `AttackType`. In order to have
-    // a stable pointer address, the pointee `ICDTimer` must be stable. For
-    // example, when we box a character who has `ICDTimer`, the character will
-    // be stable and so is the timer.
-    pub icd_timer: *mut ICDTimer,
+    pub icd_timer: Rc<RefCell<ICDTimer>>,
 
     pub idx: FieldCharacterIndex,
 }
 
 impl Attack {
-    // pub fn infuse(mut self, element: ElementalGauge) -> Self {
-    //     self.element = element;
-    //     self
-    // }
-
-    pub fn na(multiplier: f32, hits: usize, idx: FieldCharacterIndex) -> Self {
+    pub fn na(multiplier: f32, hits: usize, idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             kind: AttackType::Na,
             element: &PHYSICAL_GAUGE,
             multiplier,
             hits,
-            icd_timer: ptr::null_mut(),
+            icd_timer: Rc::clone(icd_timer),
             idx,
         }
     }
@@ -83,9 +75,7 @@ impl Attack {
     }
 
     pub fn icd_cleared(&self) -> bool {
-        unsafe {
-            (*self.icd_timer).clear()
-        }
+        self.icd_timer.borrow().clear()
     }
 
     pub fn outgoing_damage(&self, state: Option<State>, fc: &CharacterData) -> f32 {
@@ -187,7 +177,7 @@ pub struct ElementalAbsorption {
 }
 
 impl ElementalAbsorption {
-    pub fn new(idx: FieldCharacterIndex, kind: AttackType, multiplier: f32, timer: NTimer) -> Self {
+    pub fn new(idx: FieldCharacterIndex, kind: AttackType, multiplier: f32, timer: NTimer, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer,
             attack: Attack {
@@ -195,7 +185,7 @@ impl ElementalAbsorption {
                 element: &PHYSICAL_GAUGE,
                 multiplier,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }
@@ -1060,27 +1050,27 @@ impl ICDTimer {
 
 #[derive(Debug)]
 pub struct ICDTimers {
-    pub na: ICDTimer,
-    pub ca: ICDTimer,
-    pub skill: ICDTimer,
-    pub burst: ICDTimer,
+    pub na: Rc<RefCell<ICDTimer>>,
+    pub ca: Rc<RefCell<ICDTimer>>,
+    pub skill: Rc<RefCell<ICDTimer>>,
+    pub burst: Rc<RefCell<ICDTimer>>,
 }
 
 impl ICDTimers {
     pub fn new() -> Self {
         Self {
-            na: ICDTimer::new(),
-            ca: ICDTimer::new(),
-            skill: ICDTimer::new(),
-            burst: ICDTimer::new(),
+            na: Rc::new(RefCell::new(ICDTimer::new())),
+            ca: Rc::new(RefCell::new(ICDTimer::new())),
+            skill: Rc::new(RefCell::new(ICDTimer::new())),
+            burst: Rc::new(RefCell::new(ICDTimer::new())),
         }
     }
 
     pub fn update(&mut self, time: f32) -> () {
-        self.na.update(time);
-        self.ca.update(time);
-        self.skill.update(time);
-        self.burst.update(time);
+        self.na.get_mut().update(time);
+        self.ca.get_mut().update(time);
+        self.skill.get_mut().update(time);
+        self.burst.get_mut().update(time);
     }
 }
 

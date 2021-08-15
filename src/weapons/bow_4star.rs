@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ElementalAbsorption, NTimer, DurationTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
 use AttackType::*;
@@ -82,7 +83,7 @@ impl TheViridescentHuntR5 {
             .cr(27.6)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: NTimer::new(&[0.5,0.5, 0.5,0.5, 0.5,0.5, 0.5,0.5, 6.0]),
             aa: Attack {
@@ -90,7 +91,7 @@ impl TheViridescentHuntR5 {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 80.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }

@@ -2,7 +2,7 @@ use std::ptr;
 
 use crate::state::State;
 use crate::artifact::Artifact;
-use crate::action::{Attack, AttackEvent, NTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, ICDTimers};
 use crate::types::{Vision, WeaponType, FieldEnergy, ElementalGauge, ElementalReaction, ElementalReactionType};
 
 

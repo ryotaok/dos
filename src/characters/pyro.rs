@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
 use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ElementalAbsorption, NaLoop, SimpleCa, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, Time, NTimer, DurationTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleCa, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, Time, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
 use AttackType::*;
@@ -28,7 +29,7 @@ impl Amber {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             ca_timer: DurationTimer::new(10.0, &[0.0]),
             ca: SimpleCa::new(0.0, 2.0, Attack {
@@ -36,7 +37,7 @@ impl Amber {
                 element: &PYRO_GAUGE2B,
                 multiplier: 223.2,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             skill: SimpleSkill::new(&[15.0], Particle::new(Pyro, 4.0), Attack {
@@ -44,7 +45,7 @@ impl Amber {
                 element: &PYRO_GAUGE2B,
                 multiplier: 221.76,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurst::new(&[12.0], Attack {
@@ -52,7 +53,7 @@ impl Amber {
                 element: &PYRO_GAUGE1A,
                 multiplier: 50.54,
                 hits: 18,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }
@@ -108,7 +109,7 @@ impl Bennett {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             bonus: 1.008,
             na: NaLoop::new(
@@ -128,7 +129,7 @@ impl Bennett {
                 element: &PYRO_GAUGE2B,
                 multiplier: 261.44,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurst::new(&[12.0, 3.0], Attack {
@@ -136,7 +137,7 @@ impl Bennett {
                 element: &PYRO_GAUGE2B,
                 multiplier: 419.04,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }
@@ -184,7 +185,7 @@ impl Xiangling {
             .em(96.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.4 seconds
@@ -202,7 +203,7 @@ impl Xiangling {
                 element: &PYRO_GAUGE1A,
                 multiplier: 200.3,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 10.0], Attack {
@@ -210,14 +211,14 @@ impl Xiangling {
                 element: &PYRO_GAUGE1A,
                 multiplier: (129.6 + 158.4 + 197.28) / 3.0,
                 hits: 3,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &PYRO_GAUGE1A,
                 multiplier: 201.6,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             skill_a4: DurationTimer::new(10.0, &[0.0]),
@@ -261,7 +262,7 @@ pub struct DilucSkill {
 }
 
 impl DilucSkill {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer1: NTimer::new(&[10.0]),
             timer2: NTimer::new(&[10.0]),
@@ -271,7 +272,7 @@ impl DilucSkill {
                 element: &PYRO_GAUGE1A,
                 multiplier: 169.92,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             attack2: Attack {
@@ -279,7 +280,7 @@ impl DilucSkill {
                 element: &PYRO_GAUGE1A,
                 multiplier: 175.68,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             attack3: Attack {
@@ -287,7 +288,7 @@ impl DilucSkill {
                 element: &PYRO_GAUGE1A,
                 multiplier: 231.84,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             particle: Particle::new(Pyro, 1.3333),
@@ -357,7 +358,7 @@ impl Diluc {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 4 attacks in 2.834 seconds
@@ -375,14 +376,14 @@ impl Diluc {
                 element: &PYRO_GAUGE1A,
                 multiplier: 367.2,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &PYRO_GAUGE1A,
                 multiplier: 114.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }
@@ -419,7 +420,7 @@ pub struct KleeCa {
 }
 
 impl KleeCa {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: NTimer::with_condition(&[1.5]),
             attack: Attack {
@@ -427,7 +428,7 @@ impl KleeCa {
                 element: &PYRO_GAUGE1A,
                 multiplier: 283.25,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             na_count: 0,
@@ -481,7 +482,7 @@ pub struct KleeSkill {
 }
 
 impl KleeSkill {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer1: NTimer::new(&[1.0,1.0, 18.0]),
             timer2: NTimer::new(&[1.0,1.0, 18.0]),
@@ -490,7 +491,7 @@ impl KleeSkill {
                 element: &PYRO_GAUGE2B,
                 multiplier: 171.36,
                 hits: 3,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             dot: Attack {
@@ -498,7 +499,7 @@ impl KleeSkill {
                 element: &PYRO_GAUGE1A,
                 multiplier: 59.04,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             particle: Particle::new(Pyro, 4.0),
@@ -569,7 +570,7 @@ impl Klee {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 3 attacks in 1.467 seconds
@@ -587,7 +588,7 @@ impl Klee {
                 element: &PYRO_GAUGE1A,
                 multiplier: 76.76,
                 hits: 4,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }

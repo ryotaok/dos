@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
 use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SkillDamage2DotParticle, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SkillDamage2DotParticle, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 
 use AttackType::*;
 use WeaponType::*;
@@ -29,7 +30,7 @@ impl RaidenShogun {
             .energy_cost(90.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             once: true,
             resolve_stack: 60.0, // TODO starting 200 energy consumption
@@ -51,14 +52,14 @@ impl RaidenShogun {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 210.96,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }, Attack {
                 kind: AttackType::SkillDot,
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 75.6,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurst::new(&[7.0, 11.0], Attack {
@@ -66,7 +67,7 @@ impl RaidenShogun {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 721.44,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }
@@ -173,7 +174,7 @@ impl SangonomiyaKokomi {
             .energy_cost(70.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             once: true,
             na: NaLoop::new(
@@ -190,7 +191,7 @@ impl SangonomiyaKokomi {
                 element: &HYDRO_GAUGE1A,
                 multiplier: 196.54,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurst::new(&[10.0, 8.0], Attack {
@@ -198,7 +199,7 @@ impl SangonomiyaKokomi {
                 element: &HYDRO_GAUGE1A,
                 multiplier: 0.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }
@@ -262,7 +263,7 @@ impl KujouSara {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             bonus_timer: DurationTimer::new(6.0, &[0.0]),
             na: NaLoop::new(
@@ -281,7 +282,7 @@ impl KujouSara {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 226.37,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[0.5,0.5,0.5,0.5, 6.0, 12.0], Attack {
@@ -289,14 +290,14 @@ impl KujouSara {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 737.28,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 61.42,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }
@@ -363,7 +364,7 @@ impl Aloy {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             skill_a4: DurationTimer::new(1.5, &[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]),
             na: NaLoop::new(
@@ -381,14 +382,14 @@ impl Aloy {
                 element: &CRYO_GAUGE1A,
                 multiplier: 319.68,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }, Attack {
                 kind: AttackType::SkillDot,
                 element: &CRYO_GAUGE1A,
                 multiplier: 72.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurst::new(&[12.0], Attack {
@@ -396,7 +397,7 @@ impl Aloy {
                 element: &CRYO_GAUGE1A,
                 multiplier: 646.56,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }

@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
 use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
 use AttackType::*;
@@ -24,7 +25,7 @@ pub struct NingguangCa {
 }
 
 impl NingguangCa {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             star_jade: 0,
             na_count: 0,
@@ -34,7 +35,7 @@ impl NingguangCa {
                 element: &GEO_GAUGE1A,
                 multiplier: 313.34,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             ca_star_jade_1: Attack {
@@ -42,7 +43,7 @@ impl NingguangCa {
                 element: &GEO_GAUGE1A,
                 multiplier: 89.28,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             ca_star_jade_2: Attack {
@@ -50,7 +51,7 @@ impl NingguangCa {
                 element: &GEO_GAUGE1A,
                 multiplier: 89.28,
                 hits: 2,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             ca_star_jade_3: Attack {
@@ -58,7 +59,7 @@ impl NingguangCa {
                 element: &GEO_GAUGE1A,
                 multiplier: 89.28,
                 hits: 3,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
         }
@@ -126,7 +127,7 @@ impl Ningguang {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 1 attacks in 0.9 seconds
@@ -141,7 +142,7 @@ impl Ningguang {
                 element: &GEO_GAUGE1A,
                 multiplier: 414.72,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurst::new(&[12.0], Attack {
@@ -149,7 +150,7 @@ impl Ningguang {
                 element: &GEO_GAUGE1A,
                 multiplier: 156.53,
                 hits: 6,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst_aa: Attack {
@@ -157,7 +158,7 @@ impl Ningguang {
                 element: &GEO_GAUGE1A,
                 multiplier: 156.53,
                 hits: 4,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }
@@ -208,7 +209,7 @@ impl Noelle {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 4 attacks in 2.616 seconds
@@ -226,7 +227,7 @@ impl Noelle {
                 element: &GEO_GAUGE2B,
                 multiplier: 216.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurst::new(&[15.0], Attack {
@@ -234,7 +235,7 @@ impl Noelle {
                 element: &GEO_GAUGE1A,
                 multiplier: (120.96 + 167.76) / 2.0,
                 hits: 2,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }
@@ -286,7 +287,7 @@ impl TravelerGeo {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.55 seconds
@@ -304,7 +305,7 @@ impl TravelerGeo {
                 element: &GEO_GAUGE1A,
                 multiplier: 60.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             skill: SimpleSkill::new(&[6.0], Particle::new(Geo, 3.5), Attack {
@@ -312,7 +313,7 @@ impl TravelerGeo {
                 element: &GEO_GAUGE2B,
                 multiplier: 446.4,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurst::new(&[15.0], Attack {
@@ -320,7 +321,7 @@ impl TravelerGeo {
                 element: &GEO_GAUGE2B,
                 multiplier: 266.4,
                 hits: 4,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }

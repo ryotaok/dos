@@ -1,7 +1,7 @@
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy};
 use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, DurationTimer};
+use crate::action::{Attack, AttackEvent, ICDTimer, DurationTimer};
 
 use AttackType::*;
 use WeaponType::*;

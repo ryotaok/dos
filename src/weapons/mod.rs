@@ -140,7 +140,7 @@ pub struct AllWeapons {
 }
 
 impl AllWeapons {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             // sword_4star
             prototyperancourr5: (PrototypeRancourR5::record(), PrototypeRancourR5::new()),
@@ -148,10 +148,10 @@ impl AllWeapons {
             blackclifflongswordr5: (BlackcliffLongswordR5::record(), BlackcliffLongswordR5),
             royallongswordr5: (RoyalLongswordR5::record(), RoyalLongswordR5),
             harbingerofdawnr5: (HarbingerOfDawnR5::record(), HarbingerOfDawnR5),
-            thefluter5: (TheFluteR5::record(), TheFluteR5::new(idx)),
+            thefluter5: (TheFluteR5::record(), TheFluteR5::new(idx, icd_timer)),
             lionsroarr5: (LionsRoarR5::record(), LionsRoarR5),
             // claymore_4star
-            prototypearchaicr5: (PrototypeArchaicR5::record(), PrototypeArchaicR5::new(idx)),
+            prototypearchaicr5: (PrototypeArchaicR5::record(), PrototypeArchaicR5::new(idx, icd_timer)),
             whiteblindr5: (WhiteblindR5::record(), WhiteblindR5::new()),
             serpentspiner5: (SerpentSpineR5::record(), SerpentSpineR5::new()),
             blackcliffslasherr5: (BlackcliffSlasherR5::record(), BlackcliffSlasherR5),
@@ -159,7 +159,7 @@ impl AllWeapons {
             rainslasherr5: (RainslasherR5::record(), RainslasherR5),
             // polearm_4star
             prototypestarglitterr5: (PrototypeStarglitterR5::record(), PrototypeStarglitterR5::new()),
-            crescentpiker5: (CrescentPikeR5::record(), CrescentPikeR5::new(idx)),
+            crescentpiker5: (CrescentPikeR5::record(), CrescentPikeR5::new(idx, icd_timer)),
             deathmatchr5: (DeathmatchR5::record(), DeathmatchR5),
             blackcliffpoler5: (BlackcliffPoleR5::record(), BlackcliffPoleR5),
             royalspearr5: (RoyalSpearR5::record(), RoyalSpearR5),
@@ -168,7 +168,7 @@ impl AllWeapons {
             // bow_4star
             prototypecrescentr5: (PrototypeCrescentR5::record(), PrototypeCrescentR5),
             compoundbowr5: (CompoundBowR5::record(), CompoundBowR5::new()),
-            theviridescenthuntr5: (TheViridescentHuntR5::record(), TheViridescentHuntR5::new(idx)),
+            theviridescenthuntr5: (TheViridescentHuntR5::record(), TheViridescentHuntR5::new(idx, icd_timer)),
             blackcliffwarbowr5: (BlackcliffWarbowR5::record(), BlackcliffWarbowR5),
             royalbowr5: (RoyalBowR5::record(), RoyalBowR5),
             slingshotr5: (SlingshotR5::record(), SlingshotR5),
@@ -181,7 +181,7 @@ impl AllWeapons {
             blackcliffagater5: (BlackcliffAgateR5::record(), BlackcliffAgateR5),
             royalgrimoirer5: (RoyalGrimoireR5::record(), RoyalGrimoireR5),
             thrillingtalesofdragonslayersr5: (ThrillingTalesOfDragonSlayersR5::record(), ThrillingTalesOfDragonSlayersR5::new()),
-            eyeofperceptionr5: (EyeOfPerceptionR5::record(), EyeOfPerceptionR5::new(idx)),
+            eyeofperceptionr5: (EyeOfPerceptionR5::record(), EyeOfPerceptionR5::new(idx, icd_timer)),
             thewidsithr5: (TheWidsithR5::record(), TheWidsithR5::new()),
             // favonius_series
             favoniusgreatswordr5: (FavoniusGreatswordR5::record(), FavoniusGreatswordR5::new()),
@@ -195,26 +195,26 @@ impl AllWeapons {
             sacrificialbowr5: (SacrificialBowR5::record(), SacrificialBowR5::new()),
             sacrificialfragmentsr5: (SacrificialFragmentsR5::record(), SacrificialFragmentsR5::new()),
             // version_1_5star
-            skywardblade: (SkywardBlade::record(), SkywardBlade::new(idx)),
-            aquilafavonia: (AquilaFavonia::record(), AquilaFavonia::new(idx)),
-            skywardpride: (SkywardPride::record(), SkywardPride::new(idx)),
+            skywardblade: (SkywardBlade::record(), SkywardBlade::new(idx, icd_timer)),
+            aquilafavonia: (AquilaFavonia::record(), AquilaFavonia::new(idx, icd_timer)),
+            skywardpride: (SkywardPride::record(), SkywardPride::new(idx, icd_timer)),
             wolfsgravestone: (WolfsGravestone::record(), WolfsGravestone),
-            skywardspine: (SkywardSpine::record(), SkywardSpine::new(idx)),
+            skywardspine: (SkywardSpine::record(), SkywardSpine::new(idx, icd_timer)),
             primordialjadewingedspear: (PrimordialJadeWingedSpear::record(), PrimordialJadeWingedSpear::new()),
-            skywardharp: (SkywardHarp::record(), SkywardHarp::new(idx)),
+            skywardharp: (SkywardHarp::record(), SkywardHarp::new(idx, icd_timer)),
             amosbow: (AmosBow::record(), AmosBow),
-            skywardatlas: (SkywardAtlas::record(), SkywardAtlas::new(idx)),
+            skywardatlas: (SkywardAtlas::record(), SkywardAtlas::new(idx, icd_timer)),
             lostprayertothesacredwinds: (LostPrayerToTheSacredWinds::record(), LostPrayerToTheSacredWinds::new()),
             // version_1_1
-            theunforged: (TheUnforged::record(), TheUnforged::new(idx)),
-            summitshaper: (SummitShaper::record(), SummitShaper::new(idx)),
-            vortexvanquisher: (VortexVanquisher::record(), VortexVanquisher::new(idx)),
-            memoryofdust: (MemoryOfDust::record(), MemoryOfDust::new(idx)),
+            theunforged: (TheUnforged::record(), TheUnforged::new(idx, icd_timer)),
+            summitshaper: (SummitShaper::record(), SummitShaper::new(idx, icd_timer)),
+            vortexvanquisher: (VortexVanquisher::record(), VortexVanquisher::new(idx, icd_timer)),
+            memoryofdust: (MemoryOfDust::record(), MemoryOfDust::new(idx, icd_timer)),
             // version_1_2
-            festeringdesire: (FesteringDesire::record(), FesteringDesire::new(idx)),
-            snowtombedstarsilver: (SnowTombedStarsilver::record(), SnowTombedStarsilver::new(idx)),
-            dragonspinespear: (DragonspineSpear::record(), DragonspineSpear::new(idx)),
-            frostbearer: (Frostbearer::record(), Frostbearer::new(idx)),
+            festeringdesire: (FesteringDesire::record(), FesteringDesire::new(idx, icd_timer)),
+            snowtombedstarsilver: (SnowTombedStarsilver::record(), SnowTombedStarsilver::new(idx, icd_timer)),
+            dragonspinespear: (DragonspineSpear::record(), DragonspineSpear::new(idx, icd_timer)),
+            frostbearer: (Frostbearer::record(), Frostbearer::new(idx, icd_timer)),
             // version_1_3
             primordialjadecutter: (PrimordialJadeCutter::record(), PrimordialJadeCutter::new()),
             primordialjadegs: (PrimordialJadeGS::record(), PrimordialJadeGS::new()),

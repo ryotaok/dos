@@ -1,4 +1,5 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 // use rand::prelude::*;
 
 use crate::state::State;
@@ -6,7 +7,7 @@ use crate::artifact::Artifact;
 
 use crate::fc::{FieldCharacterIndex, CharacterRecord, WeaponRecord, Enemy, FieldAbility, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData};
 use crate::types::{AttackType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE};
-use crate::action::{Attack, AttackEvent, NaLoop, NTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, NaLoop, NTimer, ICDTimers};
 
 use Vision::*;
 
@@ -26,14 +27,14 @@ impl NaLoop {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 100.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }, Attack {
                 kind: AttackType::Na,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 100.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },]
         )
@@ -55,7 +56,7 @@ impl TestSkill {
                 element: vision.to_gauge(),
                 multiplier: 200.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }
@@ -119,7 +120,7 @@ impl TestHoldSkill {
                 element: vision.to_gauge(),
                 multiplier: 200.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             hold: Attack {
@@ -127,7 +128,7 @@ impl TestHoldSkill {
                 element: vision.to_gauge(),
                 multiplier: 250.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
         }
@@ -192,7 +193,7 @@ impl TestBurst {
                 element: vision.to_gauge(),
                 multiplier: 300.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }
@@ -306,7 +307,7 @@ impl HoldTestCharacter {
 //                 gauge: &GAUGE1A,
 //                 multiplier: 100.0,
 //                 hits: 1,
-//                 icd_timer: ptr::null_mut(),
+//                 icd_timer: Rc::clone(icd_timer),
 //                 idx,
 //             },
 //             ca: Attack {
@@ -314,7 +315,7 @@ impl HoldTestCharacter {
 //                 gauge: &GAUGE1A,
 //                 multiplier: 150.0,
 //                 hits: 1,
-//                 icd_timer: ptr::null_mut(),
+//                 icd_timer: Rc::clone(icd_timer),
 //                 idx,
 //             },
 //             press: Attack {
@@ -322,7 +323,7 @@ impl HoldTestCharacter {
 //                 gauge: &GAUGE1A,
 //                 multiplier: 200.0,
 //                 hits: 1,
-//                 icd_timer: ptr::null_mut(),
+//                 icd_timer: Rc::clone(icd_timer),
 //                 idx,
 //             },
 //             burst: Attack {
@@ -330,7 +331,7 @@ impl HoldTestCharacter {
 //                 gauge: &GAUGE1A,
 //                 multiplier: 300.0,
 //                 hits: 1,
-//                 icd_timer: ptr::null_mut(),
+//                 icd_timer: Rc::clone(icd_timer),
 //                 idx,
 //             },
 //         }

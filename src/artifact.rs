@@ -1,6 +1,6 @@
 use crate::state::{State, GearScore};
 use crate::fc::{CharacterData, SpecialAbility, FieldAbilityBuilder, Enemy, Debuff};
-use crate::action::{Attack, AttackEvent, NTimer, DurationTimer};
+use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, DurationTimer};
 use crate::types::{AttackType, WeaponType, FieldEnergy, ElementalReaction, Preference, Vision, NOBLESSE_OBLIGE, TENACITY_OF_THE_MILLELITH, THUNDERSOOTHER, LAVAWALKER, BLIZZARDSTRAYER1, BLIZZARDSTRAYER2};
 
 use AttackType::*;

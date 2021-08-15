@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, Vision, PHYSICAL_GAUGE, LIONSROAR};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, DurationTimer};
+use crate::action::{Attack, AttackEvent, ICDTimer, DurationTimer};
 
 use AttackType::*;
 use WeaponType::*;
@@ -114,7 +115,7 @@ pub struct TheFluteR5 {
 }
 
 impl TheFluteR5 {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: DurationTimer::new(30.0, &[0.5,0.5,0.5,0.5,0.5]),
             aa: Attack {
@@ -122,7 +123,7 @@ impl TheFluteR5 {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 200.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }

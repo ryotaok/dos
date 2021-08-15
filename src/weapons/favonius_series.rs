@@ -1,6 +1,6 @@
 use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle};
 use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ElementalAbsorption, NTimer, DurationTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NTimer, DurationTimer, ICDTimers};
 
 use AttackType::*;
 use WeaponType::*;

@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, Vision, PHYSICAL_GAUGE, DRAGONSBANE};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, DurationTimer, Time};
+use crate::action::{Attack, AttackEvent, ICDTimer, DurationTimer, Time};
 // use crate::testutil;
 
 use AttackType::*;
@@ -67,7 +68,7 @@ pub struct CrescentPikeR5 {
 }
 
 impl CrescentPikeR5 {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: DurationTimer::new(5.0, &[0.0]),
             aa: Attack {
@@ -75,7 +76,7 @@ impl CrescentPikeR5 {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 40.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             did_na: false,

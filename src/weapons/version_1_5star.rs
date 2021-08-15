@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, PHYSICAL_GAUGE};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, NTimer, DurationTimer, Time};
+use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, DurationTimer, Time};
 use crate::testutil;
 
 use AttackType::*;
@@ -26,7 +27,7 @@ impl SkywardBlade {
             .cr(4.0).er(55.1)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: DurationTimer::new(12.0, &[0.0]),
             did_na: false,
@@ -35,7 +36,7 @@ impl SkywardBlade {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 20.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
         }
@@ -84,7 +85,7 @@ impl AquilaFavonia {
             .physical_dmg(41.3)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: NTimer::new(&[15.0]),
             aa: Attack {
@@ -92,7 +93,7 @@ impl AquilaFavonia {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 200.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
         }
@@ -131,7 +132,7 @@ impl SkywardPride {
             .na_dmg(8.0).ca_dmg(8.0).skill_dmg(8.0).burst_dmg(8.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: NTimer::new(&[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,]),
             aa: Attack {
@@ -139,7 +140,7 @@ impl SkywardPride {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 80.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
         }
@@ -190,7 +191,7 @@ impl SkywardSpine {
             .cr(8.0).er(36.8).atk_spd(12.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: NTimer::new(&[2.0]),
             aa: Attack {
@@ -198,7 +199,7 @@ impl SkywardSpine {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 40.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }
@@ -284,7 +285,7 @@ impl SkywardHarp {
             .cr(22.1).cd(20.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: NTimer::new(&[4.0]),
             aa: Attack {
@@ -292,7 +293,7 @@ impl SkywardHarp {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 125.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }
@@ -344,7 +345,7 @@ impl SkywardAtlas {
             .pyro_dmg(12.0).cryo_dmg(12.0).hydro_dmg(12.0).electro_dmg(12.0).anemo_dmg(12.0).geo_dmg(12.0).dendro_dmg(12.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer: NTimer::new(&[2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0, 14.0]),
             aa: Attack {
@@ -352,7 +353,7 @@ impl SkywardAtlas {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 160.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }
         }

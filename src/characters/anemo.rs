@@ -1,9 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
 use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
 use AttackType::*;
@@ -22,7 +23,7 @@ pub struct SucroseSkill {
 }
 
 impl SucroseSkill {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             timer1: NTimer::new(&[15.0]),
             timer2: NTimer::new(&[15.0]),
@@ -31,7 +32,7 @@ impl SucroseSkill {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 380.16,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             attack2: Attack {
@@ -39,7 +40,7 @@ impl SucroseSkill {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 380.16,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             particle: Particle::new(Anemo, 4.0),
@@ -104,7 +105,7 @@ impl Sucrose {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             skill_a1: DurationTimer::new(8.0, &[0.0]),
             skill_a4: DurationTimer::new(8.0, &[0.0]),
@@ -124,7 +125,7 @@ impl Sucrose {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 266.4,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst_ea: ElementalAbsorption::new(idx, BurstDot, 79.2, NTimer::new(&[6.0, 14.0])),
@@ -221,7 +222,7 @@ impl TravelerAnemo {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.55 seconds
@@ -239,7 +240,7 @@ impl TravelerAnemo {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 60.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             skill: SkillDamage2Dot::new(&[0.5,0.5,0.5,0.5,0.5,0.5,0.5, 4.5], Particle::new(Anemo, 4.0), Attack {
@@ -247,14 +248,14 @@ impl TravelerAnemo {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 345.6,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }, Attack {
                 kind: AttackType::SkillDot,
                 element: &ANEMO_GAUGE1A,
                 multiplier: 30.24,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurstDot::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 5.0], Attack {
@@ -262,7 +263,7 @@ impl TravelerAnemo {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 145.44,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst_ea: ElementalAbsorption::new(idx, BurstDot, 44.64, NTimer::new(&[10.0, 5.0])),
@@ -313,7 +314,7 @@ impl Jean {
             .energy_cost(80.0 * 0.8)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.55 seconds
@@ -331,7 +332,7 @@ impl Jean {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 525.6,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[1.0,1.0,1.0, 17.0], Attack {
@@ -339,14 +340,14 @@ impl Jean {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 764.64,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &ANEMO_GAUGE1A,
                 multiplier: 141.12,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
         }
@@ -376,7 +377,7 @@ impl Venti {
             .energy_cost(60.0 - 15.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             na: NaLoop::new(
                 // 6 attacks in 2.85 seconds
@@ -395,7 +396,7 @@ impl Venti {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 496.8,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst: SimpleBurstDot::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 7.0], Attack {
@@ -403,7 +404,7 @@ impl Venti {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 67.68,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             }),
             burst_ea: ElementalAbsorption::new(idx, BurstDot, 33.84, NTimer::new(&[8.0, 7.0])),

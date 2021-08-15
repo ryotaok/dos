@@ -1,8 +1,10 @@
-use std::ptr;
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, Vision, PHYSICAL_GAUGE};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, NTimer};
+use crate::action::{Attack, AttackEvent, ICDTimer, NTimer};
 use crate::testutil;
 
 use AttackType::*;
@@ -19,7 +21,7 @@ impl FesteringDesire {
             .er(45.9).skill_dmg(32.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self(idx)
     }
 }
@@ -48,7 +50,7 @@ pub struct FrostBurial {
 }
 
 impl FrostBurial {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
         Self {
             cryo: false,
             timer: NTimer::new(&[10.0]),
@@ -57,7 +59,7 @@ impl FrostBurial {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 140.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
             aa_cryo: Attack {
@@ -65,7 +67,7 @@ impl FrostBurial {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 360.0,
                 hits: 1,
-                icd_timer: ptr::null_mut(),
+                icd_timer: Rc::clone(icd_timer),
                 idx,
             },
         }
@@ -98,8 +100,8 @@ impl SpecialAbility for FrostBurial {
 pub struct SnowTombedStarsilver(FrostBurial);
 
 impl SnowTombedStarsilver {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
-        Self(FrostBurial::new(idx))
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+        Self(FrostBurial::new(idx, icd_timer))
     }
 }
 
@@ -127,8 +129,8 @@ impl SpecialAbility for SnowTombedStarsilver {
 pub struct DragonspineSpear(FrostBurial);
 
 impl DragonspineSpear {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
-        Self(FrostBurial::new(idx))
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+        Self(FrostBurial::new(idx, icd_timer))
     }
 }
 
@@ -156,8 +158,8 @@ impl SpecialAbility for DragonspineSpear {
 pub struct Frostbearer(FrostBurial);
 
 impl Frostbearer {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
-        Self(FrostBurial::new(idx))
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+        Self(FrostBurial::new(idx, icd_timer))
     }
 }
 
