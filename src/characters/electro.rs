@@ -28,17 +28,17 @@ impl Beidou {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 3.75 seconds
                 &[0.75,0.75,0.75,0.75,0.75],
                 vec![
-                    Attack::na(140.59, 1, idx),
-                    Attack::na(140.08, 1, idx),
-                    Attack::na(174.59, 1, idx),
-                    Attack::na(171.02, 1, idx),
-                    Attack::na(221.68, 1, idx),
+                    Attack::na(140.59, 1, idx, &icd_timer),
+                    Attack::na(140.08, 1, idx, &icd_timer),
+                    Attack::na(174.59, 1, idx, &icd_timer),
+                    Attack::na(171.02, 1, idx, &icd_timer),
+                    Attack::na(221.68, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[7.5], Particle::new(Electro, 2.5), Attack {
@@ -46,7 +46,7 @@ impl Beidou {
                 element: &ELECTRO_GAUGE2B,
                 multiplier: (218.88 + 288.0) / 2.0,
                 hits: 2,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 10.0], Attack {
@@ -54,14 +54,14 @@ impl Beidou {
                 element: &ELECTRO_GAUGE4C,
                 multiplier: 218.88,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 172.8,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -73,8 +73,8 @@ impl Beidou {
 }
 
 impl SpecialAbility for Beidou {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
         // a4
         match (self.skill.timer.ping, self.skill.timer.n) {
             (true, 1) => {
@@ -118,18 +118,18 @@ impl Fischl {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             electro_er: false,
             na: NaLoop::new(
                 // 5 attacks in 2.1 seconds
                 &[0.42,0.42,0.42,0.42,0.42],
                 vec![
-                    Attack::na(87.21, 1, idx),
-                    Attack::na(92.48, 1, idx),
-                    Attack::na(114.92, 1, idx),
-                    Attack::na(114.07, 1, idx),
-                    Attack::na(142.46, 1, idx),
+                    Attack::na(87.21, 1, idx, &icd_timer),
+                    Attack::na(92.48, 1, idx, &icd_timer),
+                    Attack::na(114.92, 1, idx, &icd_timer),
+                    Attack::na(114.07, 1, idx, &icd_timer),
+                    Attack::na(142.46, 1, idx, &icd_timer),
                 ]
             ),
             skill: SkillDamage2DotParticle::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 13.0], Particle::new(Electro, 1.0), Attack {
@@ -137,14 +137,14 @@ impl Fischl {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 207.79,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }, Attack {
                 kind: AttackType::SkillDot,
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 159.84,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[15.0], Attack {
@@ -152,7 +152,7 @@ impl Fischl {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 374.4,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
             aa_a4: Attack {
@@ -160,7 +160,7 @@ impl Fischl {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 80.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }
         }
@@ -195,7 +195,7 @@ pub struct LisaSkill {
 }
 
 impl LisaSkill {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             conductive_status: 0,
             press_timer: NTimer::new(&[1.0]),
@@ -205,7 +205,7 @@ impl LisaSkill {
                 element: &ELECTRO_GAUGE2B,
                 multiplier: 200.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             hold_3: Attack {
@@ -213,7 +213,7 @@ impl LisaSkill {
                 element: &ELECTRO_GAUGE2B,
                 multiplier: 876.96,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
         }
@@ -228,11 +228,6 @@ impl SkillAbility for LisaSkill {
 }
 
 impl SpecialAbility for LisaSkill {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.press.icd_timer = &mut timers.skill;
-        self.hold_3.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         if self.conductive_status == 3 {
             self.hold_3.to_event(&self.hold_timer)
@@ -290,25 +285,25 @@ impl Lisa {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 4 attacks in 1.5 seconds
                 &[0.375,0.375,0.375,0.375],
                 vec![
-                    Attack::na(71.28, 1, idx),
-                    Attack::na(64.66, 1, idx),
-                    Attack::na(77.04, 1, idx),
-                    Attack::na(98.93, 1, idx),
+                    Attack::na(71.28, 1, idx, &icd_timer),
+                    Attack::na(64.66, 1, idx, &icd_timer),
+                    Attack::na(77.04, 1, idx, &icd_timer),
+                    Attack::na(98.93, 1, idx, &icd_timer),
                 ]
             ),
-            skill: LisaSkill::new(idx),
+            skill: LisaSkill::new(idx, icd_timer),
             burst: SimpleBurstDot::new(&[0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555, 4.446], Attack {
                 kind: AttackType::BurstDot,
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 65.81,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -320,7 +315,7 @@ impl Lisa {
 }
 
 impl SpecialAbility for Lisa {
-    fn modify(&self, _modifiable_state: &mut [State], _data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if 0 < self.burst.timer.n && self.burst.timer.n <= 28 {
             // a4
             enemy.def_down_debuff.push(Debuff::lisa_a4());
@@ -342,7 +337,7 @@ pub struct RazorSkill {
 }
 
 impl RazorSkill {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             electro_sigil: 0,
             // a1
@@ -353,7 +348,7 @@ impl RazorSkill {
                 element: &ELECTRO_GAUGE2B,
                 multiplier: 358.56,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             hold: Attack {
@@ -361,7 +356,7 @@ impl RazorSkill {
                 element: &ELECTRO_GAUGE2B,
                 multiplier: 531.36,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
         }
@@ -376,11 +371,6 @@ impl SkillAbility for RazorSkill {
 }
 
 impl SpecialAbility for RazorSkill {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.press.icd_timer = &mut timers.skill;
-        self.hold.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         if self.electro_sigil == 3 {
             self.hold.to_event(&self.hold_timer)
@@ -438,7 +428,7 @@ impl Razor {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             a4_condition: false,
             a4_ping: false,
@@ -446,26 +436,26 @@ impl Razor {
                 // 4 attacks in 2.734 seconds
                 &[0.6835,0.6835,0.6835,0.6835],
                 vec![
-                    Attack::na(171.13, 1, idx),
-                    Attack::na(147.42, 1, idx),
-                    Attack::na(184.32, 1, idx),
-                    Attack::na(242.72, 1, idx),
+                    Attack::na(171.13, 1, idx, &icd_timer),
+                    Attack::na(147.42, 1, idx, &icd_timer),
+                    Attack::na(184.32, 1, idx, &icd_timer),
+                    Attack::na(242.72, 1, idx, &icd_timer),
                 ]
             ),
-            skill: RazorSkill::new(idx),
+            skill: RazorSkill::new(idx, icd_timer),
             burst: BurstDamage2Dot::new(&[0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75, 5.0,], Attack {
                 kind: AttackType::Burst,
                 element: &ELECTRO_GAUGE2B,
                 multiplier: 288.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 43.2,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -478,11 +468,10 @@ impl Razor {
 
 impl SpecialAbility for Razor {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        let state = data.state();
-        if self.a4_condition && state.energy / data.character.energy_cost > 0.5 {
+        if self.a4_condition && data.state.energy / data.character.energy_cost > 0.5 {
             self.a4_ping = true;
             self.a4_condition = false;
-        } else if !self.a4_condition && state.energy / data.character.energy_cost <= 0.5 {
+        } else if !self.a4_condition && data.state.energy / data.character.energy_cost <= 0.5 {
             self.a4_ping = true;
             self.a4_condition = true;
         } else {
@@ -494,8 +483,8 @@ impl SpecialAbility for Razor {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let mut state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let mut state = &mut modifiable_data[self.burst.attack.idx.0].state;
         match (self.skill.hold_timer.ping, self.skill.hold_timer.n) {
             (true, 1) => state.energy += state.ER() * 5.0 * self.skill.electro_sigil as f32,
             _ => (),
@@ -525,7 +514,7 @@ pub struct KeqingBurst {
 }
 
 impl KeqingBurst {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             timer: NTimer::new(&[0.5,0.5,0.5, 6.5, 4.0]),
             attack_1: Attack {
@@ -533,7 +522,7 @@ impl KeqingBurst {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 158.4,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             },
             attack_2: Attack {
@@ -541,7 +530,7 @@ impl KeqingBurst {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 43.2,
                 hits: 8,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             },
             attack_3: Attack {
@@ -549,7 +538,7 @@ impl KeqingBurst {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: 339.84,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             },
         }
@@ -557,12 +546,6 @@ impl KeqingBurst {
 }
 
 impl SpecialAbility for KeqingBurst {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack_1.icd_timer = &mut timers.burst;
-        self.attack_2.icd_timer = &mut timers.burst;
-        self.attack_3.icd_timer = &mut timers.burst;
-    }
-
     fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
         if data.can_burst() {
             self.attack_1.to_event(&self.timer)
@@ -604,17 +587,17 @@ impl Keqing {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.017 seconds
                 &[0.4034,0.4034,0.4034,0.4034,0.4034],
                 vec![
-                    Attack::na(81.09, 1, idx),
-                    Attack::na(81.09, 1, idx),
-                    Attack::na(107.61, 1, idx),
-                    Attack::na((62.22+68.0) / 2.0, 2, idx),
-                    Attack::na(132.43, 1, idx),
+                    Attack::na(81.09, 1, idx, &icd_timer),
+                    Attack::na(81.09, 1, idx, &icd_timer),
+                    Attack::na(107.61, 1, idx, &icd_timer),
+                    Attack::na((62.22+68.0) / 2.0, 2, idx, &icd_timer),
+                    Attack::na(132.43, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[5.0, 2.5], Particle::new(Electro, 2.5), Attack {
@@ -622,10 +605,10 @@ impl Keqing {
                 element: &ELECTRO_GAUGE1A,
                 multiplier: (90.72 + 302.4) / 2.0,
                 hits: 2,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
-            burst: KeqingBurst::new(idx),
+            burst: KeqingBurst::new(idx, icd_timer),
         }
     }
 
@@ -635,8 +618,8 @@ impl Keqing {
 }
 
 impl SpecialAbility for Keqing {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
         match (self.skill.timer.ping, self.skill.timer.n) {
             (true, 1) => state.infusion = true,
             (true, 2) => state.infusion = false,

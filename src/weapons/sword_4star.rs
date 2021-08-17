@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, Vision, PHYSICAL_GAUGE, LIONSROAR};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ICDTimer, DurationTimer};
+use crate::action::{Attack, AttackEvent, ICDTimers, DurationTimer};
 
 use AttackType::*;
 use WeaponType::*;
@@ -13,12 +13,14 @@ use WeaponType::*;
 // version 1.0
 
 pub struct PrototypeRancourR5 {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
 impl PrototypeRancourR5 {
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(6.0, &[0.3,0.3,0.3,0.3]),
         }
     }
@@ -33,11 +35,11 @@ impl PrototypeRancourR5 {
 
 impl SpecialAbility for PrototypeRancourR5 {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == data.idx && (event.kind == Na || event.kind == Ca));
+        self.timer.update(time, event.idx == self.idx && (event.kind == Na || event.kind == Ca));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n > 0) {
             (true, true) => {
                 state.atk += 8.0;
@@ -110,20 +112,22 @@ impl HarbingerOfDawnR5 {
 }
 
 pub struct TheFluteR5 {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
     aa: Attack,
 }
 
 impl TheFluteR5 {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(30.0, &[0.5,0.5,0.5,0.5,0.5]),
             aa: Attack {
                 kind: AdditionalAttack,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 200.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             }
         }
@@ -143,7 +147,7 @@ impl SpecialAbility for TheFluteR5 {
             (true, 5) => self.timer.reset(),
             _ => (),
         };
-        self.timer.update(time, event.idx == data.idx && (event.kind == Na || event.kind == Ca));
+        self.timer.update(time, event.idx == self.idx && (event.kind == Na || event.kind == Ca));
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
@@ -158,7 +162,9 @@ impl SpecialAbility for TheFluteR5 {
     }
 }
 
-pub struct LionsRoarR5;
+pub struct LionsRoarR5 {
+    idx: FieldCharacterIndex,
+}
 
 impl LionsRoarR5 {
     pub fn record() -> WeaponRecord {
@@ -167,11 +173,17 @@ impl LionsRoarR5 {
             .base_atk(510.0)
             .atk(41.3)
     }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx
+        }
+    }
 }
 
 impl SpecialAbility for LionsRoarR5 {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (&enemy.aura.aura, state.stacked_buff != LIONSROAR) {
             (Vision::Electro, true) |
             (Vision::Pyro, true) => {

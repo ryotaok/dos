@@ -26,17 +26,17 @@ impl Rosaria {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.733 seconds
                 &[0.5466,0.5466,0.5466,0.5466,0.5466],
                 vec![
-                    Attack::na(103.7, 1, idx),
-                    Attack::na(102.0, 1, idx),
-                    Attack::na(62.9, 2, idx),
-                    Attack::na(137.7, 1, idx),
-                    Attack::na((82.28 + 85.0) / 2.0, 2, idx),
+                    Attack::na(103.7, 1, idx, &icd_timer),
+                    Attack::na(102.0, 1, idx, &icd_timer),
+                    Attack::na(62.9, 2, idx, &icd_timer),
+                    Attack::na(137.7, 1, idx, &icd_timer),
+                    Attack::na((82.28 + 85.0) / 2.0, 2, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[5.0, 1.0], Particle::new(Cryo, 3.0), Attack {
@@ -44,7 +44,7 @@ impl Rosaria {
                 element: &CRYO_GAUGE1A,
                 multiplier: (105.21 + 244.8) / 2.0,
                 hits: 2,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[2.0,2.0,2.0,2.0, 2.0, 5.0,], Attack {
@@ -52,14 +52,14 @@ impl Rosaria {
                 element: &CRYO_GAUGE1A,
                 multiplier: (187.2 + 273.6) / 2.0,
                 hits: 2,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &CRYO_GAUGE1A,
                 multiplier: 237.6,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -71,9 +71,9 @@ impl Rosaria {
 }
 
 impl SpecialAbility for Rosaria {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.skill.timer.ping {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
             match self.skill.timer.n {
                 1 => state.cr += 12.0,
                 2 => state.cr -= 12.0,
@@ -81,16 +81,16 @@ impl SpecialAbility for Rosaria {
             }
         }
         if self.burst.timer.ping {
-            let cr = data.state().cr;
+            let cr = modifiable_data[self.skill.attack.idx.0].state.cr;
             match self.burst.timer.n {
-                1 => for (i, s) in modifiable_state.iter_mut().enumerate() {
-                    if i != data.idx.0 {
-                        s.cr += cr * 0.15;
+                1 => for (i, data) in modifiable_data.iter_mut().enumerate() {
+                    if i != self.burst.attack.idx.0 {
+                        data.state.cr += cr * 0.15;
                     }
                 },
-                6 => for (i, s) in modifiable_state.iter_mut().enumerate() {
-                    if i != data.idx.0 {
-                        s.cr -= cr * 0.15;
+                6 => for (i, data) in modifiable_data.iter_mut().enumerate() {
+                    if i != self.burst.attack.idx.0 {
+                        data.state.cr -= cr * 0.15;
                     }
                 },
                 _ => (),

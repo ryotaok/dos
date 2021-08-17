@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, PHYSICAL_GAUGE};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, DurationTimer};
+use crate::action::{Attack, AttackEvent, ICDTimers, NTimer, DurationTimer};
 use crate::testutil;
 
 use AttackType::*;
@@ -27,6 +27,7 @@ impl PrototypeAmberR5 {
 }
 
 pub struct MappaMareR5 {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
@@ -38,23 +39,24 @@ impl MappaMareR5 {
             .em(110.0)
     }
 
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(10.0, &[0.0,0.0,]),
         }
     }
 }
 
 impl SpecialAbility for MappaMareR5 {
-    fn update(&mut self, time: f32, _event: &AttackEvent, _data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], enemy: &Enemy) -> () {
+    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], enemy: &Enemy) -> () {
         let should_update = unsafe {
-            attack.iter().any(|&a| enemy.trigger_er(&(*a).element.aura).is_triggered())
+            attack.iter().any(|&a| (*a).idx == self.idx && enemy.trigger_er(&(*a).element.aura).is_triggered())
         };
         self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n > 0) {
             (true, true) => state.elemental_dmg += 16.0,
             (true, false) => state.elemental_dmg -= 16.0 * self.timer.previous_n as f32,
@@ -68,6 +70,7 @@ impl SpecialAbility for MappaMareR5 {
 }
 
 pub struct SolarPearlR5 {
+    idx: FieldCharacterIndex,
     na_timer: DurationTimer,
     skill_timer: DurationTimer,
 }
@@ -80,8 +83,9 @@ impl SolarPearlR5 {
             .cr(27.6)
     }
 
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             na_timer: DurationTimer::new(6.0, &[0.0]),
             skill_timer: DurationTimer::new(6.0, &[0.0]),
         }
@@ -90,13 +94,13 @@ impl SolarPearlR5 {
 
 impl SpecialAbility for SolarPearlR5 {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        let check_idx = event.idx == data.idx;
+        let check_idx = event.idx == self.idx;
         self.na_timer.update(time, check_idx && event.kind == Na);
         self.skill_timer.update(time, check_idx && (event.kind == Burst || event.kind == PressSkill || event.kind == HoldSkill));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.skill_timer.ping, self.skill_timer.n > 0) {
             (true, true) => state.na_dmg += 40.0,
             (true, false) => state.na_dmg -= 40.0,
@@ -172,9 +176,9 @@ impl SpecialAbility for ThrillingTalesOfDragonSlayersR5 {
         self.timer.update(time, true);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // always buff the first member
-        let state = &mut modifiable_state[0];
+        let state = &mut modifiable_data[0].state;
         match (self.timer.ping, self.timer.n > 0) {
             (true, true) => state.atk += 48.0,
             (true, false) => state.atk -= 48.0,
@@ -188,6 +192,7 @@ impl SpecialAbility for ThrillingTalesOfDragonSlayersR5 {
 }
 
 pub struct EyeOfPerceptionR5 {
+    idx: FieldCharacterIndex,
     timer: NTimer,
     aa: Attack,
 }
@@ -200,15 +205,16 @@ impl EyeOfPerceptionR5 {
             .atk(55.1)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             timer: NTimer::new(&[8.0]),
             aa: Attack {
                 kind: AdditionalAttack,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 360.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             }
         }
@@ -217,7 +223,7 @@ impl EyeOfPerceptionR5 {
 
 impl SpecialAbility for EyeOfPerceptionR5 {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        let should_update = event.idx == data.idx && (event.kind == Na || event.kind == Ca);
+        let should_update = event.idx == self.idx && (event.kind == Na || event.kind == Ca);
         self.timer.update(time, testutil::chance() < 0.5 && should_update);
     }
 
@@ -234,6 +240,7 @@ impl SpecialAbility for EyeOfPerceptionR5 {
 }
 
 pub struct TheWidsithR5 {
+    idx: FieldCharacterIndex,
     random_theme_song: usize,
     timer: DurationTimer,
 }
@@ -246,8 +253,9 @@ impl TheWidsithR5 {
             .cd(55.1)
     }
 
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             random_theme_song: 0,
             timer: DurationTimer::new(10.0, &[30.0]),
         }
@@ -270,18 +278,18 @@ impl SpecialAbility for TheWidsithR5 {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         match (self.timer.ping, self.timer.n) {
             (true, 1) => match self.random_theme_song {
-                0 => modifiable_state[data.idx.0].atk += 120.0,
-                1 => modifiable_state[data.idx.0].all_dmg += 96.0,
-                2 => modifiable_state[data.idx.0].em += 480.0,
+                0 => modifiable_data[self.idx.0].state.atk += 120.0,
+                1 => modifiable_data[self.idx.0].state.all_dmg += 96.0,
+                2 => modifiable_data[self.idx.0].state.em += 480.0,
                 _ => (),
             },
             (true, 0) => match self.random_theme_song {
-                0 => modifiable_state[data.idx.0].atk -= 120.0,
-                1 => modifiable_state[data.idx.0].all_dmg -= 96.0,
-                2 => modifiable_state[data.idx.0].em -= 480.0,
+                0 => modifiable_data[self.idx.0].state.atk -= 120.0,
+                1 => modifiable_data[self.idx.0].state.all_dmg -= 96.0,
+                2 => modifiable_data[self.idx.0].state.em -= 480.0,
                 _ => (),
             },
             _ => (),

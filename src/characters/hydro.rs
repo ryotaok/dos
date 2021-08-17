@@ -29,16 +29,16 @@ impl Barbara {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 4 attacks in 1.5 seconds
                 &[0.375,0.375,0.375,0.375],
                 vec![
-                    Attack::na(68.11, 1, idx),
-                    Attack::na(63.94, 1, idx),
-                    Attack::na(73.87, 1, idx),
-                    Attack::na(99.36, 1, idx),
+                    Attack::na(68.11, 1, idx, &icd_timer),
+                    Attack::na(63.94, 1, idx, &icd_timer),
+                    Attack::na(73.87, 1, idx, &icd_timer),
+                    Attack::na(99.36, 1, idx, &icd_timer),
                 ]
             ),
         }
@@ -68,17 +68,17 @@ impl Xingqiu {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.833 seconds
                 &[0.5666,0.5666,0.5666,0.5666,0.5666],
                 vec![
-                    Attack::na(92.14, 1, idx),
-                    Attack::na(94.18, 1, idx),
-                    Attack::na(56.44, 2, idx),
-                    Attack::na(110.67, 1, idx),
-                    Attack::na(70.89, 2, idx),
+                    Attack::na(92.14, 1, idx, &icd_timer),
+                    Attack::na(94.18, 1, idx, &icd_timer),
+                    Attack::na(56.44, 2, idx, &icd_timer),
+                    Attack::na(110.67, 1, idx, &icd_timer),
+                    Attack::na(70.89, 2, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[21.0], Particle::new(Hydro, 4.0), Attack {
@@ -86,7 +86,7 @@ impl Xingqiu {
                 element: &HYDRO_GAUGE1A,
                 multiplier: (302.4 + 344.16) / 2.0,
                 hits: 2,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurstDot::new(&[1.233,1.233,1.233,1.233,1.233,1.233,1.233,1.233,1.233,1.233,1.233,1.233,1.233, 3.971], Attack {
@@ -94,7 +94,7 @@ impl Xingqiu {
                 element: &HYDRO_GAUGE1A,
                 multiplier: 103.12,
                 hits: 3,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -124,17 +124,17 @@ impl Mona {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             once: true,
             na: NaLoop::new(
                 // 4 attacks in 1.5 seconds
                 &[0.375,0.375,0.375,0.375],
                 vec![
-                    Attack::na(67.68, 1, idx),
-                    Attack::na(64.8, 1, idx),
-                    Attack::na(80.64, 1, idx),
-                    Attack::na(101.09, 1, idx),
+                    Attack::na(67.68, 1, idx, &icd_timer),
+                    Attack::na(64.8, 1, idx, &icd_timer),
+                    Attack::na(80.64, 1, idx, &icd_timer),
+                    Attack::na(101.09, 1, idx, &icd_timer),
                 ]
             ),
             skill: SkillDamage2Dot::new(&[1.0,1.0,1.0,1.0,1.0, 7.0], Particle::new(Hydro, 3.0), Attack {
@@ -142,14 +142,14 @@ impl Mona {
                 element: &HYDRO_GAUGE1A,
                 multiplier: 239.04,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }, Attack {
                 kind: AttackType::SkillDot,
                 element: &HYDRO_GAUGE1A,
                 multiplier: 57.6,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[5.0, 10.0], Attack {
@@ -157,7 +157,7 @@ impl Mona {
                 element: &HYDRO_GAUGE2B,
                 multiplier: 796.32,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -175,19 +175,19 @@ impl SpecialAbility for Mona {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.once {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
             let er = 100.0 + state.er;
             // a4
             state.hydro_dmg += er * 0.2;
         }
         match (self.burst.timer.ping, self.burst.timer.n) {
-            (true, 1) => for s in modifiable_state.iter_mut() {
-                s.all_dmg += 60.0;;
+            (true, 1) => for data in modifiable_data.iter_mut() {
+                data.state.all_dmg += 60.0;;
             },
-            (true, 2) => for s in modifiable_state.iter_mut() {
-                s.all_dmg -= 60.0;;
+            (true, 2) => for data in modifiable_data.iter_mut() {
+                data.state.all_dmg -= 60.0;;
             },
             _ => (),
         }

@@ -14,8 +14,6 @@ pub trait SpecialAbility {
     // the variable is named `owner_fc` because `FieldCharacter` will own this
     // `SpecialAbility`.
 
-    fn init(&mut self, timers: &mut ICDTimers) -> () {}
-
     fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> { None }
 
     // fn build(&mut self, builder: &mut FieldAbilityBuilder) -> ();
@@ -41,11 +39,11 @@ pub trait SpecialAbility {
     // `SpecialAbility` is about Sucrose A1, "Catalyst Conversion" and she has
     // `FieldCharacterIndex(1)`. Then this method modifies the vector like:
     // 
-    //     modifiable_state[0, 2 and 3].em += 50
+    //     modifiable_data[0, 2 and 3].em += 50
     // 
     // The `Enemy` is mutable because some passive debuffs an enemy (e.g. DEF
     // down by Lisa).
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {}
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {}
 
     // This method can change the `State` of `Attack`. For example, Some abilities
     // increase CR of a specific action: Amber A1 (Every Arrow Finds Its
@@ -74,36 +72,6 @@ pub struct FieldAbility<'a> {
 }
 
 impl<'a> FieldAbility<'a> {
-    pub fn init(self) -> Self {
-        self.na.init(self.timers);
-        self.ca.init(self.timers);
-        self.skill.init(self.timers);
-        self.burst.init(self.timers);
-        self.passive.init(self.timers);
-        self
-    }
-
-    // pub fn init_timer(&mut self, timers: &'a mut ICDTimers) -> () {
-    //     self.na.init(timers);
-    //     self.ca.init(timers);
-    //     self.skill.init(timers);
-    //     self.burst.init(timers);
-    //     self.passive.init(timers);
-    //     self.timers = timers;
-    // }
-
-    pub fn init_timer(&mut self) -> () {
-        self.na.init(self.timers);
-        self.ca.init(self.timers);
-        self.skill.init(self.timers);
-        self.burst.init(self.timers);
-        self.passive.init(self.timers);
-        // unsafe {
-        //     let x = ptr::null_mut();
-        //     *x = 42;
-        // }
-    }
-
     pub fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
         self.na.additional_attack(atk_queue, particles, data);
         self.ca.additional_attack(atk_queue, particles, data);
@@ -113,15 +81,15 @@ impl<'a> FieldAbility<'a> {
         self.weapon.additional_attack(atk_queue, particles, data);
     }
 
-    pub fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.passive.modify(modifiable_state, data, enemy);
-        self.weapon.modify(modifiable_state, data, enemy);
-        self.artifact.modify(modifiable_state, data, enemy);
+    pub fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.passive.modify(modifiable_data, enemy);
+        self.weapon.modify(modifiable_data, enemy);
+        self.artifact.modify(modifiable_data, enemy);
     }
 
     pub fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         self.timers.update(time);
-        self.na.update(time * (1.0 + data.state().atk_spd / 100.0), event, data, attack, particles, enemy);
+        self.na.update(time * (1.0 + data.state.atk_spd / 100.0), event, data, attack, particles, enemy);
         self.ca.update(time, event, data, attack, particles, enemy);
         self.skill.update(time, event, data, attack, particles, enemy);
         self.burst.update(time, event, data, attack, particles, enemy);
@@ -270,7 +238,7 @@ impl FieldAbilityBuilder {
             Some(ability) => unsafe { &mut *ability },
             None => self.artifact_noop.insert(NoopAbility),
         };
-        (FieldAbility {
+        FieldAbility {
             timers,
             na,
             ca,
@@ -279,23 +247,19 @@ impl FieldAbilityBuilder {
             passive,
             weapon,
             artifact,
-        }).init()
+        }
     }
 }
 
 #[derive(Debug)]
 pub struct NoopAbility;
 
-impl SpecialAbility for NoopAbility {
-    // fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {}
-}
+impl SpecialAbility for NoopAbility {}
 
 #[derive(Debug)]
 pub struct NoopSkillAbility;
 
-impl SpecialAbility for NoopSkillAbility {
-    // fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {}
-}
+impl SpecialAbility for NoopSkillAbility {}
 
 impl SkillAbility for NoopSkillAbility {
     fn accelerate(&mut self, _f: fn(&mut NTimer)) -> () {}
@@ -562,40 +526,25 @@ pub struct CharacterData<'a> {
     pub character: &'a CharacterRecord,
     pub weapon: &'a WeaponRecord,
     pub artifact: &'a Artifact,
-    pub state_ptr: *mut State,
+    pub state: State,
 }
 
 impl<'a> CharacterData<'a> {
     pub fn new(idx: FieldCharacterIndex, character: &'a CharacterRecord, weapon: &'a WeaponRecord, artifact: &'a Artifact) -> Self {
+        let mut state = State::new();
+        state.merge(&character.state);
+        state.merge(&weapon.state);
+        state.merge(&artifact.state);
         Self {
             idx,
             character,
             weapon,
             artifact,
-            state_ptr: ptr::null_mut(),
+            state,
         }
-    }
-
-    pub fn init(&mut self, state: &mut State) -> () {
-        self.state_ptr = state;
-        state.merge(&self.character.state);
-        state.merge(&self.weapon.state);
-        state.merge(&self.artifact.state);
     }
 
     pub fn can_burst(&self) -> bool {
-        self.state().energy >= self.character.energy_cost
-    }
-
-    pub fn state(&self) -> &State {
-        unsafe {
-            & *self.state_ptr
-        }
-    }
-
-    pub fn state_mut(&self) -> &mut State {
-        unsafe {
-            &mut *self.state_ptr
-        }
+        self.state.energy >= self.character.energy_cost
     }
 }

@@ -26,18 +26,18 @@ impl Ayaka {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             once: true,
             na: NaLoop::new(
                 // 5 attacks in 2.117 seconds
                 &[0.4234,0.4234,0.4234,0.4234,0.4234],
                 vec![
-                    Attack::na(90.39, 1, idx),
-                    Attack::na(96.24, 1, idx),
-                    Attack::na(123.79, 1, idx),
-                    Attack::na(44.77, 3, idx),
-                    Attack::na(154.55, 1, idx),
+                    Attack::na(90.39, 1, idx, &icd_timer),
+                    Attack::na(96.24, 1, idx, &icd_timer),
+                    Attack::na(123.79, 1, idx, &icd_timer),
+                    Attack::na(44.77, 3, idx, &icd_timer),
+                    Attack::na(154.55, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[6.0, 4.0], Particle::new(Cryo, 3.5), Attack {
@@ -45,7 +45,7 @@ impl Ayaka {
                 element: &CRYO_GAUGE2B,
                 multiplier: 430.56,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[0.3333,0.3333,0.3333,0.3333,0.3333,0.3333,0.3333,0.3333,0.3333,0.3333,0.3333,0.3333,0.3333,0.3333,0.3333, 15.0005], Attack {
@@ -53,14 +53,14 @@ impl Ayaka {
                 element: &CRYO_GAUGE1A,
                 multiplier: 202.14,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &CRYO_GAUGE1A,
                 multiplier: 303.21,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -78,15 +78,15 @@ impl SpecialAbility for Ayaka {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.once {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
             // Alternate Sprint (Kamisato Art: Senho)
             state.infusion = true;
             state.cryo_dmg += 18.0;
         }
         if self.skill.timer.ping {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
             match self.skill.timer.n {
                 1 => {
                     state.na_dmg += 30.0;
@@ -122,18 +122,18 @@ impl Yoimiya {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             skill_a1: DurationTimer::new(3.0, &[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]),
             na: NaLoop::new(
                 // 5 attacks in 2.1 seconds
                 &[0.42,0.42,0.42,0.42,0.42],
                 vec![
-                    Attack::na(63.59, 2, idx),
-                    Attack::na(121.99, 1, idx),
-                    Attack::na(158.59, 1, idx),
-                    Attack::na(82.82, 2, idx),
-                    Attack::na(188.87, 1, idx),
+                    Attack::na(63.59, 2, idx, &icd_timer),
+                    Attack::na(121.99, 1, idx, &icd_timer),
+                    Attack::na(158.59, 1, idx, &icd_timer),
+                    Attack::na(82.82, 2, idx, &icd_timer),
+                    Attack::na(188.87, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[10.0, 8.0], Particle::new(Pyro, 4.0), Attack {
@@ -141,7 +141,7 @@ impl Yoimiya {
                 element: &PYRO_GAUGE1A,
                 multiplier: 0.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[2.0,2.0,2.0,2.0,2.0, 5.0], Attack {
@@ -149,14 +149,14 @@ impl Yoimiya {
                 element: &PYRO_GAUGE2B,
                 multiplier: 228.96,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &PYRO_GAUGE1A,
                 multiplier: 219.6,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -169,12 +169,12 @@ impl Yoimiya {
 
 impl SpecialAbility for Yoimiya {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.skill_a1.update(time, self.skill.timer.n == 1 && event.idx == data.idx && event.kind == Na);
+        self.skill_a1.update(time, self.skill.timer.n == 1 && event.idx == self.skill.attack.idx && event.kind == Na);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.skill_a1.ping {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
             if self.skill_a1.n > 0 {
                 state.pyro_dmg += 2.0;
             } else {
@@ -183,21 +183,21 @@ impl SpecialAbility for Yoimiya {
         }
         if self.burst.timer.ping {
             match self.burst.timer.n {
-                1 => for (i, s) in modifiable_state.iter_mut().enumerate() {
-                    if i != data.idx.0 {
-                        s.atk += 20.0; // TODO should use skill_a1
+                1 => for (i, data) in modifiable_data.iter_mut().enumerate() {
+                    if i != self.burst.attack.idx.0 {
+                        data.state.atk += 20.0; // TODO should use skill_a1
                     }
                 },
-                0 => for (i, s) in modifiable_state.iter_mut().enumerate() {
-                    if i != data.idx.0 {
-                        s.atk -= 20.0; // TODO should use skill_a1
+                0 => for (i, data) in modifiable_data.iter_mut().enumerate() {
+                    if i != self.burst.attack.idx.0 {
+                        data.state.atk -= 20.0; // TODO should use skill_a1
                     }
                 },
                 _ => (),
             }
         }
         if self.skill.timer.ping {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
             match self.skill.timer.n {
                 1 => {
                     state.infusion = true;
@@ -233,16 +233,16 @@ impl Sayu {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 4 attacks in 2.616 seconds
                 &[0.654,0.654,0.654,0.654],
                 vec![
-                    Attack::na(142.8, 1, idx),
-                    Attack::na(141.1, 1, idx),
-                    Attack::na(85.85, 2, idx),
-                    Attack::na(193.97, 1, idx),
+                    Attack::na(142.8, 1, idx, &icd_timer),
+                    Attack::na(141.1, 1, idx, &icd_timer),
+                    Attack::na(85.85, 2, idx, &icd_timer),
+                    Attack::na(193.97, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[6.0], Particle::new(Anemo, 3.5), Attack {
@@ -250,23 +250,23 @@ impl Sayu {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 64.8 + 285.12,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
-            skill_ea: ElementalAbsorption::new(idx, SkillDot, 30.24 + 137.09, NTimer::new(&[6.0])),
+            skill_ea: ElementalAbsorption::new(idx, SkillDot, 30.24 + 137.09, NTimer::new(&[6.0]), icd_timer),
             burst: BurstDamage2Dot::new(&[2.0,2.0,2.0,2.0,2.0,2.0, 8.0], Attack {
                 kind: AttackType::Burst,
                 element: &ANEMO_GAUGE1A,
                 multiplier: 210.24,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &ANEMO_GAUGE1A,
                 multiplier: 93.6,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -278,10 +278,6 @@ impl Sayu {
 }
 
 impl SpecialAbility for Sayu {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        *self.skill_ea.icd() = &mut timers.skill;
-    }
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         self.skill_ea.absorb(time, event == &self.skill.attack, enemy);
     }

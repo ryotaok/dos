@@ -25,7 +25,7 @@ pub struct NingguangCa {
 }
 
 impl NingguangCa {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             star_jade: 0,
             na_count: 0,
@@ -35,7 +35,7 @@ impl NingguangCa {
                 element: &GEO_GAUGE1A,
                 multiplier: 313.34,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             ca_star_jade_1: Attack {
@@ -43,7 +43,7 @@ impl NingguangCa {
                 element: &GEO_GAUGE1A,
                 multiplier: 89.28,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             ca_star_jade_2: Attack {
@@ -51,7 +51,7 @@ impl NingguangCa {
                 element: &GEO_GAUGE1A,
                 multiplier: 89.28,
                 hits: 2,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             ca_star_jade_3: Attack {
@@ -59,7 +59,7 @@ impl NingguangCa {
                 element: &GEO_GAUGE1A,
                 multiplier: 89.28,
                 hits: 3,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
         }
@@ -67,13 +67,6 @@ impl NingguangCa {
 }
 
 impl SpecialAbility for NingguangCa {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.ca;
-        self.ca_star_jade_1.icd_timer = &mut timers.ca;
-        self.ca_star_jade_2.icd_timer = &mut timers.ca;
-        self.ca_star_jade_3.icd_timer = &mut timers.ca;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         self.attack.to_event(&self.timer)
     }
@@ -127,22 +120,22 @@ impl Ningguang {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 1 attacks in 0.9 seconds
                 &[0.9],
                 vec![
-                    Attack::na(50.4, 1, idx),
+                    Attack::na(50.4, 1, idx, &icd_timer),
                 ]
             ),
-            ca: NingguangCa::new(idx),
+            ca: NingguangCa::new(idx, icd_timer),
             skill: SimpleSkill::new(&[10.0, 2.0], Particle::new(Geo, 3.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &GEO_GAUGE1A,
                 multiplier: 414.72,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[12.0], Attack {
@@ -150,7 +143,7 @@ impl Ningguang {
                 element: &GEO_GAUGE1A,
                 multiplier: 156.53,
                 hits: 6,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
             burst_aa: Attack {
@@ -158,7 +151,7 @@ impl Ningguang {
                 element: &GEO_GAUGE1A,
                 multiplier: 156.53,
                 hits: 4,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }
         }
@@ -170,24 +163,20 @@ impl Ningguang {
 }
 
 impl SpecialAbility for Ningguang {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.burst_aa.icd_timer = &mut timers.burst;
-    }
-
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
         if self.burst.timer.ping && self.burst.timer.n == 1 && self.skill.timer.n == 1 {
             atk_queue.push(&self.burst_aa);
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // a4
         match (self.skill.timer.ping, self.skill.timer.n) {
-            (true, 1) => for s in modifiable_state.iter_mut() {
-                s.geo_dmg += 12.0;
+            (true, 1) => for data in modifiable_data.iter_mut() {
+                data.state.geo_dmg += 12.0;
             },
-            (true, 2) => for s in modifiable_state.iter_mut() {
-                s.geo_dmg -= 12.0;
+            (true, 2) => for data in modifiable_data.iter_mut() {
+                data.state.geo_dmg -= 12.0;
             },
             _ => (),
         }
@@ -209,16 +198,16 @@ impl Noelle {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 4 attacks in 2.616 seconds
                 &[0.654,0.654,0.654,0.654],
                 vec![
-                    Attack::na(156.4, 1, idx),
-                    Attack::na(145.01, 1, idx),
-                    Attack::na(170.51, 1, idx),
-                    Attack::na(224.23, 1, idx),
+                    Attack::na(156.4, 1, idx, &icd_timer),
+                    Attack::na(145.01, 1, idx, &icd_timer),
+                    Attack::na(170.51, 1, idx, &icd_timer),
+                    Attack::na(224.23, 1, idx, &icd_timer),
                 ]
             ),
             // a1
@@ -227,7 +216,7 @@ impl Noelle {
                 element: &GEO_GAUGE2B,
                 multiplier: 216.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[15.0], Attack {
@@ -235,7 +224,7 @@ impl Noelle {
                 element: &GEO_GAUGE1A,
                 multiplier: (120.96 + 167.76) / 2.0,
                 hits: 2,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -255,8 +244,8 @@ impl SpecialAbility for Noelle {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
         match (self.burst.timer.ping, self.burst.timer.n) {
             (true, 1) => {
                 state.flat_atk += state.DEF() * 0.72;
@@ -287,17 +276,17 @@ impl TravelerGeo {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.55 seconds
                 &[0.51,0.51,0.51,0.51,0.51],
                 vec![
-                    Attack::na(87.89, 1, idx),
-                    Attack::na(85.85, 1, idx),
-                    Attack::na(104.72, 1, idx),
-                    Attack::na(115.26, 1, idx),
-                    Attack::na(139.91, 1, idx),
+                    Attack::na(87.89, 1, idx, &icd_timer),
+                    Attack::na(85.85, 1, idx, &icd_timer),
+                    Attack::na(104.72, 1, idx, &icd_timer),
+                    Attack::na(115.26, 1, idx, &icd_timer),
+                    Attack::na(139.91, 1, idx, &icd_timer),
                 ]
             ),
             na_last: Attack {
@@ -305,7 +294,7 @@ impl TravelerGeo {
                 element: &GEO_GAUGE1A,
                 multiplier: 60.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.na),
                 idx,
             },
             skill: SimpleSkill::new(&[6.0], Particle::new(Geo, 3.5), Attack {
@@ -313,7 +302,7 @@ impl TravelerGeo {
                 element: &GEO_GAUGE2B,
                 multiplier: 446.4,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
             burst: SimpleBurst::new(&[15.0], Attack {
@@ -321,7 +310,7 @@ impl TravelerGeo {
                 element: &GEO_GAUGE2B,
                 multiplier: 266.4,
                 hits: 4,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -333,10 +322,6 @@ impl TravelerGeo {
 }
 
 impl SpecialAbility for TravelerGeo {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.na_last.icd_timer = &mut timers.na;
-    }
-
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
         match (self.na.timer.ping, self.na.timer.n) {
             (true, 5) => atk_queue.push(&self.na_last),

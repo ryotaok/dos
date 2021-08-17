@@ -1,6 +1,6 @@
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, Vision, ElementalReaction};
-use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, DurationTimer};
 
 use AttackType::*;
@@ -8,6 +8,7 @@ use WeaponType::*;
 use Vision::*;
 
 pub struct MistsplitterReforged {
+    idx: FieldCharacterIndex,
     seal_1: DurationTimer,
     seal_2: DurationTimer,
     previous_seal: usize,
@@ -15,8 +16,9 @@ pub struct MistsplitterReforged {
 }
 
 impl MistsplitterReforged {
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             seal_1: DurationTimer::new(5.0, &[0.0]),
             seal_2: DurationTimer::new(10.0, &[0.0]),
             previous_seal: 0,
@@ -52,15 +54,15 @@ impl SpecialAbility for MistsplitterReforged {
         }
         self.seal_1.update(time, seal_1);
         self.seal_2.update(time, seal_2);
-        if data.state().energy / data.character.energy_cost < 1.0 {
+        if data.state.energy / data.character.energy_cost < 1.0 {
             seal_3 = 1;
         }
         self.previous_seal = self.seal;
         self.seal = self.seal_1.n + self.seal_2.n + seal_3;
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         if self.seal > self.previous_seal {
             match (self.seal, self.previous_seal) {
                 (3, 0) => state.elemental_dmg += 28.0,
@@ -93,21 +95,11 @@ impl SpecialAbility for MistsplitterReforged {
 }
 
 pub struct ThunderingPulse {
+    idx: FieldCharacterIndex,
     seal_1: DurationTimer,
     seal_2: DurationTimer,
     previous_seal: usize,
     seal: usize,
-}
-
-impl ThunderingPulse {
-    pub fn new() -> Self {
-        Self {
-            seal_1: DurationTimer::new(5.0, &[0.0]),
-            seal_2: DurationTimer::new(10.0, &[0.0]),
-            previous_seal: 0,
-            seal: 0,
-        }
-    }
 }
 
 impl ThunderingPulse {
@@ -116,6 +108,16 @@ impl ThunderingPulse {
             .name("Thundering Pulse").type_(Bow).version(2.0)
             .base_atk(608.0)
             .atk(20.0).cd(66.2)
+    }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            seal_1: DurationTimer::new(5.0, &[0.0]),
+            seal_2: DurationTimer::new(10.0, &[0.0]),
+            previous_seal: 0,
+            seal: 0,
+        }
     }
 }
 
@@ -137,15 +139,15 @@ impl SpecialAbility for ThunderingPulse {
         }
         self.seal_1.update(time, seal_1);
         self.seal_2.update(time, seal_2);
-        if data.state().energy / data.character.energy_cost < 1.0 {
+        if data.state.energy / data.character.energy_cost < 1.0 {
             seal_3 = 1;
         }
         self.previous_seal = self.seal;
         self.seal = self.seal_1.n + self.seal_2.n + seal_3;
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         if self.seal > self.previous_seal {
             match (self.seal, self.previous_seal) {
                 (3, 0) => state.na_dmg += 40.0,
@@ -178,17 +180,9 @@ impl SpecialAbility for ThunderingPulse {
 }
 
 pub struct AmenomaKageuchi {
+    idx: FieldCharacterIndex,
     skill_timer: DurationTimer,
     energy_timer: NTimer,
-}
-
-impl AmenomaKageuchi {
-    pub fn new() -> Self {
-        Self {
-            skill_timer: DurationTimer::new(30.0, &[5.0,5.0,5.0]),
-            energy_timer: NTimer::new(&[2.0, 0.1]),
-        }
-    }
 }
 
 impl AmenomaKageuchi {
@@ -198,6 +192,14 @@ impl AmenomaKageuchi {
             .base_atk(454.0)
             .atk(55.1)
     }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            skill_timer: DurationTimer::new(30.0, &[5.0,5.0,5.0]),
+            energy_timer: NTimer::new(&[2.0, 0.1]),
+        }
+    }
 }
 
 impl SpecialAbility for AmenomaKageuchi {
@@ -205,14 +207,14 @@ impl SpecialAbility for AmenomaKageuchi {
         if self.energy_timer.ping && self.energy_timer.n == 0 {
             self.skill_timer.reset();
         }
-        let check_idx = event.idx == data.idx;
+        let check_idx = event.idx == self.idx;
         self.skill_timer.update(time, check_idx && (event.kind == PressSkill || event.kind == HoldSkill));
         self.energy_timer.update(time, check_idx && event.kind == Burst);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.energy_timer.ping && self.energy_timer.n == 2 {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.idx.0].state;
             state.energy += state.ER() * 12.0 * self.skill_timer.n as f32;
         }
     }
@@ -224,15 +226,8 @@ impl SpecialAbility for AmenomaKageuchi {
 }
 
 pub struct KatsuragikiriNagamasa {
+    idx: FieldCharacterIndex,
     timer: NTimer,
-}
-
-impl KatsuragikiriNagamasa {
-    pub fn new() -> Self {
-        Self {
-            timer: NTimer::new(&[2.0,2.0,2.0, 4.0]),
-        }
-    }
 }
 
 impl KatsuragikiriNagamasa {
@@ -242,6 +237,13 @@ impl KatsuragikiriNagamasa {
             .base_atk(510.0)
             .er(45.9)
             .skill_dmg(12.0)
+    }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            timer: NTimer::new(&[2.0,2.0,2.0, 4.0]),
+        }
     }
 }
 
@@ -260,9 +262,9 @@ impl SpecialAbility for KatsuragikiriNagamasa {
         self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.timer.ping {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.idx.0].state;
             match self.timer.n {
                 1 => state.energy += state.ER() * (5.0 - 3.0),
                 2 |
@@ -278,6 +280,7 @@ impl SpecialAbility for KatsuragikiriNagamasa {
 }
 
 pub struct KitainCrossSpear {
+    idx: FieldCharacterIndex,
     timer: NTimer,
 }
 
@@ -290,8 +293,9 @@ impl KitainCrossSpear {
             .skill_dmg(12.0)
     }
 
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: NTimer::new(&[2.0,2.0,2.0, 4.0]),
         }
     }
@@ -312,9 +316,9 @@ impl SpecialAbility for KitainCrossSpear {
         self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.timer.ping {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.idx.0].state;
             match self.timer.n {
                 1 => state.energy += state.ER() * (5.0 - 3.0),
                 2 |
@@ -330,6 +334,7 @@ impl SpecialAbility for KitainCrossSpear {
 }
 
 pub struct Hamayumi {
+    idx: FieldCharacterIndex,
     ping: bool,
     condition: bool,
 }
@@ -343,8 +348,9 @@ impl Hamayumi {
             .na_dmg(32.0).ca_dmg(24.0)
     }
 
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             ping: false,
             condition: false,
         }
@@ -366,15 +372,15 @@ impl SpecialAbility for Hamayumi {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         match (self.ping, self.condition) {
             (true, true) => {
-                let state = &mut modifiable_state[data.idx.0];
+                let state = &mut modifiable_data[self.idx.0].state;
                 state.na_dmg += 32.0;
                 state.ca_dmg += 24.0;
             },
             (true, false) => {
-                let state = &mut modifiable_state[data.idx.0];
+                let state = &mut modifiable_data[self.idx.0].state;
                 state.na_dmg -= 32.0;
                 state.ca_dmg -= 24.0;
             },
@@ -389,12 +395,14 @@ impl SpecialAbility for Hamayumi {
 }
 
 pub struct HakushinRing {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
 impl HakushinRing {
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(6.0, &[0.0]),
         }
     }
@@ -426,17 +434,17 @@ impl SpecialAbility for HakushinRing {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // TODO
         // match (self.timer.ping, self.timer.n) {
         //     (true, 1) => match self.bonus_element {
-        //         Pyro => for s in modifiable_state {
+        //         Pyro => for s in modifiable_data {
         //             s.pyro_dmg += 20.0;
         //         },
-        //         Hydro => for s in modifiable_state {
+        //         Hydro => for s in modifiable_data {
         //             s.hydro_dmg += 20.0;
         //         },
-        //         Cryo => for s in modifiable_state {
+        //         Cryo => for s in modifiable_data {
         //             s.cryo_dmg += 20.0;
         //         },
         //         _ => (),
@@ -444,17 +452,17 @@ impl SpecialAbility for HakushinRing {
         //     None => expr,
         // }
         match (self.timer.ping, self.timer.n) {
-            (true, 1) => for s in modifiable_state {
-                s.pyro_dmg += 20.0;
-                s.hydro_dmg += 20.0;
-                s.elemental_dmg += 20.0;
-                s.cryo_dmg += 20.0;
+            (true, 1) => for data in modifiable_data {
+                data.state.pyro_dmg += 20.0;
+                data.state.hydro_dmg += 20.0;
+                data.state.elemental_dmg += 20.0;
+                data.state.cryo_dmg += 20.0;
             },
-            (true, 0) => for s in modifiable_state {
-                s.pyro_dmg -= 20.0;
-                s.hydro_dmg -= 20.0;
-                s.elemental_dmg -= 20.0;
-                s.cryo_dmg -= 20.0;
+            (true, 0) => for data in modifiable_data {
+                data.state.pyro_dmg -= 20.0;
+                data.state.hydro_dmg -= 20.0;
+                data.state.elemental_dmg -= 20.0;
+                data.state.cryo_dmg -= 20.0;
             },
             _ => (),
         }

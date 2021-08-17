@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use crate::fc::{FieldCharacterIndex, CharacterRecord, SpecialAbility, FieldAbilityBuilder};
-use crate::action::{ICDTimer};
+use crate::action::{ICDTimers};
 
 pub mod pyro;
 pub mod hydro;
@@ -94,7 +94,7 @@ pub struct AllCharacters {
 }
 
 impl AllCharacters {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             // pyro
             amber: (Amber::record(), Amber::new(idx, icd_timer)),

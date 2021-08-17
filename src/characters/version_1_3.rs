@@ -20,7 +20,7 @@ pub struct XiaoSkill {
 }
 
 impl XiaoSkill {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             timer1: NTimer::new(&[10.0]),
             timer2: NTimer::new(&[10.0]),
@@ -29,7 +29,7 @@ impl XiaoSkill {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 455.04,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             attack2: Attack {
@@ -37,7 +37,7 @@ impl XiaoSkill {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 455.04,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             particle: Particle::new(Anemo, 3.0),
@@ -53,11 +53,6 @@ impl SkillAbility for XiaoSkill {
 }
 
 impl SpecialAbility for XiaoSkill {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack1.icd_timer = &mut timers.skill;
-        self.attack2.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         self.attack1.to_event(&self.timer1)
             .or(self.attack2.to_event(&self.timer2))
@@ -102,18 +97,18 @@ impl Xiao {
             .energy_cost(70.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 6 attacks in 3.75 seconds
                 &[0.625,0.625,0.625,0.625,0.625,0.625],
                 vec![
-                    Attack::na(49.14, 2, idx),
-                    Attack::na(101.58, 1, idx),
-                    Attack::na(122.3, 1, idx),
-                    Attack::na(67.2, 2, idx),
-                    Attack::na(127.64, 1, idx),
-                    Attack::na(170.97, 1, idx),
+                    Attack::na(49.14, 2, idx, &icd_timer),
+                    Attack::na(101.58, 1, idx, &icd_timer),
+                    Attack::na(122.3, 1, idx, &icd_timer),
+                    Attack::na(67.2, 2, idx, &icd_timer),
+                    Attack::na(127.64, 1, idx, &icd_timer),
+                    Attack::na(170.97, 1, idx, &icd_timer),
                 ]
             ),
             plunge: Attack {
@@ -121,18 +116,18 @@ impl Xiao {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 404.02,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             ca_timer: NTimer::new(&[1.7]),
             // a1
-            skill: XiaoSkill::new(idx),
+            skill: XiaoSkill::new(idx, icd_timer),
             burst: SimpleBurst::new(&[3.0,3.0,3.0,3.0,3.0, 3.0], Attack {
                 kind: AttackType::Burst,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 0.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -144,11 +139,6 @@ impl Xiao {
 }
 
 impl SpecialAbility for Xiao {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.na.init(timers);
-        self.plunge.icd_timer = &mut timers.ca;
-    }
-
     fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
         match (0 < self.burst.timer.n && self.burst.timer.n <= 5, self.ca_timer.n) {
             (true, 0) => Some(AttackEvent {
@@ -173,9 +163,9 @@ impl SpecialAbility for Xiao {
     }
 
     // TODO a4 is disabled for now
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.burst.timer.ping {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.burst.attack.idx.0].state;
             match (self.burst.timer.n) {
                 1 => {
                     state.infusion = true;
@@ -216,18 +206,18 @@ impl HuTao {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 6 attacks in 2.925 seconds
                 &[0.4875,0.4875,0.4875,0.4875,0.4875,0.4875],
                 vec![
-                    Attack::na(83.65, 1, idx),
-                    Attack::na(86.09, 1, idx),
-                    Attack::na(108.92, 1, idx),
-                    Attack::na(117.11, 1, idx),
-                    Attack::na((59.36 + 62.8) / 2.0, 2, idx),
-                    Attack::na(153.36, 1, idx),
+                    Attack::na(83.65, 1, idx, &icd_timer),
+                    Attack::na(86.09, 1, idx, &icd_timer),
+                    Attack::na(108.92, 1, idx, &icd_timer),
+                    Attack::na(117.11, 1, idx, &icd_timer),
+                    Attack::na((59.36 + 62.8) / 2.0, 2, idx, &icd_timer),
+                    Attack::na(153.36, 1, idx, &icd_timer),
                 ]
             ),
             ca: Attack {
@@ -235,7 +225,7 @@ impl HuTao {
                 element: &PYRO_GAUGE1A,
                 multiplier: 242.57,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             stamina: StaminaTimer::new(0.915),
@@ -245,7 +235,7 @@ impl HuTao {
                 element: &PYRO_GAUGE1A,
                 multiplier: 115.2,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[15.0], Attack {
@@ -253,7 +243,7 @@ impl HuTao {
                 element: &PYRO_GAUGE2B,
                 multiplier: 617.44,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -265,11 +255,6 @@ impl HuTao {
 }
 
 impl SpecialAbility for HuTao {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.na.init(timers);
-        self.ca.icd_timer = &mut timers.ca;
-    }
-
     fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
         match (self.skill.timer.n, self.stamina.n) {
             (1, 0) => Some(AttackEvent {
@@ -293,29 +278,29 @@ impl SpecialAbility for HuTao {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.skill.timer.ping {
             match self.skill.timer.n {
                 1 => {
-                    let state = &mut modifiable_state[data.idx.0];
+                    let state = &mut modifiable_data[self.burst.attack.idx.0].state;
                     state.infusion = true;
                     state.flat_atk += state.HP() * 0.0626;
                 },
                 2 => {
                     // a1
-                    for (i, s) in modifiable_state.iter_mut().enumerate() {
-                        if i != data.idx.0 {
-                            s.cr += 12.0;
+                    for (i, data) in modifiable_data.iter_mut().enumerate() {
+                        if i != self.burst.attack.idx.0 {
+                            data.state.cr += 12.0;
                         }
                     }
-                    let state = &mut modifiable_state[data.idx.0];
+                    let state = &mut modifiable_data[self.burst.attack.idx.0].state;
                     state.infusion = false;
                     state.flat_atk -= state.HP() * 0.0626;
                 },
                 0 => {
-                    for (i, s) in modifiable_state.iter_mut().enumerate() {
-                        if i != data.idx.0 {
-                            s.cr -= 12.0;
+                    for (i, data) in modifiable_data.iter_mut().enumerate() {
+                        if i != self.burst.attack.idx.0 {
+                            data.state.cr -= 12.0;
                         }
                     }
                 },

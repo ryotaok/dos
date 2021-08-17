@@ -3,7 +3,7 @@ use crate::types::{AttackType, WeaponType, FieldEnergy};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, DurationTimer};
 
-// use AttackType::*;
+use AttackType::*;
 use WeaponType::*;
 // use Vision::*;
 
@@ -30,11 +30,11 @@ impl GoldenMajesty {
 
 impl SpecialAbility for GoldenMajesty {
     fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == self.idx);
+        self.timer.update(time, event.idx == self.idx && event.kind != StandStill);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n > 0) {
             (true, true) => state.atk += 8.0,
             (true, false) => state.atk -= 8.0 * self.timer.previous_n as f32,
@@ -64,8 +64,8 @@ impl SpecialAbility for TheUnforged {
         self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }
@@ -88,8 +88,8 @@ impl SpecialAbility for SummitShaper {
         self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }
@@ -112,8 +112,8 @@ impl SpecialAbility for VortexVanquisher {
         self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }
@@ -136,8 +136,8 @@ impl SpecialAbility for MemoryOfDust {
         self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_data, enemy);
     }
 
     fn reset(&mut self) -> () { self.0.reset() }

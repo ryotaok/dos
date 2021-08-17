@@ -1,5 +1,5 @@
 use crate::types::{AttackType, WeaponType, FieldEnergy};
-use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, NTimer};
 
 use AttackType::*;

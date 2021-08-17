@@ -27,6 +27,7 @@ impl PrototypeCrescentR5 {
 }
 
 pub struct CompoundBowR5 {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
@@ -38,8 +39,9 @@ impl CompoundBowR5 {
             .physical_dmg(69.0)
     }
 
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(6.0, &[0.3,0.3,0.3,0.3]),
         }
     }
@@ -47,11 +49,11 @@ impl CompoundBowR5 {
 
 impl SpecialAbility for CompoundBowR5 {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == data.idx && (event.kind == Na || event.kind == Ca));
+        self.timer.update(time, event.idx == self.idx && (event.kind == Na || event.kind == Ca));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n > 0) {
             (true, true) => {
                 state.atk += 8.0;
@@ -71,6 +73,7 @@ impl SpecialAbility for CompoundBowR5 {
 }
 
 pub struct TheViridescentHuntR5 {
+    idx: FieldCharacterIndex,
     timer: NTimer,
     aa: Attack,
 }
@@ -83,15 +86,16 @@ impl TheViridescentHuntR5 {
             .cr(27.6)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             timer: NTimer::new(&[0.5,0.5, 0.5,0.5, 0.5,0.5, 0.5,0.5, 6.0]),
             aa: Attack {
                 kind: AdditionalAttack,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 80.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             }
         }
@@ -100,7 +104,7 @@ impl TheViridescentHuntR5 {
 
 impl SpecialAbility for TheViridescentHuntR5 {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        let should_update = event.idx == data.idx && (event.kind == Na || event.kind == Ca);
+        let should_update = event.idx == self.idx && (event.kind == Na || event.kind == Ca);
         self.timer.update(time, testutil::chance() < 0.5 && should_update);
     }
 

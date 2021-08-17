@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, Vision, PHYSICAL_GAUGE};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ICDTimer, NTimer};
+use crate::action::{Attack, AttackEvent, ICDTimers, NTimer};
 use crate::testutil;
 
 use AttackType::*;
@@ -21,7 +21,7 @@ impl FesteringDesire {
             .er(45.9).skill_dmg(32.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self(idx)
     }
 }
@@ -43,6 +43,7 @@ impl SpecialAbility for FesteringDesire {
 
 #[derive(Debug)]
 pub struct FrostBurial {
+    idx: FieldCharacterIndex,
     cryo: bool,
     timer: NTimer,
     aa: Attack,
@@ -50,8 +51,9 @@ pub struct FrostBurial {
 }
 
 impl FrostBurial {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             cryo: false,
             timer: NTimer::new(&[10.0]),
             aa: Attack {
@@ -59,7 +61,7 @@ impl FrostBurial {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 140.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             },
             aa_cryo: Attack {
@@ -67,7 +69,7 @@ impl FrostBurial {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 360.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             },
         }
@@ -76,7 +78,7 @@ impl FrostBurial {
 
 impl SpecialAbility for FrostBurial {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        let should_update = event.idx == data.idx && (event.kind == Na || event.kind == Ca);
+        let should_update = event.idx == self.idx && (event.kind == Na || event.kind == Ca);
         self.timer.update(time, testutil::chance() < 0.5 && should_update);
         self.cryo = enemy.aura.aura == Cryo;
     }
@@ -100,7 +102,7 @@ impl SpecialAbility for FrostBurial {
 pub struct SnowTombedStarsilver(FrostBurial);
 
 impl SnowTombedStarsilver {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self(FrostBurial::new(idx, icd_timer))
     }
 }
@@ -129,7 +131,7 @@ impl SpecialAbility for SnowTombedStarsilver {
 pub struct DragonspineSpear(FrostBurial);
 
 impl DragonspineSpear {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self(FrostBurial::new(idx, icd_timer))
     }
 }
@@ -158,7 +160,7 @@ impl SpecialAbility for DragonspineSpear {
 pub struct Frostbearer(FrostBurial);
 
 impl Frostbearer {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self(FrostBurial::new(idx, icd_timer))
     }
 }

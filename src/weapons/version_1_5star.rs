@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, PHYSICAL_GAUGE};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, DurationTimer, Time};
+use crate::action::{Attack, AttackEvent, ICDTimers, NTimer, DurationTimer, Time};
 use crate::testutil;
 
 use AttackType::*;
@@ -14,6 +14,7 @@ use WeaponType::*;
 // version 1.0
 
 pub struct SkywardBlade {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
     did_na: bool,
     aa: Attack,
@@ -27,8 +28,9 @@ impl SkywardBlade {
             .cr(4.0).er(55.1)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(12.0, &[0.0]),
             did_na: false,
             aa: Attack {
@@ -36,7 +38,7 @@ impl SkywardBlade {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 20.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             },
         }
@@ -45,7 +47,7 @@ impl SkywardBlade {
 
 impl SpecialAbility for SkywardBlade {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        let check_idx = event.idx == data.idx;
+        let check_idx = event.idx == self.idx;
         self.did_na = check_idx && (event.kind == Na || event.kind == Ca);
         self.timer.update(time, check_idx && event.kind == Burst);
     }
@@ -57,8 +59,8 @@ impl SpecialAbility for SkywardBlade {
         };
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n) {
             (true, 1) => state.atk_spd += 18.0,
             (true, 0) => state.atk_spd -= 18.0,
@@ -72,6 +74,7 @@ impl SpecialAbility for SkywardBlade {
 }
 
 pub struct AquilaFavonia {
+    idx: FieldCharacterIndex,
     timer: NTimer,
     aa: Attack,
 }
@@ -85,15 +88,16 @@ impl AquilaFavonia {
             .physical_dmg(41.3)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             timer: NTimer::new(&[15.0]),
             aa: Attack {
                 kind: AdditionalAttack,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 200.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             },
         }
@@ -102,7 +106,7 @@ impl AquilaFavonia {
  }
 impl SpecialAbility for AquilaFavonia {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        let should_update = event.idx == data.idx && (event.kind == Na || event.kind == Ca);
+        let should_update = event.idx == self.idx && (event.kind == Na || event.kind == Ca);
         self.timer.update(time, should_update);
     }
 
@@ -119,6 +123,7 @@ impl SpecialAbility for AquilaFavonia {
 }
 
 pub struct SkywardPride {
+    idx: FieldCharacterIndex,
     timer: NTimer,
     aa: Attack,
 }
@@ -132,15 +137,16 @@ impl SkywardPride {
             .na_dmg(8.0).ca_dmg(8.0).skill_dmg(8.0).burst_dmg(8.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             timer: NTimer::new(&[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,]),
             aa: Attack {
                 kind: AdditionalAttack,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 80.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             },
         }
@@ -149,7 +155,7 @@ impl SkywardPride {
 
 impl SpecialAbility for SkywardPride {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == data.idx && event.kind == Burst);
+        self.timer.update(time, event.idx == self.idx && event.kind == Burst);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
@@ -179,6 +185,7 @@ impl WolfsGravestone {
 impl SpecialAbility for WolfsGravestone {}
 
 pub struct SkywardSpine {
+    idx: FieldCharacterIndex,
     timer: NTimer,
     aa: Attack,
 }
@@ -191,15 +198,16 @@ impl SkywardSpine {
             .cr(8.0).er(36.8).atk_spd(12.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             timer: NTimer::new(&[2.0]),
             aa: Attack {
                 kind: AdditionalAttack,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 40.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             }
         }
@@ -208,7 +216,7 @@ impl SkywardSpine {
 
 impl SpecialAbility for SkywardSpine {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        let should_update = event.idx == data.idx && (event.kind == Na || event.kind == Ca);
+        let should_update = event.idx == self.idx && (event.kind == Na || event.kind == Ca);
         self.timer.update(time, testutil::chance() < 0.5 && should_update);
     }
 
@@ -225,6 +233,7 @@ impl SpecialAbility for SkywardSpine {
 }
 
 pub struct PrimordialJadeWingedSpear {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
@@ -236,8 +245,9 @@ impl PrimordialJadeWingedSpear {
             .cr(22.1)
     }
 
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(6.0, &[0.3,0.3,0.3,0.3,0.3,0.3,0.3])
         }
     }
@@ -245,11 +255,11 @@ impl PrimordialJadeWingedSpear {
 
 impl SpecialAbility for PrimordialJadeWingedSpear {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == data.idx);
+        self.timer.update(time, event.idx == self.idx && event.kind != StandStill);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n > 0) {
             (true, true) => {
                 state.atk += 3.2;
@@ -273,6 +283,7 @@ impl SpecialAbility for PrimordialJadeWingedSpear {
 }
 
 pub struct SkywardHarp {
+    idx: FieldCharacterIndex,
     timer: NTimer,
     aa: Attack,
 }
@@ -285,15 +296,16 @@ impl SkywardHarp {
             .cr(22.1).cd(20.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             timer: NTimer::new(&[4.0]),
             aa: Attack {
                 kind: AdditionalAttack,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 125.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             }
         }
@@ -302,7 +314,7 @@ impl SkywardHarp {
 
 impl SpecialAbility for SkywardHarp {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        self.timer.update(time, testutil::chance() < 0.6 && event.idx == data.idx);
+        self.timer.update(time, testutil::chance() < 0.6 && event.idx == self.idx && event.kind != StandStill);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, _particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
@@ -332,6 +344,7 @@ impl AmosBow {
 impl SpecialAbility for AmosBow {}
 
 pub struct SkywardAtlas {
+    idx: FieldCharacterIndex,
     timer: NTimer,
     aa: Attack,
 }
@@ -345,15 +358,16 @@ impl SkywardAtlas {
             .pyro_dmg(12.0).cryo_dmg(12.0).hydro_dmg(12.0).electro_dmg(12.0).anemo_dmg(12.0).geo_dmg(12.0).dendro_dmg(12.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             timer: NTimer::new(&[2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0, 14.0]),
             aa: Attack {
                 kind: AdditionalAttack,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 160.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             }
         }
@@ -362,7 +376,7 @@ impl SkywardAtlas {
 
 impl SpecialAbility for SkywardAtlas {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        let should_update = event.idx == data.idx && (event.kind == Na || event.kind == Ca);
+        let should_update = event.idx == self.idx && (event.kind == Na || event.kind == Ca);
         self.timer.update(time, testutil::chance() < 0.5 && should_update);
     }
 
@@ -378,6 +392,7 @@ impl SpecialAbility for SkywardAtlas {
 }
 
 pub struct LostPrayerToTheSacredWinds {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
@@ -389,8 +404,9 @@ impl LostPrayerToTheSacredWinds {
             .cr(33.1)
     }
 
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(8.0, &[4.0,4.0,4.0,4.0])
         }
     }
@@ -402,8 +418,8 @@ impl SpecialAbility for LostPrayerToTheSacredWinds {
         self.timer.update(time, data.idx.0 == 0);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n > 0) {
             (true, true) => state.elemental_dmg += 8.0,
             (true, false) => state.elemental_dmg -= 8.0 * self.timer.previous_n as f32,

@@ -35,16 +35,16 @@ impl Yanfei {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             scarlet_seal: 0,
             na: NaLoop::new(
                 // 3 attacks in 1.5 seconds
                 &[0.5,0.5,0.5],
                 vec![
-                    Attack::na(105.01, 1, idx),
-                    Attack::na(93.83, 1, idx),
-                    Attack::na(136.82, 1, idx),
+                    Attack::na(105.01, 1, idx, &icd_timer),
+                    Attack::na(93.83, 1, idx, &icd_timer),
+                    Attack::na(136.82, 1, idx, &icd_timer),
                 ]
             ),
             ca_0: Attack {
@@ -52,7 +52,7 @@ impl Yanfei {
                 element: &PYRO_GAUGE1A,
                 multiplier: 159.99,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             ca_1: Attack {
@@ -60,7 +60,7 @@ impl Yanfei {
                 element: &PYRO_GAUGE1A,
                 multiplier: 188.22,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             ca_2: Attack {
@@ -68,7 +68,7 @@ impl Yanfei {
                 element: &PYRO_GAUGE1A,
                 multiplier: 216.46,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             ca_3: Attack {
@@ -76,7 +76,7 @@ impl Yanfei {
                 element: &PYRO_GAUGE1A,
                 multiplier: 244.69,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             ca_4: Attack {
@@ -84,7 +84,7 @@ impl Yanfei {
                 element: &PYRO_GAUGE1A,
                 multiplier: 272.92,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             a4_blazing_eye: Attack {
@@ -92,7 +92,7 @@ impl Yanfei {
                 element: &PYRO_GAUGE1A,
                 multiplier: 80.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             ca_timer: NTimer::new(&[1.0]),
@@ -101,7 +101,7 @@ impl Yanfei {
                 element: &PYRO_GAUGE1A,
                 multiplier: 305.28,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 5.0], Attack {
@@ -109,7 +109,7 @@ impl Yanfei {
                 element: &PYRO_GAUGE2B,
                 multiplier: 328.32,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -121,16 +121,6 @@ impl Yanfei {
 }
 
 impl SpecialAbility for Yanfei {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.na.init(timers);
-        self.ca_0.icd_timer = &mut timers.ca;
-        self.ca_1.icd_timer = &mut timers.ca;
-        self.ca_2.icd_timer = &mut timers.ca;
-        self.ca_3.icd_timer = &mut timers.ca;
-        self.ca_4.icd_timer = &mut timers.ca;
-        self.a4_blazing_eye.icd_timer = &mut timers.ca;
-    }
-
     fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
         match (self.scarlet_seal >= 3, self.ca_timer.n) {
             (true, 0) => Some(AttackEvent {
@@ -144,7 +134,7 @@ impl SpecialAbility for Yanfei {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         self.ca_timer.update(time, event == &self.ca_0);
         self.na.update(time, event, data, attack, particles, enemy);
-        if event.idx == data.idx {
+        if event.idx == self.burst.attack.idx {
             match &event.kind {
                 Na => self.scarlet_seal += 1,
                 Ca => self.scarlet_seal = 0,
@@ -172,15 +162,15 @@ impl SpecialAbility for Yanfei {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.burst.timer.ping {
             match self.burst.timer.n {
                 1 => {
-                    let state = &mut modifiable_state[data.idx.0];
+                    let state = &mut modifiable_data[self.burst.attack.idx.0].state;
                     state.ca_dmg += 54.4;
                 },
                 16 => {
-                    let state = &mut modifiable_state[data.idx.0];
+                    let state = &mut modifiable_data[self.burst.attack.idx.0].state;
                     state.ca_dmg -= 54.4;
                 },
                 _ => (),
@@ -208,7 +198,7 @@ pub struct EulaSkill {
 }
 
 impl EulaSkill {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             grimheart: 0,
             press_timer: NTimer::new(&[4.0]),
@@ -218,7 +208,7 @@ impl EulaSkill {
                 element: &CRYO_GAUGE1A,
                 multiplier: 263.52,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             hold: Attack {
@@ -226,7 +216,7 @@ impl EulaSkill {
                 element: &CRYO_GAUGE1A,
                 multiplier: 442.08,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             icewhirl_brand_1: Attack {
@@ -234,7 +224,7 @@ impl EulaSkill {
                 element: &CRYO_GAUGE1A,
                 multiplier: 172.8,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             icewhirl_brand_2: Attack {
@@ -242,7 +232,7 @@ impl EulaSkill {
                 element: &CRYO_GAUGE1A,
                 multiplier: 172.8,
                 hits: 2,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             hold_a1: Attack {
@@ -250,7 +240,7 @@ impl EulaSkill {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 725.56 * 0.5,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             press_particle: Particle::new(Cryo, 1.5),
@@ -267,14 +257,6 @@ impl SkillAbility for EulaSkill {
 }
 
 impl SpecialAbility for EulaSkill {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.press.icd_timer = &mut timers.skill;
-        self.hold.icd_timer = &mut timers.skill;
-        self.icewhirl_brand_1.icd_timer = &mut timers.skill;
-        self.icewhirl_brand_2.icd_timer = &mut timers.skill;
-        self.hold_a1.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         if self.grimheart == 2 {
             self.hold.to_event(&self.hold_timer)
@@ -284,7 +266,7 @@ impl SpecialAbility for EulaSkill {
     }
 
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if event.idx == data.idx {
+        if event.idx == self.press.idx {
             match &event.kind {
                 PressSkill => {
                     self.grimheart += 1;
@@ -356,27 +338,27 @@ impl Eula {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             lightfall_sword_stack: 0,
             na: NaLoop::new(
                 // 5 attacks in 3.85 seconds
                 &[0.77,0.77,0.77,0.77,0.77],
                 vec![
-                    Attack::na(177.38, 1, idx),
-                    Attack::na(184.93, 1, idx),
-                    Attack::na(112.28, 2, idx),
-                    Attack::na(222.67, 1, idx),
-                    Attack::na(142.0, 2, idx),
+                    Attack::na(177.38, 1, idx, &icd_timer),
+                    Attack::na(184.93, 1, idx, &icd_timer),
+                    Attack::na(112.28, 2, idx, &icd_timer),
+                    Attack::na(222.67, 1, idx, &icd_timer),
+                    Attack::na(142.0, 2, idx, &icd_timer),
                 ]
             ),
-            skill: EulaSkill::new(idx),
+            skill: EulaSkill::new(idx, icd_timer),
             burst: SimpleBurst::new(&[7.0, 13.0], Attack {
                 kind: AttackType::Burst,
                 element: &CRYO_GAUGE2B,
                 multiplier: 617.44,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
             burst_lightfall_sword: Attack {
@@ -384,7 +366,7 @@ impl Eula {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 725.56,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             },
             burst_stack_n: Attack {
@@ -392,7 +374,7 @@ impl Eula {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 0.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             },
         }
@@ -404,11 +386,6 @@ impl Eula {
 }
 
 impl SpecialAbility for Eula {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.burst_lightfall_sword.icd_timer = &mut timers.burst;
-        self.burst_stack_n.icd_timer = &mut timers.burst;
-    }
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         // accumulate stacks
         if self.burst.timer.n == 1 {
@@ -438,7 +415,7 @@ impl SpecialAbility for Eula {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.skill.hold_timer.ping && self.skill.hold_timer.n == 1 {
             enemy.element_res_debuff.push(Debuff::eula_cryo());
             enemy.physical_res_debuff.push(Debuff::eula_physical());

@@ -30,18 +30,18 @@ impl Kazuha {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             swirl_a4: DurationTimer::new(8.0, &[0.0]),
             na: NaLoop::new(
                 // 5 attacks in 2.166 seconds
                 &[0.4332,0.4332,0.4332,0.4332,0.4332],
                 vec![
-                    Attack::na(88.91, 1, idx),
-                    Attack::na(89.42, 1, idx),
-                    Attack::na((51.0 + 61.2) / 2.0, 2, idx),
-                    Attack::na(120.02, 1, idx),
-                    Attack::na(50.15, 3, idx),
+                    Attack::na(88.91, 1, idx, &icd_timer),
+                    Attack::na(89.42, 1, idx, &icd_timer),
+                    Attack::na((51.0 + 61.2) / 2.0, 2, idx, &icd_timer),
+                    Attack::na(120.02, 1, idx, &icd_timer),
+                    Attack::na(50.15, 3, idx, &icd_timer),
                 ]
             ),
             midare_ranzan: Attack {
@@ -49,16 +49,16 @@ impl Kazuha {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 404.02,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
-            soumon_swordsmanship: ElementalAbsorption::new(idx, Ca, 200.0, NTimer::new(&[9.0])),
+            soumon_swordsmanship: ElementalAbsorption::new(idx, Ca, 200.0, NTimer::new(&[9.0]), icd_timer),
             skill: SimpleSkill::new(&[9.0], Particle::new(Anemo, 4.0), Attack {
                 kind: AttackType::PressSkill,
                 element: &ANEMO_GAUGE2B,
                 multiplier: 469.44,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[2.0,2.0,2.0,2.0, 7.0], Attack {
@@ -66,17 +66,17 @@ impl Kazuha {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 419.04,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &ANEMO_GAUGE1A,
                 multiplier: 216.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
-            burst_ea: ElementalAbsorption::new(idx, BurstDot, 64.8, NTimer::new(&[8.0, 7.0])),
+            burst_ea: ElementalAbsorption::new(idx, BurstDot, 64.8, NTimer::new(&[8.0, 7.0]), icd_timer),
         }
     }
 
@@ -86,12 +86,6 @@ impl Kazuha {
 }
 
 impl SpecialAbility for Kazuha {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.midare_ranzan.icd_timer = &mut timers.ca;
-        *(self.soumon_swordsmanship.icd()) = &mut timers.ca;
-        *(self.burst_ea.icd()) = &mut timers.burst;
-    }
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         self.soumon_swordsmanship.absorb(time, event == &self.skill.attack, enemy);
         self.burst_ea.absorb(time, event == &self.burst.attack, enemy);
@@ -119,15 +113,15 @@ impl SpecialAbility for Kazuha {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.swirl_a4.ping {
-            let state = data.state();
+            let em = modifiable_data[self.burst.attack.idx.0].state.em;
             match self.swirl_a4.n {
-                1 => for s in modifiable_state.iter_mut() {
-                    s.elemental_dmg += state.em * 0.04;
+                1 => for data in modifiable_data.iter_mut() {
+                    data.state.elemental_dmg += em * 0.04;
                 },
-                0 => for s in modifiable_state.iter_mut() {
-                    s.elemental_dmg -= state.em * 0.04;
+                0 => for data in modifiable_data.iter_mut() {
+                    data.state.elemental_dmg -= em * 0.04;
                 },
                 _ => (),
             }

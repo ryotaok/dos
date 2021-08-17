@@ -23,7 +23,7 @@ pub struct SucroseSkill {
 }
 
 impl SucroseSkill {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             timer1: NTimer::new(&[15.0]),
             timer2: NTimer::new(&[15.0]),
@@ -32,7 +32,7 @@ impl SucroseSkill {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 380.16,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             attack2: Attack {
@@ -40,7 +40,7 @@ impl SucroseSkill {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 380.16,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             particle: Particle::new(Anemo, 4.0),
@@ -56,11 +56,6 @@ impl SkillAbility for SucroseSkill {
 }
 
 impl SpecialAbility for SucroseSkill {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack1.icd_timer = &mut timers.skill;
-        self.attack2.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         self.attack1.to_event(&self.timer1)
             .or(self.attack2.to_event(&self.timer2))
@@ -105,7 +100,7 @@ impl Sucrose {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             skill_a1: DurationTimer::new(8.0, &[0.0]),
             skill_a4: DurationTimer::new(8.0, &[0.0]),
@@ -113,22 +108,22 @@ impl Sucrose {
                 // 4 attacks in 1.5 seconds
                 &[0.375,0.375,0.375,0.375],
                 vec![
-                    Attack::na(60.24, 1, idx),
-                    Attack::na(55.11, 1, idx),
-                    Attack::na(69.21, 1, idx),
-                    Attack::na(86.25, 1, idx),
+                    Attack::na(60.24, 1, idx, &icd_timer),
+                    Attack::na(55.11, 1, idx, &icd_timer),
+                    Attack::na(69.21, 1, idx, &icd_timer),
+                    Attack::na(86.25, 1, idx, &icd_timer),
                 ]
             ),
-            skill: SucroseSkill::new(idx),
+            skill: SucroseSkill::new(idx, icd_timer),
             burst: SimpleBurstDot::new(&[2.0,2.0,2.0, 14.0], Attack {
                 kind: AttackType::BurstDot,
                 element: &ANEMO_GAUGE1A,
                 multiplier: 266.4,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
-            burst_ea: ElementalAbsorption::new(idx, BurstDot, 79.2, NTimer::new(&[6.0, 14.0])),
+            burst_ea: ElementalAbsorption::new(idx, BurstDot, 79.2, NTimer::new(&[6.0, 14.0]), icd_timer),
         }
     }
 
@@ -138,10 +133,6 @@ impl Sucrose {
 }
 
 impl SpecialAbility for Sucrose {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        *self.burst_ea.icd() = &mut timers.burst;
-    }
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         let check_idx = event.idx == self.burst.attack.idx;
         let is_swirl = unsafe {
@@ -164,32 +155,32 @@ impl SpecialAbility for Sucrose {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // TODO inaccurate
         match (self.skill_a1.ping, self.skill_a1.n) {
-            (true, 1) => for s in modifiable_state.iter_mut() {
-                s.em += 50.0;
+            (true, 1) => for data in modifiable_data.iter_mut() {
+                data.state.em += 50.0;
             },
-            (true, 0) => for s in modifiable_state.iter_mut() {
-                s.em -= 50.0;
+            (true, 0) => for data in modifiable_data.iter_mut() {
+                data.state.em -= 50.0;
             },
             _ => (),
         }
         match (self.skill_a4.ping, self.skill_a4.n) {
             (true, 1) => {
-                let state = data.state();
-                for (i, s) in modifiable_state.iter_mut().enumerate() {
-                    if i != data.idx.0 {
-                        s.em += state.em * 0.2;
+                let em = modifiable_data[self.burst.attack.idx.0].state.em;
+                for (i, data) in modifiable_data.iter_mut().enumerate() {
+                    if i != self.burst.attack.idx.0 {
+                        data.state.em += em * 0.2;
                     }
                 }
             },
             (true, 0) => {
-                let state = data.state();
-                for (i, s) in modifiable_state.iter_mut().enumerate() {
-                    if i != data.idx.0 {
+                let em = modifiable_data[self.burst.attack.idx.0].state.em;
+                for (i, data) in modifiable_data.iter_mut().enumerate() {
+                    if i != self.burst.attack.idx.0 {
                         // TODO inaccurate
-                        s.em -= state.em * 0.2;
+                        data.state.em -= em * 0.2;
                     }
                 }
             },
@@ -222,17 +213,17 @@ impl TravelerAnemo {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.55 seconds
                 &[0.51,0.51,0.51,0.51,0.51],
                 vec![
-                    Attack::na(87.89, 1, idx),
-                    Attack::na(85.85, 1, idx),
-                    Attack::na(104.72, 1, idx),
-                    Attack::na(115.26, 1, idx),
-                    Attack::na(139.91, 1, idx),
+                    Attack::na(87.89, 1, idx, &icd_timer),
+                    Attack::na(85.85, 1, idx, &icd_timer),
+                    Attack::na(104.72, 1, idx, &icd_timer),
+                    Attack::na(115.26, 1, idx, &icd_timer),
+                    Attack::na(139.91, 1, idx, &icd_timer),
                 ]
             ),
             na_last: Attack {
@@ -240,7 +231,7 @@ impl TravelerAnemo {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 60.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.na),
                 idx,
             },
             skill: SkillDamage2Dot::new(&[0.5,0.5,0.5,0.5,0.5,0.5,0.5, 4.5], Particle::new(Anemo, 4.0), Attack {
@@ -248,14 +239,14 @@ impl TravelerAnemo {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 345.6,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }, Attack {
                 kind: AttackType::SkillDot,
                 element: &ANEMO_GAUGE1A,
                 multiplier: 30.24,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurstDot::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 5.0], Attack {
@@ -263,10 +254,10 @@ impl TravelerAnemo {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 145.44,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
-            burst_ea: ElementalAbsorption::new(idx, BurstDot, 44.64, NTimer::new(&[10.0, 5.0])),
+            burst_ea: ElementalAbsorption::new(idx, BurstDot, 44.64, NTimer::new(&[10.0, 5.0]), icd_timer),
         }
     }
 
@@ -276,11 +267,6 @@ impl TravelerAnemo {
 }
 
 impl SpecialAbility for TravelerAnemo {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.na_last.icd_timer = &mut timers.na;
-        *self.burst_ea.icd() = &mut timers.burst;
-    }
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         self.burst_ea.absorb(time, event.idx == self.burst.attack.idx && event.kind == Burst, enemy);
     }
@@ -314,17 +300,17 @@ impl Jean {
             .energy_cost(80.0 * 0.8)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.55 seconds
                 &[0.51,0.51,0.51,0.51,0.51],
                 vec![
-                    Attack::na(95.54, 1, idx),
-                    Attack::na(90.1, 1, idx),
-                    Attack::na(119.17, 1, idx),
-                    Attack::na(130.22, 1, idx),
-                    Attack::na(156.57, 1, idx),
+                    Attack::na(95.54, 1, idx, &icd_timer),
+                    Attack::na(90.1, 1, idx, &icd_timer),
+                    Attack::na(119.17, 1, idx, &icd_timer),
+                    Attack::na(130.22, 1, idx, &icd_timer),
+                    Attack::na(156.57, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[6.0], Particle::new(Anemo, 3.0), Attack {
@@ -332,7 +318,7 @@ impl Jean {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 525.6,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[1.0,1.0,1.0, 17.0], Attack {
@@ -340,14 +326,14 @@ impl Jean {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 764.64,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &ANEMO_GAUGE1A,
                 multiplier: 141.12,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -377,18 +363,18 @@ impl Venti {
             .energy_cost(60.0 - 15.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 6 attacks in 2.85 seconds
                 &[0.475,0.475,0.475,0.475,0.475,0.475],
                 vec![
-                    Attack::na(40.29, 2, idx),
-                    Attack::na(87.72, 1, idx),
-                    Attack::na(103.53, 1, idx),
-                    Attack::na(51.51, 2, idx),
-                    Attack::na(100.13, 1, idx),
-                    Attack::na(140.25, 1, idx),
+                    Attack::na(40.29, 2, idx, &icd_timer),
+                    Attack::na(87.72, 1, idx, &icd_timer),
+                    Attack::na(103.53, 1, idx, &icd_timer),
+                    Attack::na(51.51, 2, idx, &icd_timer),
+                    Attack::na(100.13, 1, idx, &icd_timer),
+                    Attack::na(140.25, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[6.0], Particle::new(Anemo, 3.0), Attack {
@@ -396,7 +382,7 @@ impl Venti {
                 element: &ANEMO_GAUGE2B,
                 multiplier: 496.8,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurstDot::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 7.0], Attack {
@@ -404,10 +390,10 @@ impl Venti {
                 element: &ANEMO_GAUGE1A,
                 multiplier: 67.68,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
-            burst_ea: ElementalAbsorption::new(idx, BurstDot, 33.84, NTimer::new(&[8.0, 7.0])),
+            burst_ea: ElementalAbsorption::new(idx, BurstDot, 33.84, NTimer::new(&[8.0, 7.0]), icd_timer),
         }
     }
 
@@ -417,10 +403,6 @@ impl Venti {
 }
 
 impl SpecialAbility for Venti {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        *self.burst_ea.icd() = &mut timers.burst;
-    }
-
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
         match (self.burst_ea.timer.ping, self.burst_ea.timer.n) {
             // TODO should be limited to the corresponding vision

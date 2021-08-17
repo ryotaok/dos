@@ -1,6 +1,6 @@
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, MILLENNIAL_MOVEMENT_SERIES};
-use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, DurationTimer};
 
 use AttackType::*;
@@ -8,6 +8,7 @@ use WeaponType::*;
 // use Vision::*;
 
 pub struct SongOfBrokenPines {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
@@ -20,8 +21,9 @@ impl SongOfBrokenPines {
             .physical_dmg(20.7)
     }
 
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(12.0, &[0.3,0.3,0.3,0.3, 20.0]),
         }
     }
@@ -29,23 +31,23 @@ impl SongOfBrokenPines {
 
 impl SpecialAbility for SongOfBrokenPines {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == data.idx && (event.kind == Na || event.kind == Ca));
+        self.timer.update(time, event.idx == self.idx && (event.kind == Na || event.kind == Ca));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         match (self.timer.ping, self.timer.n) {
-            (true, 4) => for s in modifiable_state.iter_mut() {
-                if s.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
-                    s.atk += 20.0;
-                    s.atk_spd += 12.0;
-                    s.stacked_buff.turn_on(&MILLENNIAL_MOVEMENT_SERIES);
+            (true, 4) => for data in modifiable_data.iter_mut() {
+                if data.state.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
+                    data.state.atk += 20.0;
+                    data.state.atk_spd += 12.0;
+                    data.state.stacked_buff.turn_on(&MILLENNIAL_MOVEMENT_SERIES);
                 }
             },
-            (true, 0) => for s in modifiable_state.iter_mut() {
-                if s.stacked_buff == MILLENNIAL_MOVEMENT_SERIES {
-                    s.atk -= 20.0;
-                    s.atk_spd -= 12.0;
-                    s.stacked_buff.turn_off(&MILLENNIAL_MOVEMENT_SERIES);
+            (true, 0) => for data in modifiable_data.iter_mut() {
+                if data.state.stacked_buff == MILLENNIAL_MOVEMENT_SERIES {
+                    data.state.atk -= 20.0;
+                    data.state.atk_spd -= 12.0;
+                    data.state.stacked_buff.turn_off(&MILLENNIAL_MOVEMENT_SERIES);
                 }
             },
             _ => (),

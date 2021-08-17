@@ -16,6 +16,7 @@ pub mod version_2_0;
 pub mod version_2_1;
 
 use crate::fc::{FieldCharacterIndex, WeaponRecord, SpecialAbility, FieldAbilityBuilder};
+use crate::action::ICDTimers;
 use sword_4star::*;
 use claymore_4star::*;
 use polearm_4star::*;
@@ -140,34 +141,34 @@ pub struct AllWeapons {
 }
 
 impl AllWeapons {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             // sword_4star
-            prototyperancourr5: (PrototypeRancourR5::record(), PrototypeRancourR5::new()),
+            prototyperancourr5: (PrototypeRancourR5::record(), PrototypeRancourR5::new(idx)),
             theblackswordr5: (TheBlackSwordR5::record(), TheBlackSwordR5),
             blackclifflongswordr5: (BlackcliffLongswordR5::record(), BlackcliffLongswordR5),
             royallongswordr5: (RoyalLongswordR5::record(), RoyalLongswordR5),
             harbingerofdawnr5: (HarbingerOfDawnR5::record(), HarbingerOfDawnR5),
             thefluter5: (TheFluteR5::record(), TheFluteR5::new(idx, icd_timer)),
-            lionsroarr5: (LionsRoarR5::record(), LionsRoarR5),
+            lionsroarr5: (LionsRoarR5::record(), LionsRoarR5::new(idx)),
             // claymore_4star
             prototypearchaicr5: (PrototypeArchaicR5::record(), PrototypeArchaicR5::new(idx, icd_timer)),
-            whiteblindr5: (WhiteblindR5::record(), WhiteblindR5::new()),
-            serpentspiner5: (SerpentSpineR5::record(), SerpentSpineR5::new()),
+            whiteblindr5: (WhiteblindR5::record(), WhiteblindR5::new(idx)),
+            serpentspiner5: (SerpentSpineR5::record(), SerpentSpineR5::new(idx)),
             blackcliffslasherr5: (BlackcliffSlasherR5::record(), BlackcliffSlasherR5),
             royalgreatswordr5: (RoyalGreatswordR5::record(), RoyalGreatswordR5),
-            rainslasherr5: (RainslasherR5::record(), RainslasherR5),
+            rainslasherr5: (RainslasherR5::record(), RainslasherR5::new(idx)),
             // polearm_4star
-            prototypestarglitterr5: (PrototypeStarglitterR5::record(), PrototypeStarglitterR5::new()),
+            prototypestarglitterr5: (PrototypeStarglitterR5::record(), PrototypeStarglitterR5::new(idx)),
             crescentpiker5: (CrescentPikeR5::record(), CrescentPikeR5::new(idx, icd_timer)),
             deathmatchr5: (DeathmatchR5::record(), DeathmatchR5),
             blackcliffpoler5: (BlackcliffPoleR5::record(), BlackcliffPoleR5),
             royalspearr5: (RoyalSpearR5::record(), RoyalSpearR5),
             whitetasselr5: (WhiteTasselR5::record(), WhiteTasselR5),
-            dragonsbaner5: (DragonsBaneR5::record(), DragonsBaneR5),
+            dragonsbaner5: (DragonsBaneR5::record(), DragonsBaneR5::new(idx)),
             // bow_4star
             prototypecrescentr5: (PrototypeCrescentR5::record(), PrototypeCrescentR5),
-            compoundbowr5: (CompoundBowR5::record(), CompoundBowR5::new()),
+            compoundbowr5: (CompoundBowR5::record(), CompoundBowR5::new(idx)),
             theviridescenthuntr5: (TheViridescentHuntR5::record(), TheViridescentHuntR5::new(idx, icd_timer)),
             blackcliffwarbowr5: (BlackcliffWarbowR5::record(), BlackcliffWarbowR5),
             royalbowr5: (RoyalBowR5::record(), RoyalBowR5),
@@ -176,13 +177,13 @@ impl AllWeapons {
             thestringlessr5: (TheStringlessR5::record(), TheStringlessR5),
             // catalyst_4star
             prototypeamberr5: (PrototypeAmberR5::record(), PrototypeAmberR5),
-            mappamarer5: (MappaMareR5::record(), MappaMareR5::new()),
-            solarpearlr5: (SolarPearlR5::record(), SolarPearlR5::new()),
+            mappamarer5: (MappaMareR5::record(), MappaMareR5::new(idx)),
+            solarpearlr5: (SolarPearlR5::record(), SolarPearlR5::new(idx)),
             blackcliffagater5: (BlackcliffAgateR5::record(), BlackcliffAgateR5),
             royalgrimoirer5: (RoyalGrimoireR5::record(), RoyalGrimoireR5),
             thrillingtalesofdragonslayersr5: (ThrillingTalesOfDragonSlayersR5::record(), ThrillingTalesOfDragonSlayersR5::new()),
             eyeofperceptionr5: (EyeOfPerceptionR5::record(), EyeOfPerceptionR5::new(idx, icd_timer)),
-            thewidsithr5: (TheWidsithR5::record(), TheWidsithR5::new()),
+            thewidsithr5: (TheWidsithR5::record(), TheWidsithR5::new(idx)),
             // favonius_series
             favoniusgreatswordr5: (FavoniusGreatswordR5::record(), FavoniusGreatswordR5::new()),
             favoniusswordr5: (FavoniusSwordR5::record(), FavoniusSwordR5::new()),
@@ -200,51 +201,51 @@ impl AllWeapons {
             skywardpride: (SkywardPride::record(), SkywardPride::new(idx, icd_timer)),
             wolfsgravestone: (WolfsGravestone::record(), WolfsGravestone),
             skywardspine: (SkywardSpine::record(), SkywardSpine::new(idx, icd_timer)),
-            primordialjadewingedspear: (PrimordialJadeWingedSpear::record(), PrimordialJadeWingedSpear::new()),
+            primordialjadewingedspear: (PrimordialJadeWingedSpear::record(), PrimordialJadeWingedSpear::new(idx)),
             skywardharp: (SkywardHarp::record(), SkywardHarp::new(idx, icd_timer)),
             amosbow: (AmosBow::record(), AmosBow),
             skywardatlas: (SkywardAtlas::record(), SkywardAtlas::new(idx, icd_timer)),
-            lostprayertothesacredwinds: (LostPrayerToTheSacredWinds::record(), LostPrayerToTheSacredWinds::new()),
+            lostprayertothesacredwinds: (LostPrayerToTheSacredWinds::record(), LostPrayerToTheSacredWinds::new(idx)),
             // version_1_1
-            theunforged: (TheUnforged::record(), TheUnforged::new(idx, icd_timer)),
-            summitshaper: (SummitShaper::record(), SummitShaper::new(idx, icd_timer)),
-            vortexvanquisher: (VortexVanquisher::record(), VortexVanquisher::new(idx, icd_timer)),
-            memoryofdust: (MemoryOfDust::record(), MemoryOfDust::new(idx, icd_timer)),
+            theunforged: (TheUnforged::record(), TheUnforged::new(idx)),
+            summitshaper: (SummitShaper::record(), SummitShaper::new(idx)),
+            vortexvanquisher: (VortexVanquisher::record(), VortexVanquisher::new(idx)),
+            memoryofdust: (MemoryOfDust::record(), MemoryOfDust::new(idx)),
             // version_1_2
             festeringdesire: (FesteringDesire::record(), FesteringDesire::new(idx, icd_timer)),
             snowtombedstarsilver: (SnowTombedStarsilver::record(), SnowTombedStarsilver::new(idx, icd_timer)),
             dragonspinespear: (DragonspineSpear::record(), DragonspineSpear::new(idx, icd_timer)),
             frostbearer: (Frostbearer::record(), Frostbearer::new(idx, icd_timer)),
             // version_1_3
-            primordialjadecutter: (PrimordialJadeCutter::record(), PrimordialJadeCutter::new()),
-            primordialjadegs: (PrimordialJadeGS::record(), PrimordialJadeGS::new()),
-            primordialjadevista: (PrimordialJadeVista::record(), PrimordialJadeVista::new()),
-            staffofhoma: (StaffOfHoma::record(), StaffOfHoma::new()),
+            primordialjadecutter: (PrimordialJadeCutter::record(), PrimordialJadeCutter::new(idx)),
+            primordialjadegs: (PrimordialJadeGS::record(), PrimordialJadeGS::new(idx)),
+            primordialjadevista: (PrimordialJadeVista::record(), PrimordialJadeVista::new(idx)),
+            staffofhoma: (StaffOfHoma::record(), StaffOfHoma::new(idx)),
             lithicspear: (LithicSpear::record(), LithicSpear),
             lithicblade: (LithicBlade::record(), LithicBlade),
             // version_1_4
-            elegyfortheend: (ElegyForTheEnd::record(), ElegyForTheEnd::new()),
+            elegyfortheend: (ElegyForTheEnd::record(), ElegyForTheEnd::new(idx)),
             thealleyflash: (TheAlleyFlash::record(), TheAlleyFlash),
-            alleyhunter: (AlleyHunter::record(), AlleyHunter::new()),
+            alleyhunter: (AlleyHunter::record(), AlleyHunter::new(idx)),
             wineandsong: (WineAndSong::record(), WineAndSong),
-            windblumeode: (WindblumeOde::record(), WindblumeOde::new()),
+            windblumeode: (WindblumeOde::record(), WindblumeOde::new(idx)),
             // version_1_5
-            songofbrokenpines: (SongOfBrokenPines::record(), SongOfBrokenPines::new()),
+            songofbrokenpines: (SongOfBrokenPines::record(), SongOfBrokenPines::new(idx)),
             // version_1_6
-            freedomsworn: (FreedomSworn::record(), FreedomSworn::new()),
-            mitternachtswaltz: (MitternachtsWaltz::record(), MitternachtsWaltz::new()),
-            dodocotales: (DodocoTales::record(), DodocoTales::new()),
+            freedomsworn: (FreedomSworn::record(), FreedomSworn::new(idx)),
+            mitternachtswaltz: (MitternachtsWaltz::record(), MitternachtsWaltz::new(idx)),
+            dodocotales: (DodocoTales::record(), DodocoTales::new(idx)),
             // version_2_0
-            mistsplitterreforged: (MistsplitterReforged::record(), MistsplitterReforged::new()),
-            thunderingpulse: (ThunderingPulse::record(), ThunderingPulse::new()),
-            amenomakageuchi: (AmenomaKageuchi::record(), AmenomaKageuchi::new()),
-            katsuragikirinagamasa: (KatsuragikiriNagamasa::record(), KatsuragikiriNagamasa::new()),
-            kitaincrossspear: (KitainCrossSpear::record(), KitainCrossSpear::new()),
-            hamayumi: (Hamayumi::record(), Hamayumi::new()),
-            hakushinring: (HakushinRing::record(), HakushinRing::new()),
+            mistsplitterreforged: (MistsplitterReforged::record(), MistsplitterReforged::new(idx)),
+            thunderingpulse: (ThunderingPulse::record(), ThunderingPulse::new(idx)),
+            amenomakageuchi: (AmenomaKageuchi::record(), AmenomaKageuchi::new(idx)),
+            katsuragikirinagamasa: (KatsuragikiriNagamasa::record(), KatsuragikiriNagamasa::new(idx)),
+            kitaincrossspear: (KitainCrossSpear::record(), KitainCrossSpear::new(idx)),
+            hamayumi: (Hamayumi::record(), Hamayumi::new(idx)),
+            hakushinring: (HakushinRing::record(), HakushinRing::new(idx)),
             // version_2_1
-            grasscutterslight: (GrasscuttersLight::record(), GrasscuttersLight::new()),
-            fumetsugekka: (FumetsuGekka::record(), FumetsuGekka::new()),
+            grasscutterslight: (GrasscuttersLight::record(), GrasscuttersLight::new(idx)),
+            fumetsugekka: (FumetsuGekka::record(), FumetsuGekka::new(idx)),
         }
     }
 
@@ -705,23 +706,23 @@ mod tests {
 
     #[test]
     fn prototype_rancour() {
+        let idx = FieldCharacterIndex(0);
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
-        let mut wa = PrototypeRancourR5::new();
+        let mut wa = PrototypeRancourR5::new(idx);
 
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.weapon(&mut state, State::new(), Pyro, &mut wa);
+        let (data, ability) = env1.weapon(idx, State::new(), Pyro, &mut wa);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         // skill na na na
         // TODO why twice 116.0
@@ -731,23 +732,23 @@ mod tests {
 
     #[test]
     fn the_flute() {
+        let idx = FieldCharacterIndex(0);
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
-        let mut wa = TheFluteR5::new(FieldCharacterIndex(0));
-
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.no_skill_weapon(&mut state, State::new(), Pyro, &mut wa);
+        let mut wa = TheFluteR5::new(idx, &env1.timers);
+
+        let (data, ability) = env1.no_skill_weapon(idx, State::new(), Pyro, &mut wa);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..40 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         // 20 na, 2 flute
         let expect = 20.0 * 100.0 + 2.0 * 200.0;
@@ -756,23 +757,23 @@ mod tests {
 
     #[test]
     fn prototype_archaic() {
+        let idx = FieldCharacterIndex(0);
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
-        let mut wa = PrototypeArchaicR5::new(FieldCharacterIndex(0));
-
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.weapon(&mut state, State::new(), Pyro, &mut wa);
+        let mut wa = PrototypeArchaicR5::new(idx, &env1.timers);
+
+        let (data, ability) = env1.weapon(idx, State::new(), Pyro, &mut wa);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         // skill na na na na (prototype_archaic)
         let expect = 200.0 + 5.0 * 100.0 + 480.0;
@@ -781,23 +782,23 @@ mod tests {
 
     #[test]
     fn prototype_archaic_physical() {
+        let idx = FieldCharacterIndex(0);
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
-        let mut wa = PrototypeArchaicR5::new(FieldCharacterIndex(0));
-
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.weapon(&mut state, State::new().physical_dmg(10.0), Pyro, &mut wa);
+        let mut wa = PrototypeArchaicR5::new(idx, &env1.timers);
+
+        let (data, ability) = env1.weapon(idx, State::new().physical_dmg(10.0), Pyro, &mut wa);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         // skill na na na na (prototype_archaic)
         let expect = 200.0 + 5.0 * 110.0 + 480.0 * 1.1;
@@ -806,23 +807,23 @@ mod tests {
 
     #[test]
     fn prototype_archaic_na() {
+        let idx = FieldCharacterIndex(0);
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
-        let mut wa = PrototypeArchaicR5::new(FieldCharacterIndex(0));
-
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.weapon(&mut state, State::new().na_dmg(10.0), Pyro, &mut wa);
+        let mut wa = PrototypeArchaicR5::new(idx, &env1.timers);
+
+        let (data, ability) = env1.weapon(idx, State::new().na_dmg(10.0), Pyro, &mut wa);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         // skill na na na (prototype_archaic)
         let expect = 200.0 + 5.0 * 110.0 + 480.0;
@@ -831,23 +832,23 @@ mod tests {
 
     #[test]
     fn prototype_archaic_cd() {
+        let idx = FieldCharacterIndex(0);
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
-        let mut wa = PrototypeArchaicR5::new(FieldCharacterIndex(0));
-
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.no_skill_weapon(&mut state, State::new(), Pyro, &mut wa);
+        let mut wa = PrototypeArchaicR5::new(idx, &env1.timers);
+
+        let (data, ability) = env1.no_skill_weapon(idx, State::new(), Pyro, &mut wa);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..5 {
-            total_dmg += simulate(10.0, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(10.0, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // na na (prototype_archaic) na na (prototype_archaic)
@@ -857,24 +858,24 @@ mod tests {
 
     #[test]
     fn skywardblade() {
+        let idx = FieldCharacterIndex(0);
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
-        let mut wa = SkywardBlade::new(FieldCharacterIndex(0));
-
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.no_skill_weapon(&mut state, State::new(), Pyro, &mut wa);
+        let mut wa = SkywardBlade::new(idx, &env1.timers);
+
+        let (data, ability) = env1.no_skill_weapon(idx, State::new(), Pyro, &mut wa);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
-        state[0].energy = members[0].character.energy_cost;
+        members[0].state.energy = members[0].character.energy_cost;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // TODO one extra AA?
@@ -885,23 +886,23 @@ mod tests {
 
     #[test]
     fn songofbrokenpines() {
+        let idx = FieldCharacterIndex(0);
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
-        let mut wa = SongOfBrokenPines::new();
+        let mut wa = SongOfBrokenPines::new(idx);
 
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.no_skill_weapon(&mut state, State::new(), Pyro, &mut wa);
+        let (data, ability) = env1.no_skill_weapon(idx, State::new(), Pyro, &mut wa);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..20 {
-            total_dmg += simulate(1.0, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(1.0, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         let expect = 6.0 * 100.0 + 13.0 * 120.0;

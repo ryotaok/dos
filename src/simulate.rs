@@ -9,7 +9,7 @@ use AttackType::*;
 //     0 = the main DPS character who does normal attacks frequently
 // later = support characters whose skills and bursts are prioritized higher
 //         than the 0 member's. They never do normal attacks or charge attacks.
-pub fn simulate(time: f32, members: &[CharacterData], modifiable_state: &mut [State], abilities: &mut [FieldAbility], atk_queue: &mut Vec<*const Attack>, field_energy: &mut Vec<FieldEnergy>, enemy: &mut Enemy) -> f32 {
+pub fn simulate(time: f32, members: &mut [CharacterData], abilities: &mut [FieldAbility], atk_queue: &mut Vec<*const Attack>, field_energy: &mut Vec<FieldEnergy>, enemy: &mut Enemy) -> f32 {
     // perform an attack
     let mut burst: Option<AttackEvent> = None;
     let mut skill: Option<AttackEvent> = None;
@@ -52,20 +52,19 @@ pub fn simulate(time: f32, members: &[CharacterData], modifiable_state: &mut [St
     };
     // println!("{:?}", attack_event);
     // collect attacks
-    for (fa, data) in abilities.iter().zip(members.iter()) {
-        fa.additional_attack(atk_queue, field_energy, data);
+    for i in 0..members.len() {
+        abilities[i].additional_attack(atk_queue, field_energy, &members[i]);
     }
-    for (fa, data) in abilities.iter_mut().zip(members.iter()) {
-        fa.modify(modifiable_state, data, enemy);
-        fa.accelerate();
-        fa.update(time, &attack_event, data, &atk_queue, &field_energy, &enemy);
+    for i in 0..members.len() {
+        abilities[i].modify(members, enemy);
+        abilities[i].accelerate();
+        abilities[i].update(time, &attack_event, &members[i], &atk_queue, &field_energy, &enemy);
     }
     // update state and energy
-    for (new_state, data) in modifiable_state.iter_mut().zip(members.iter()) {
-        let state = data.state();
+    for data in members.iter_mut() {
         if attack_event.kind == Burst && attack_event.idx == data.idx {
             // consume energy on burst
-            new_state.energy -= data.character.energy_cost;
+            data.state.energy -= data.character.energy_cost;
         }
         // attacker is on field
         if data.idx.0 == 0 {
@@ -73,23 +72,23 @@ pub fn simulate(time: f32, members: &[CharacterData], modifiable_state: &mut [St
             // `drain` them.
             for fe in field_energy.iter() {
                 match fe {
-                    FieldEnergy::Particle(ref p) => new_state.energy += p.on_field_energy(&data.character.vision) * state.ER(),
-                    FieldEnergy::Energy(e) => new_state.energy += e * state.ER(),
+                    FieldEnergy::Particle(ref p) => data.state.energy += p.on_field_energy(&data.character.vision) * data.state.ER(),
+                    FieldEnergy::Energy(e) => data.state.energy += e * data.state.ER(),
                 }
             }
         } else {
             for fe in field_energy.iter() {
                 match fe {
-                    FieldEnergy::Particle(ref p) => new_state.energy += p.off_field_energy(&data.character.vision) * state.ER(),
-                    FieldEnergy::Energy(e) => new_state.energy += e * state.ER(),
+                    FieldEnergy::Particle(ref p) => data.state.energy += p.off_field_energy(&data.character.vision) * data.state.ER(),
+                    FieldEnergy::Energy(e) => data.state.energy += e * data.state.ER(),
                 }
             }
         }
     }
     // calculate damages
     let mut total_dmg = 0.0;
-    for atk_ptr in atk_queue.into_iter() {
-        let attack = unsafe { & **atk_ptr };
+    for &atk_ptr in atk_queue.iter() {
+        let attack = unsafe { & *atk_ptr };
         let data = &members[attack.idx.0];
         let fa = &abilities[attack.idx.0];
         total_dmg += calculate(&attack, fa.intensify(&attack), data, enemy);
@@ -118,6 +117,7 @@ mod tests {
 
     use crate::testutil::{TestEnvironment};
     use crate::types::{Vision, ElementalGauge, ElementalGaugeDecay};
+    use crate::fc::FieldCharacterIndex;
 
     use Vision::*;
 
@@ -125,19 +125,18 @@ mod tests {
     fn simple_setup() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.vision(&mut state, State::new(), Pyro);
+        let (data, ability) = env.vision(FieldCharacterIndex(0), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // Na CD is 0.4 seconds. If 2 seconds passed in this simulation, there
@@ -169,19 +168,18 @@ mod tests {
     fn hold() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.hold(&mut state, State::new(), Pyro);
+        let (data, ability) = env.hold(FieldCharacterIndex(0), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // hold na na skill na
@@ -193,23 +191,22 @@ mod tests {
     fn hold_and_recharge() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.hold(&mut state, State::new(), Pyro);
+        let (data, ability) = env.hold(FieldCharacterIndex(0), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut _total_dmg = 0.0;
         for _ in 0..10 {
-            _total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            _total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // hold na na skill na
-        let energy = state[0].energy;
+        let energy = members[0].state.energy;
         assert_eq!(energy, 15.0);
     }
 
@@ -217,20 +214,19 @@ mod tests {
     fn burst() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.vision(&mut state, State::new(), Pyro);
+        let (data, ability) = env.vision(FieldCharacterIndex(0), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
-        state[0].energy = members[0].character.energy_cost;
+        members[0].state.energy = members[0].character.energy_cost;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         let expect = 300.0 + 200.0 + 4.0 * 100.0;
@@ -241,23 +237,22 @@ mod tests {
     fn burst_and_recharge() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.vision(&mut state, State::new(), Pyro);
+        let (data, ability) = env.vision(FieldCharacterIndex(0), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut _total_dmg = 0.0;
-        state[0].energy = members[0].character.energy_cost;
+        members[0].state.energy = members[0].character.energy_cost;
         for _ in 0..10 {
-            _total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            _total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
-        let energy = state[0].energy;
+        let energy = members[0].state.energy;
         // the skill was used once.
         assert_eq!(energy, 6.0);
     }
@@ -266,19 +261,18 @@ mod tests {
     fn infuse_goblet() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.vision(&mut state, State::new().pyro_dmg(46.6), Pyro);
+        let (data, ability) = env.vision(FieldCharacterIndex(0), State::new().pyro_dmg(46.6), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // skill na na na na
@@ -290,19 +284,18 @@ mod tests {
     fn attack_infusion() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.vision(&mut state, State::new().pyro_dmg(46.6).infusion(true), Pyro);
+        let (data, ability) = env.vision(FieldCharacterIndex(0), State::new().pyro_dmg(46.6).infusion(true), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // skill na na na na
@@ -315,19 +308,18 @@ mod tests {
     fn apply_aura() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.vision(&mut state, State::new(), Pyro);
+        let (data, ability) = env.vision(FieldCharacterIndex(0), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut _total_dmg = 0.0;
         for _ in 0..10 {
-            _total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            _total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // skill na na na na
@@ -339,13 +331,12 @@ mod tests {
     fn vaporize() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.vision(&mut state, State::new(), Pyro);
+        let (data, ability) = env.vision(FieldCharacterIndex(0), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
 
@@ -356,7 +347,7 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // skill na na na na
@@ -370,13 +361,12 @@ mod tests {
     fn icd_of_reaction_1_hit_counter() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.no_skill(&mut state, State::new().infusion(true), Pyro);
+        let (data, ability) = env.no_skill(FieldCharacterIndex(0), State::new().infusion(true), Pyro);
         members.push(data);
         abilities.push(ability);
 
@@ -387,7 +377,7 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // vaporize na na vaporize
@@ -400,13 +390,12 @@ mod tests {
     fn icd_of_reaction_2_timer() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.no_skill(&mut state, State::new().infusion(true), Pyro);
+        let (data, ability) = env.no_skill(FieldCharacterIndex(0), State::new().infusion(true), Pyro);
         members.push(data);
         abilities.push(ability);
 
@@ -417,7 +406,7 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         for _ in 0..4 {
-            total_dmg += simulate(3.0, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(3.0, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // Because the current simulator needs 1 iteration for its internal
@@ -433,13 +422,12 @@ mod tests {
     fn melt() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.vision(&mut state, State::new(), Pyro);
+        let (data, ability) = env.vision(FieldCharacterIndex(0), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
 
@@ -450,7 +438,7 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // skill na na na na
@@ -486,19 +474,18 @@ mod tests {
     fn atk_spd() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env = TestEnvironment::new();
-        let (data, ability) = env.vision(&mut state, State::new().atk_spd(50.0), Pyro);
+        let (data, ability) = env.vision(FieldCharacterIndex(0), State::new().atk_spd(50.0), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // skill na na na (na na)
@@ -510,23 +497,22 @@ mod tests {
     fn two_members() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.vision(&mut state, State::new(), Pyro);
+        let (data, ability) = env1.vision(FieldCharacterIndex(0), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
         let mut env2 = TestEnvironment::new();
-        let (data, ability) = env2.vision(&mut state, State::new(), Pyro);
+        let (data, ability) = env2.vision(FieldCharacterIndex(1), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // twice (skill na na na na)

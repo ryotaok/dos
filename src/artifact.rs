@@ -1,5 +1,5 @@
 use crate::state::{State, GearScore};
-use crate::fc::{CharacterData, SpecialAbility, FieldAbilityBuilder, Enemy, Debuff};
+use crate::fc::{FieldCharacterIndex, CharacterData, SpecialAbility, FieldAbilityBuilder, Enemy, Debuff};
 use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, DurationTimer};
 use crate::types::{AttackType, WeaponType, FieldEnergy, ElementalReaction, Preference, Vision, NOBLESSE_OBLIGE, TENACITY_OF_THE_MILLELITH, THUNDERSOOTHER, LAVAWALKER, BLIZZARDSTRAYER1, BLIZZARDSTRAYER2};
 
@@ -94,7 +94,7 @@ pub struct AllArtifacts {
 }
 
 impl AllArtifacts {
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
             bloodstainedchivalry: (BloodstainedChivalry::record(), BloodstainedChivalry),
             bcpf: (Bcpf::record(), Bcpf),
@@ -102,8 +102,8 @@ impl AllArtifacts {
             viridescentvenerer: (ViridescentVenerer::record(), ViridescentVenerer::new()),
             vvem: (VVem::record(), VVem::new()),
             archaicpetra: (ArchaicPetra::record(), ArchaicPetra::new()),
-            crimsonwitchofflames: (CrimsonWitchOfFlames::record(), CrimsonWitchOfFlames::new()),
-            crimsonwitchofflameshp: (CrimsonWitchOfFlamesHp::record(), CrimsonWitchOfFlamesHp::new()),
+            crimsonwitchofflames: (CrimsonWitchOfFlames::record(), CrimsonWitchOfFlames::new(idx)),
+            crimsonwitchofflameshp: (CrimsonWitchOfFlamesHp::record(), CrimsonWitchOfFlamesHp::new(idx)),
             noblesseoblige: (NoblesseOblige::record(), NoblesseOblige::new()),
             gfno: (Gfno::record(), Gfno),
             gladiatorsfinale: (GladiatorsFinale::record(), GladiatorsFinale::new()),
@@ -111,23 +111,23 @@ impl AllArtifacts {
             wandererstroupe: (WanderersTroupe::record(), WanderersTroupe),
             retracingbolide: (RetracingBolide::record(), RetracingBolide),
             retracingbolidedef: (RetracingBolideDef::record(), RetracingBolideDef),
-            thundersoother: (Thundersoother::record(), Thundersoother),
-            lavawalker: (Lavawalker::record(), Lavawalker),
-            lavawalkerhp: (LavawalkerHp::record(), LavawalkerHp),
+            thundersoother: (Thundersoother::record(), Thundersoother::new(idx)),
+            lavawalker: (Lavawalker::record(), Lavawalker::new(idx)),
+            lavawalkerhp: (LavawalkerHp::record(), LavawalkerHp::new(idx)),
             gfelm: (Gfelm::record(), Gfelm),
             gfelmer: (GfelmEr::record(), GfelmEr),
             gfelmer2: (GfelmEr2::record(), GfelmEr2),
             gfelmhp: (GfelmHpCr::record(), GfelmHpCr),
-            blizzardstrayer: (BlizzardStrayer::record(), BlizzardStrayer),
-            heartofdepth: (HeartOfDepth::record(), HeartOfDepth::new()),
-            glacierandsnowfield: (GlacierAndSnowfield::record(), GlacierAndSnowfield::new()),
-            paleflame: (PaleFlame::record(), PaleFlame::new()),
+            blizzardstrayer: (BlizzardStrayer::record(), BlizzardStrayer::new(idx)),
+            heartofdepth: (HeartOfDepth::record(), HeartOfDepth::new(idx)),
+            glacierandsnowfield: (GlacierAndSnowfield::record(), GlacierAndSnowfield::new(idx)),
+            paleflame: (PaleFlame::record(), PaleFlame::new(idx)),
             tenacityofthemillelith: (TenacityOfTheMillelith::record(), TenacityOfTheMillelith::new()),
-            shimenawasreminiscence: (ShimenawasReminiscence::record(), ShimenawasReminiscence::new()),
+            shimenawasreminiscence: (ShimenawasReminiscence::record(), ShimenawasReminiscence::new(idx)),
             gfshimenawa: (GfShimenawa::record(), GfShimenawa),
-            emblemofseveredfate: (EmblemOfSeveredFate::record(), EmblemOfSeveredFate::new()),
-            emblemofseveredfateer: (EmblemOfSeveredFateER::record(), EmblemOfSeveredFateER::new()),
-            emblemofseveredfateer2: (EmblemOfSeveredFateER2::record(), EmblemOfSeveredFateER2::new()),
+            emblemofseveredfate: (EmblemOfSeveredFate::record(), EmblemOfSeveredFate::new(idx)),
+            emblemofseveredfateer: (EmblemOfSeveredFateER::record(), EmblemOfSeveredFateER::new(idx)),
+            emblemofseveredfateer2: (EmblemOfSeveredFateER2::record(), EmblemOfSeveredFateER2::new(idx)),
         }
     }
 
@@ -353,7 +353,6 @@ pub fn thundering_fury_fn(timer: &mut NTimer) -> () {
 }
 
 impl SpecialAbility for ThunderingFury {
-
     fn update(&mut self, time: f32, _event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], enemy: &Enemy) -> () {
         let mut should_update = false;
         unsafe {
@@ -416,7 +415,7 @@ impl SpecialAbility for ViridescentVenerer {
         }
     }
 
-    fn modify(&self, _modifiable_state: &mut [State], _data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.0 {
             enemy.element_res_debuff.push(Debuff::viridescent_venerer());
         }
@@ -445,9 +444,8 @@ impl VVem {
 }
 
 impl SpecialAbility for VVem {
-
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_data, enemy);
     }
 }
 
@@ -476,7 +474,6 @@ impl ArchaicPetra {
 }
 
 impl SpecialAbility for ArchaicPetra {
-
     fn update(&mut self, time: f32, _event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], enemy: &Enemy) -> () {
         let mut should_update = false;
         unsafe {
@@ -491,19 +488,19 @@ impl SpecialAbility for ArchaicPetra {
         self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         match (self.timer.ping, self.timer.n) {
-            (true, 1) => for s in modifiable_state.iter_mut() {
-                s.pyro_dmg += 35.0;
-                s.hydro_dmg += 35.0;
-                s.electro_dmg += 35.0;
-                s.cryo_dmg += 35.0;
+            (true, 1) => for data in modifiable_data.iter_mut() {
+                data.state.pyro_dmg += 35.0;
+                data.state.hydro_dmg += 35.0;
+                data.state.electro_dmg += 35.0;
+                data.state.cryo_dmg += 35.0;
             },
-            (true, 0) => for s in modifiable_state.iter_mut() {
-                s.pyro_dmg -= 35.0;
-                s.hydro_dmg -= 35.0;
-                s.electro_dmg -= 35.0;
-                s.cryo_dmg -= 35.0;
+            (true, 0) => for data in modifiable_data.iter_mut() {
+                data.state.pyro_dmg -= 35.0;
+                data.state.hydro_dmg -= 35.0;
+                data.state.electro_dmg -= 35.0;
+                data.state.cryo_dmg -= 35.0;
             },
             _ => (),
         }
@@ -516,12 +513,14 @@ impl SpecialAbility for ArchaicPetra {
 
 #[derive(Debug)]
 pub struct CrimsonWitchOfFlames {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
 impl CrimsonWitchOfFlames {
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(10.0, &[0.0, 0.0, 0.0])
         }
     }
@@ -539,16 +538,15 @@ impl CrimsonWitchOfFlames {
 }
 
 impl SpecialAbility for CrimsonWitchOfFlames {
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        let should_update = event.idx == data.idx && (event.kind == PressSkill || event.kind == HoldSkill);
+        let should_update = event.idx == self.idx && (event.kind == PressSkill || event.kind == HoldSkill);
         self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => modifiable_state[data.idx.0].pyro_dmg += 7.5,
-            (true, false) => modifiable_state[data.idx.0].pyro_dmg -= 7.5 * self.timer.previous_n as f32,
+            (true, true) => modifiable_data[self.idx.0].state.pyro_dmg += 7.5,
+            (true, false) => modifiable_data[self.idx.0].state.pyro_dmg -= 7.5 * self.timer.previous_n as f32,
             _ => (),
         }
     }
@@ -562,8 +560,8 @@ impl SpecialAbility for CrimsonWitchOfFlames {
 pub struct CrimsonWitchOfFlamesHp(CrimsonWitchOfFlames);
 
 impl CrimsonWitchOfFlamesHp {
-    pub fn new() -> Self {
-        Self(CrimsonWitchOfFlames::new())
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(CrimsonWitchOfFlames::new(idx))
     }
 
     pub fn record() -> Artifact {
@@ -579,13 +577,12 @@ impl CrimsonWitchOfFlamesHp {
 }
 
 impl SpecialAbility for CrimsonWitchOfFlamesHp {
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_data, enemy);
     }
 
     fn reset(&mut self) -> () {
@@ -616,23 +613,22 @@ impl NoblesseOblige {
 }
 
 impl SpecialAbility for NoblesseOblige {
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
         let should_update = event.idx == data.idx && event.kind == Burst;
         self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         match (self.timer.ping, self.timer.n) {
-            (true, 1) => for s in modifiable_state.iter_mut() {
-                if s.stacked_buff != NOBLESSE_OBLIGE {
-                    s.atk += 20.0;
-                    s.stacked_buff.turn_on(&NOBLESSE_OBLIGE);
+            (true, 1) => for data in modifiable_data.iter_mut() {
+                if data.state.stacked_buff != NOBLESSE_OBLIGE {
+                    data.state.atk += 20.0;
+                    data.state.stacked_buff.turn_on(&NOBLESSE_OBLIGE);
                 }
             },
-            (true, 0) => for s in modifiable_state.iter_mut() {
-                s.atk -= 20.0;
-                s.stacked_buff.turn_off(&NOBLESSE_OBLIGE);
+            (true, 0) => for data in modifiable_data.iter_mut() {
+                data.state.atk -= 20.0;
+                data.state.stacked_buff.turn_off(&NOBLESSE_OBLIGE);
             },
             _ => (),
         }
@@ -767,7 +763,9 @@ impl RetracingBolideDef {
 }
 
 #[derive(Debug)]
-pub struct Thundersoother;
+pub struct Thundersoother {
+    idx: FieldCharacterIndex,
+}
 
 impl Thundersoother {
     pub fn record() -> Artifact {
@@ -780,12 +778,17 @@ impl Thundersoother {
                     .cr(SCORE.cr(60.0))
         }
     }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx
+        }
+    }
 }
 
 impl SpecialAbility for Thundersoother {
-
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (&enemy.aura.aura, state.stacked_buff != THUNDERSOOTHER) {
             (Vision::Electro, true) => {
                 state.all_dmg += 35.0;
@@ -802,7 +805,9 @@ impl SpecialAbility for Thundersoother {
 }
 
 #[derive(Debug)]
-pub struct Lavawalker;
+pub struct Lavawalker {
+    idx: FieldCharacterIndex,
+}
 
 impl Lavawalker {
     pub fn record() -> Artifact {
@@ -815,12 +820,17 @@ impl Lavawalker {
                     .cr(SCORE.cr(60.0))
         }
     }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx
+        }
+    }
 }
 
 impl SpecialAbility for Lavawalker {
-
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (&enemy.aura.aura, state.stacked_buff != LAVAWALKER) {
             (Vision::Pyro, true) => {
                 state.all_dmg += 35.0;
@@ -837,7 +847,9 @@ impl SpecialAbility for Lavawalker {
 }
 
 #[derive(Debug)]
-pub struct LavawalkerHp;
+pub struct LavawalkerHp {
+    idx: FieldCharacterIndex
+}
 
 impl LavawalkerHp {
     pub fn record() -> Artifact {
@@ -850,12 +862,17 @@ impl LavawalkerHp {
                     .cr(SCORE.cr(60.0))
         }
     }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx
+        }
+    }
 }
 
 impl SpecialAbility for LavawalkerHp {
-
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (&enemy.aura.aura, state.stacked_buff != LAVAWALKER) {
             (Vision::Pyro, true) => {
                 state.all_dmg += 35.0;
@@ -946,7 +963,9 @@ impl GfelmHpCr {
 }
 
 #[derive(Debug)]
-pub struct BlizzardStrayer;
+pub struct BlizzardStrayer {
+    idx: FieldCharacterIndex
+}
 
 impl BlizzardStrayer {
     pub fn record() -> Artifact {
@@ -959,11 +978,17 @@ impl BlizzardStrayer {
                     .cr(SCORE.cr(60.0))
         }
     }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx
+        }
+    }
 }
 
 impl SpecialAbility for BlizzardStrayer {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (enemy.isfrozen, &enemy.aura.aura, state.stacked_buff != BLIZZARDSTRAYER1, state.stacked_buff != BLIZZARDSTRAYER2) {
             // instantly frozen
             (true, Vision::Cryo, true, true) => {
@@ -1002,12 +1027,16 @@ impl SpecialAbility for BlizzardStrayer {
 
 #[derive(Debug)]
 pub struct HeartOfDepth {
+    idx: FieldCharacterIndex,
     timer: DurationTimer
 }
 
 impl HeartOfDepth {
-    pub fn new() -> Self {
-        Self { timer: DurationTimer::new(15.0, &[0.0]) }
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            timer: DurationTimer::new(15.0, &[0.0])
+        }
     }
 
     pub fn record() -> Artifact {
@@ -1023,13 +1052,12 @@ impl HeartOfDepth {
 }
 
 impl SpecialAbility for HeartOfDepth {
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == data.idx && (event.kind == PressSkill || event.kind == HoldSkill));
+        self.timer.update(time, event.idx == self.idx && (event.kind == PressSkill || event.kind == HoldSkill));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n) {
             (true, 1) => {
                 state.na_dmg += 30.0;
@@ -1050,12 +1078,16 @@ impl SpecialAbility for HeartOfDepth {
 
 #[derive(Debug)]
 pub struct GlacierAndSnowfield {
+    idx: FieldCharacterIndex,
     timer: DurationTimer
 }
 
 impl GlacierAndSnowfield {
-    pub fn new() -> Self {
-        Self { timer: DurationTimer::new(10.0, &[0.0]) }
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            timer: DurationTimer::new(10.0, &[0.0])
+        }
     }
 
     pub fn record() -> Artifact {
@@ -1071,13 +1103,12 @@ impl GlacierAndSnowfield {
 }
 
 impl SpecialAbility for GlacierAndSnowfield {
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == data.idx && event.kind == Burst);
+        self.timer.update(time, event.idx == self.idx && event.kind == Burst);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n) {
             (true, 1) => {
                 state.cryo_dmg += 30.0;
@@ -1096,12 +1127,16 @@ impl SpecialAbility for GlacierAndSnowfield {
 
 #[derive(Debug)]
 pub struct PaleFlame {
+    idx: FieldCharacterIndex,
     timer: DurationTimer
 }
 
 impl PaleFlame {
-    pub fn new() -> Self {
-        Self { timer: DurationTimer::new(7.0, &[0.3, 0.3]) }
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            timer: DurationTimer::new(7.0, &[0.3, 0.3])
+        }
     }
 
     pub fn record() -> Artifact {
@@ -1117,13 +1152,12 @@ impl PaleFlame {
 }
 
 impl SpecialAbility for PaleFlame {
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == data.idx && (event.kind == PressSkill || event.kind == HoldSkill || event.kind == SkillDot));
+        self.timer.update(time, event.idx == self.idx && (event.kind == PressSkill || event.kind == HoldSkill || event.kind == SkillDot));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n) {
             (true, 2) => {
                 state.atk += 9.0;
@@ -1168,7 +1202,6 @@ impl TenacityOfTheMillelith {
 }
 
 impl SpecialAbility for TenacityOfTheMillelith {
-
     fn update(&mut self, time: f32, _event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
         let mut should_update = false;
         unsafe {
@@ -1183,17 +1216,17 @@ impl SpecialAbility for TenacityOfTheMillelith {
         self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         match (self.timer.ping, self.timer.n) {
-            (true, 1) => for s in modifiable_state.iter_mut() {
-                if s.stacked_buff != TENACITY_OF_THE_MILLELITH {
-                    s.atk += 20.0;
-                    s.stacked_buff.turn_on(&TENACITY_OF_THE_MILLELITH);
+            (true, 1) => for data in modifiable_data.iter_mut() {
+                if data.state.stacked_buff != TENACITY_OF_THE_MILLELITH {
+                    data.state.atk += 20.0;
+                    data.state.stacked_buff.turn_on(&TENACITY_OF_THE_MILLELITH);
                 }
             },
-            (true, 0) => for s in modifiable_state.iter_mut() {
-                s.atk -= 20.0;
-                s.stacked_buff.turn_off(&TENACITY_OF_THE_MILLELITH);
+            (true, 0) => for data in modifiable_data.iter_mut() {
+                data.state.atk -= 20.0;
+                data.state.stacked_buff.turn_off(&TENACITY_OF_THE_MILLELITH);
             },
             _ => (),
         }
@@ -1206,6 +1239,7 @@ impl SpecialAbility for TenacityOfTheMillelith {
 
 #[derive(Debug)]
 pub struct ShimenawasReminiscence {
+    idx: FieldCharacterIndex,
     timer: NTimer,
 }
 
@@ -1213,8 +1247,9 @@ pub struct ShimenawasReminiscence {
 // Energy, they lose 15 Energy and Normal/Charged/ Plunging Attack DMG is
 // increased by 50% for 10s.
 impl ShimenawasReminiscence {
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: NTimer::new(&[10.0])
         }
     }
@@ -1232,14 +1267,13 @@ impl ShimenawasReminiscence {
 }
 
 impl SpecialAbility for ShimenawasReminiscence {
-
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        let should_update = event.idx == data.idx && (event.kind == PressSkill || event.kind == HoldSkill) && data.state().energy >= 15.0;
+        let should_update = event.idx == self.idx && (event.kind == PressSkill || event.kind == HoldSkill) && data.state.energy >= 15.0;
         self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n) {
             (true, 1) => {
                 state.energy -= 15.0;
@@ -1278,7 +1312,10 @@ impl GfShimenawa {
 }
 
 #[derive(Debug)]
-pub struct EmblemOfSeveredFate(bool);
+pub struct EmblemOfSeveredFate {
+    idx: FieldCharacterIndex,
+    once: bool,
+}
 
 // 4 Piece: Increases Elemental Burst DMG by 25% of Energy Recharge. A maximum
 // 75% DMG increase can be obtained in this way.
@@ -1294,16 +1331,19 @@ impl EmblemOfSeveredFate {
         }
     }
 
-    pub fn new() -> Self {
-        Self(true)
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            once: true
+        }
     }
 }
 
-fn emblem_of_severed_fate(modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+fn emblem_of_severed_fate(data: &mut CharacterData) -> () {
     // the maximum DMG bonus is obtained if ER is 300%.
     // `State.er` does not contain base 100% of characters.
-    let er = 100.0 + data.state().er;
-    modifiable_state[data.idx.0].burst_dmg += if er > 300.0 {
+    let er = 100.0 + data.state.er;
+    data.state.burst_dmg += if er > 300.0 {
         75.0
     } else {
         er * 0.25
@@ -1312,20 +1352,23 @@ fn emblem_of_severed_fate(modifiable_state: &mut [State], data: &CharacterData, 
 
 impl SpecialAbility for EmblemOfSeveredFate {
     fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.0 {
-            self.0 = false;
+        if self.once {
+            self.once = false;
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        if self.0 {
-            emblem_of_severed_fate(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        if self.once {
+            emblem_of_severed_fate(&mut modifiable_data[self.idx.0]);
         }
     }
 }
 
 #[derive(Debug)]
-pub struct EmblemOfSeveredFateER(bool);
+pub struct EmblemOfSeveredFateER {
+    idx: FieldCharacterIndex,
+    once: bool,
+}
 
 impl EmblemOfSeveredFateER {
     pub fn record() -> Artifact {
@@ -1340,27 +1383,33 @@ impl EmblemOfSeveredFateER {
         }
     }
 
-    pub fn new() -> Self {
-        Self(true)
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            once: true
+        }
     }
 }
 
 impl SpecialAbility for EmblemOfSeveredFateER {
     fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.0 {
-            self.0 = false;
+        if self.once {
+            self.once = false;
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        if self.0 {
-            emblem_of_severed_fate(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        if self.once {
+            emblem_of_severed_fate(&mut modifiable_data[self.idx.0]);
         }
     }
 }
 
 #[derive(Debug)]
-pub struct EmblemOfSeveredFateER2(bool);
+pub struct EmblemOfSeveredFateER2 {
+    idx: FieldCharacterIndex,
+    once: bool,
+}
 
 impl EmblemOfSeveredFateER2 {
     pub fn record() -> Artifact {
@@ -1376,21 +1425,24 @@ impl EmblemOfSeveredFateER2 {
         }
     }
 
-    pub fn new() -> Self {
-        Self(true)
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            once: true
+        }
     }
 }
 
 impl SpecialAbility for EmblemOfSeveredFateER2 {
     fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.0 {
-            self.0 = false;
+        if self.once {
+            self.once = false;
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        if self.0 {
-            emblem_of_severed_fate(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        if self.once {
+            emblem_of_severed_fate(&mut modifiable_data[self.idx.0]);
         }
     }
 }
@@ -1417,7 +1469,6 @@ mod tests {
     fn invariance_0() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
@@ -1425,18 +1476,18 @@ mod tests {
         let mut aa = NoblesseOblige::new();
 
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.vision(&mut state, State::new(), Pyro);
+        let (data, ability) = env1.vision(FieldCharacterIndex(0), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
         let mut env2 = TestEnvironment::new();
-        let (data, ability) = env2.artifact(&mut state, State::new(), Pyro, &mut aa);
+        let (data, ability) = env2.artifact(FieldCharacterIndex(1), State::new(), Pyro, &mut aa);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
-        state[0].energy = members[0].character.energy_cost;
+        members[0].state.energy = members[0].character.energy_cost;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // (burst skill na na na) and (skill na na na)
@@ -1449,7 +1500,6 @@ mod tests {
     fn invariance_1() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
@@ -1457,18 +1507,18 @@ mod tests {
         let mut aa = NoblesseOblige::new();
 
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.artifact(&mut state, State::new(), Pyro, &mut aa);
+        let (data, ability) = env1.artifact(FieldCharacterIndex(0), State::new(), Pyro, &mut aa);
         members.push(data);
         abilities.push(ability);
         let mut env2 = TestEnvironment::new();
-        let (data, ability) = env2.vision(&mut state, State::new(), Pyro);
+        let (data, ability) = env2.vision(FieldCharacterIndex(1), State::new(), Pyro);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
-        state[0].energy = members[0].character.energy_cost;
+        members[0].state.energy = members[0].character.energy_cost;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // (burst skill na na na) and (skill na na na)
@@ -1482,7 +1532,6 @@ mod tests {
     fn noblesse_oblige_unstackable() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
@@ -1491,19 +1540,19 @@ mod tests {
         let mut aa2 = NoblesseOblige::new();
 
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.artifact(&mut state, State::new(), Pyro, &mut aa1);
+        let (data, ability) = env1.artifact(FieldCharacterIndex(0), State::new(), Pyro, &mut aa1);
         members.push(data);
         abilities.push(ability);
         let mut env2 = TestEnvironment::new();
-        let (data, ability) = env2.artifact(&mut state, State::new(), Pyro, &mut aa2);
+        let (data, ability) = env2.artifact(FieldCharacterIndex(1), State::new(), Pyro, &mut aa2);
         members.push(data);
         abilities.push(ability);
 
         let mut total_dmg = 0.0;
-        state[0].energy = members[0].character.energy_cost;
-        state[1].energy = members[1].character.energy_cost;
+        members[0].state.energy = members[0].character.energy_cost;
+        members[1].state.energy = members[1].character.energy_cost;
         for _ in 0..10 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // twice (burst skill na na na)
@@ -1517,7 +1566,6 @@ mod tests {
     // fn viridescent_venerer() {
     //     let mut enemy = TestEnvironment::enemy();
     //     let mut members: Vec<CharacterData> = Vec::new();
-    //     let mut state: Vec<State> = Vec::new();
     //     let mut abilities: Vec<FieldAbility> = Vec::new();
     //     let mut atk_queue: Vec<*const Attack> = Vec::new();
     //     let mut field_energy: Vec<FieldEnergy> = Vec::new();
@@ -1525,7 +1573,7 @@ mod tests {
     //     let mut aa = ViridescentVenerer::new();
 
     //     let mut env1 = TestEnvironment::new();
-    //     let (data, ability) = env1.artifact(&mut state, State::new().infusion(true), Anemo, &mut aa);
+    //     let (data, ability) = env1.artifact(State::new().infusion(true), Anemo, &mut aa);
     //     members.push(data);
     //     abilities.push(ability);
 
@@ -1536,7 +1584,7 @@ mod tests {
     //         decay: ElementalGaugeDecay::A,
     //     };
     //     for _ in 0..10 {
-    //         total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+    //         total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
     //     }
 
     //     // let mut env = TestEnvironment::new();
@@ -1578,15 +1626,14 @@ mod tests {
     fn paleflame_1() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
-        let mut aa = PaleFlame::new();
+        let mut aa = PaleFlame::new(FieldCharacterIndex(0));
 
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.artifact(&mut state, State::new().infusion(true), Pyro, &mut aa);
+        let (data, ability) = env1.artifact(FieldCharacterIndex(0), State::new().infusion(true), Pyro, &mut aa);
         members.push(data);
         abilities.push(ability);
 
@@ -1597,7 +1644,7 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         for _ in 0..40 {
-            total_dmg += simulate(0.2, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
         // skill 15 na, skill 5 na
@@ -1612,22 +1659,21 @@ mod tests {
     fn shimenawa_1() {
         let mut enemy = TestEnvironment::enemy();
         let mut members: Vec<CharacterData> = Vec::new();
-        let mut state: Vec<State> = Vec::new();
         let mut abilities: Vec<FieldAbility> = Vec::new();
         let mut atk_queue: Vec<*const Attack> = Vec::new();
         let mut field_energy: Vec<FieldEnergy> = Vec::new();
 
-        let mut aa = ShimenawasReminiscence::new();
+        let mut aa = ShimenawasReminiscence::new(FieldCharacterIndex(0));
 
         let mut env1 = TestEnvironment::new();
-        let (data, ability) = env1.artifact(&mut state, State::new(), Pyro, &mut aa);
+        let (data, ability) = env1.artifact(FieldCharacterIndex(0), State::new(), Pyro, &mut aa);
         members.push(data);
         abilities.push(ability);
 
-        state[0].energy += 10.0;
+        members[0].state.energy += 10.0;
         let mut total_dmg = 0.0;
         for _ in 0..20 {
-            total_dmg += simulate(1.0, &members, &mut state, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+            total_dmg += simulate(1.0, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         let expect = 4.0 * 200.0       // skill
                    + 9.0 * 100.0 * 1.5 // na

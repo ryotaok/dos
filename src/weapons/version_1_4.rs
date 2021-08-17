@@ -1,6 +1,6 @@
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, MILLENNIAL_MOVEMENT_SERIES};
-use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, DurationTimer};
 
 use AttackType::*;
@@ -8,6 +8,7 @@ use WeaponType::*;
 // use Vision::*;
 
 pub struct ElegyForTheEnd {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
@@ -19,8 +20,9 @@ impl ElegyForTheEnd {
             .er(55.1).em(60.0)
     }
 
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(12.0, &[0.2,0.2,0.2,0.2, 20.0]),
         }
     }
@@ -40,20 +42,20 @@ impl SpecialAbility for ElegyForTheEnd {
         self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], _data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         match (self.timer.ping, self.timer.n) {
-            (true, 4) => for s in modifiable_state.iter_mut() {
-                if s.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
-                    s.atk += 20.0;
-                    s.em  += 100.0;
-                    s.stacked_buff.turn_on(&MILLENNIAL_MOVEMENT_SERIES);
+            (true, 4) => for data in modifiable_data.iter_mut() {
+                if data.state.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
+                    data.state.atk += 20.0;
+                    data.state.em  += 100.0;
+                    data.state.stacked_buff.turn_on(&MILLENNIAL_MOVEMENT_SERIES);
                 }
             },
-            (true, 0) => for s in modifiable_state.iter_mut() {
-                if s.stacked_buff == MILLENNIAL_MOVEMENT_SERIES {
-                    s.atk -= 20.0;
-                    s.em  -= 100.0;
-                    s.stacked_buff.turn_off(&MILLENNIAL_MOVEMENT_SERIES);
+            (true, 0) => for data in modifiable_data.iter_mut() {
+                if data.state.stacked_buff == MILLENNIAL_MOVEMENT_SERIES {
+                    data.state.atk -= 20.0;
+                    data.state.em  -= 100.0;
+                    data.state.stacked_buff.turn_off(&MILLENNIAL_MOVEMENT_SERIES);
                 }
             },
             _ => (),
@@ -80,6 +82,7 @@ impl TheAlleyFlash {
 impl SpecialAbility for TheAlleyFlash {}
 
 pub struct AlleyHunter {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
@@ -91,8 +94,11 @@ impl AlleyHunter {
             .atk(27.6)
     }
 
-    pub fn new() -> Self {
-        Self { timer: DurationTimer::new(8.0, &[4.0,4.0,4.0,4.0,4.0]) }
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            timer: DurationTimer::new(8.0, &[4.0,4.0,4.0,4.0,4.0])
+        }
     }
 }
 
@@ -101,8 +107,8 @@ impl SpecialAbility for AlleyHunter {
         self.timer.update(time, true);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n) {
             (false, 0) => state.all_dmg += 40.0,
             (true, 0) => (),
@@ -130,6 +136,7 @@ impl WineAndSong {
 impl SpecialAbility for WineAndSong {}
 
 pub struct WindblumeOde {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
 }
 
@@ -141,18 +148,21 @@ impl WindblumeOde {
             .em(165.0)
     }
 
-    pub fn new() -> Self {
-        Self { timer: DurationTimer::new(6.0, &[0.0]) }
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            timer: DurationTimer::new(6.0, &[0.0])
+        }
     }
 }
 
 impl SpecialAbility for WindblumeOde {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == data.idx && (event.kind == PressSkill || event.kind == HoldSkill));
+        self.timer.update(time, event.idx == self.idx && (event.kind == PressSkill || event.kind == HoldSkill));
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n > 0) {
             (true, true) => state.atk += 32.0,
             (true, false) => state.atk -= 32.0,

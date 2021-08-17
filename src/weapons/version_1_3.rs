@@ -1,69 +1,83 @@
 use crate::state::State;
 use crate::types::{WeaponType, FieldEnergy};
-use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NTimer, DurationTimer, ICDTimers};
 
 // use AttackType::*;
 use WeaponType::*;
 // use Vision::*;
 
-pub struct ProtectorsVirtue(bool);
+pub struct ProtectorsVirtue {
+    idx: FieldCharacterIndex,
+    once: bool,
+}
 
 impl ProtectorsVirtue {
-    pub fn new() -> Self {
-        Self(true)
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            once: true,
+        }
     }
 }
 
 impl SpecialAbility for ProtectorsVirtue {
     fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.0 {
-            self.0 = false;
+        if self.once {
+            self.once = false;
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.0 {
-            modifiable_state[data.idx.0].flat_atk += data.state().HP() * 0.012;
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        if self.once {
+            let hp = modifiable_data[self.idx.0].state.HP();
+            modifiable_data[self.idx.0].state.flat_atk += hp * 0.012;
         }
     }
 
     fn reset(&mut self) -> () {
-        self.0 = true;
+        self.once = true;
     }
 }
 
-pub struct RecklessCinnabar(bool);
+pub struct RecklessCinnabar {
+    idx: FieldCharacterIndex,
+    once: bool,
+}
 
 impl RecklessCinnabar {
-    pub fn new() -> Self {
-        Self(true)
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            once: true,
+        }
     }
 }
 
 impl SpecialAbility for RecklessCinnabar {
     fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.0 {
-            self.0 = false;
+        if self.once {
+            self.once = false;
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        if self.0 {
-            modifiable_state[data.idx.0].flat_atk += data.state().HP() * 0.018;
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        if self.once {
+            let hp = modifiable_data[self.idx.0].state.HP();
+            modifiable_data[self.idx.0].state.flat_atk += hp * 0.018;
         }
     }
 
     fn reset(&mut self) -> () {
-        self.0 = true;
+        self.once = true;
     }
 }
 
 pub struct PrimordialJadeCutter(ProtectorsVirtue);
 
 impl PrimordialJadeCutter {
-    pub fn new() -> Self {
-        Self(ProtectorsVirtue::new())
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(ProtectorsVirtue::new(idx))
     }
 }
 
@@ -81,8 +95,8 @@ impl SpecialAbility for PrimordialJadeCutter {
         self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_data, enemy);
     }
 
     fn reset(&mut self) -> () {
@@ -93,8 +107,8 @@ impl SpecialAbility for PrimordialJadeCutter {
 pub struct PrimordialJadeGS(ProtectorsVirtue);
 
 impl PrimordialJadeGS {
-    pub fn new() -> Self {
-        Self(ProtectorsVirtue::new())
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(ProtectorsVirtue::new(idx))
     }
 }
 
@@ -112,8 +126,8 @@ impl SpecialAbility for PrimordialJadeGS {
         self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_data, enemy);
     }
 
     fn reset(&mut self) -> () {
@@ -124,8 +138,8 @@ impl SpecialAbility for PrimordialJadeGS {
 pub struct PrimordialJadeVista(ProtectorsVirtue);
 
 impl PrimordialJadeVista {
-    pub fn new() -> Self {
-        Self(ProtectorsVirtue::new())
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(ProtectorsVirtue::new(idx))
     }
 }
 
@@ -143,8 +157,8 @@ impl SpecialAbility for PrimordialJadeVista {
         self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_data, enemy);
     }
 
     fn reset(&mut self) -> () {
@@ -155,8 +169,8 @@ impl SpecialAbility for PrimordialJadeVista {
 pub struct StaffOfHoma(RecklessCinnabar);
 
 impl StaffOfHoma {
-    pub fn new() -> Self {
-        Self(RecklessCinnabar::new())
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self(RecklessCinnabar::new(idx))
     }
 }
 
@@ -174,8 +188,8 @@ impl SpecialAbility for StaffOfHoma {
         self.0.update(time, event, data, attack, particles, enemy);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        self.0.modify(modifiable_state, data, enemy);
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        self.0.modify(modifiable_data, enemy);
     }
 
     fn reset(&mut self) -> () {

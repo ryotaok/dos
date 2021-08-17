@@ -28,16 +28,16 @@ impl Chongyun {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 4 attacks in 2.834 seconds
                 &[0.7085,0.7085,0.7085,0.7085],
                 vec![
-                    Attack::na(138.38, 1, idx),
-                    Attack::na(124.78, 1, idx),
-                    Attack::na(158.78, 1, idx),
-                    Attack::na(200.09, 1, idx),
+                    Attack::na(138.38, 1, idx, &icd_timer),
+                    Attack::na(124.78, 1, idx, &icd_timer),
+                    Attack::na(158.78, 1, idx, &icd_timer),
+                    Attack::na(200.09, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[3.0, 7.0, 5.0], Particle::new(Cryo, 4.0), Attack {
@@ -45,7 +45,7 @@ impl Chongyun {
                 element: &CRYO_GAUGE2B,
                 multiplier: 261.44,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[12.0], Attack {
@@ -53,7 +53,7 @@ impl Chongyun {
                 element: &CRYO_GAUGE1A,
                 multiplier: 256.32,
                 hits: 3,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -72,19 +72,19 @@ impl SpecialAbility for Chongyun {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // a1
         match (self.skill.timer.ping, self.skill.timer.n) {
-            (true, 1) => for s in modifiable_state.iter_mut() {
-                s.atk_spd += 8.0; // TODO only melee characters
+            (true, 1) => for data in modifiable_data.iter_mut() {
+                data.state.atk_spd += 8.0; // TODO only melee characters
             },
-            (true, 3) => for s in modifiable_state.iter_mut() {
-                s.atk_spd -= 8.0; // TODO only melee characters
+            (true, 3) => for data in modifiable_data.iter_mut() {
+                data.state.atk_spd -= 8.0; // TODO only melee characters
             },
             _ => (),
         }
         // TODO Chongyun infusion
-        let state = &mut modifiable_state[data.idx.0];
+        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
         match (self.skill.timer.ping, self.skill.timer.n) {
             (true, 1) => state.infusion = true,
             (true, 2) => state.infusion = false,
@@ -110,18 +110,18 @@ impl Kaeya {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             skill_a4: false,
             na: NaLoop::new(
                 // 5 attacks in 2.734 seconds
                 &[0.5468,0.5468,0.5468,0.5468,0.5468],
                 vec![
-                    Attack::na(106.25, 1, idx),
-                    Attack::na(102.17, 1, idx),
-                    Attack::na(129.03, 1, idx),
-                    Attack::na(140.08, 1, idx),
-                    Attack::na(174.42, 1, idx),
+                    Attack::na(106.25, 1, idx, &icd_timer),
+                    Attack::na(102.17, 1, idx, &icd_timer),
+                    Attack::na(129.03, 1, idx, &icd_timer),
+                    Attack::na(140.08, 1, idx, &icd_timer),
+                    Attack::na(174.42, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[6.0], Particle::new(Cryo, 2.5), Attack {
@@ -129,7 +129,7 @@ impl Kaeya {
                 element: &CRYO_GAUGE2B,
                 multiplier: 344.16,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurstDot::new(&[0.6666,0.6666,0.6666,0.6666,0.6666,0.6666,0.6666,0.6666,0.6666,0.6666,0.6666,0.6666, 7.0008], Attack {
@@ -137,7 +137,7 @@ impl Kaeya {
                 element: &CRYO_GAUGE1A,
                 multiplier: 139.92,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -173,17 +173,17 @@ impl Qiqi {
             .base_hp(12368.0).base_atk(287.0).base_def(922.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.25 seconds
                 &[0.45,0.45,0.45,0.45,0.45],
                 vec![
-                    Attack::na(74.63, 1, idx),
-                    Attack::na(76.84, 1, idx),
-                    Attack::na(47.77, 2, idx),
-                    Attack::na(48.79, 2, idx),
-                    Attack::na(124.61, 1, idx),
+                    Attack::na(74.63, 1, idx, &icd_timer),
+                    Attack::na(76.84, 1, idx, &icd_timer),
+                    Attack::na(47.77, 2, idx, &icd_timer),
+                    Attack::na(48.79, 2, idx, &icd_timer),
+                    Attack::na(124.61, 1, idx, &icd_timer),
                 ]
             ),
             skill: SkillDamage2Dot::new(&[3.0,3.0,3.0,3.0, 18.0], Particle::new(Cryo, 0.0), Attack {
@@ -191,14 +191,14 @@ impl Qiqi {
                 element: &CRYO_GAUGE1A,
                 multiplier: 172.8,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }, Attack {
                 kind: AttackType::SkillDot,
                 element: &CRYO_GAUGE1A,
                 multiplier: 64.8,
                 hits: 2,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[20.0], Attack {
@@ -206,7 +206,7 @@ impl Qiqi {
                 element: &CRYO_GAUGE2B,
                 multiplier: 512.64,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }

@@ -1,5 +1,5 @@
 use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle};
-use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NTimer, DurationTimer, ICDTimers};
 
 use AttackType::*;
@@ -18,12 +18,12 @@ impl Windfall {
 
 impl SpecialAbility for Windfall {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.timer.update(time, event.idx == data.idx);
+        self.timer.update(time, event.idx == data.idx && event.kind != StandStill);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
         match (self.timer.ping, self.timer.n) {
-            (true, 1) => particles.push_p(Particle::neutral(3.0 * data.state().cr / 100.0)),
+            (true, 1) => particles.push_p(Particle::neutral(3.0 * data.state.cr / 100.0)),
             _ => (),
         }
     }

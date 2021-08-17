@@ -29,7 +29,7 @@ impl Amber {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             ca_timer: DurationTimer::new(10.0, &[0.0]),
             ca: SimpleCa::new(0.0, 2.0, Attack {
@@ -37,7 +37,7 @@ impl Amber {
                 element: &PYRO_GAUGE2B,
                 multiplier: 223.2,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             }),
             skill: SimpleSkill::new(&[15.0], Particle::new(Pyro, 4.0), Attack {
@@ -45,7 +45,7 @@ impl Amber {
                 element: &PYRO_GAUGE2B,
                 multiplier: 221.76,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[12.0], Attack {
@@ -53,7 +53,7 @@ impl Amber {
                 element: &PYRO_GAUGE1A,
                 multiplier: 50.54,
                 hits: 18,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -66,11 +66,11 @@ impl Amber {
 
 impl SpecialAbility for Amber {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.ca_timer.update(time, event.idx == data.idx && event.kind == Ca);
+        self.ca_timer.update(time, event.idx == self.skill.attack.idx && event.kind == Ca);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
         // a4
         match (self.ca_timer.ping, self.ca_timer.n) {
             (true, 1) => state.atk += 15.0,
@@ -109,18 +109,18 @@ impl Bennett {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             bonus: 1.008,
             na: NaLoop::new(
                 // 5 attacks in 2.567 seconds
                 &[0.5134,0.5134,0.5134,0.5134,0.5134],
                 vec![
-                    Attack::na(88.06, 1, idx),
-                    Attack::na(84.49, 1, idx),
-                    Attack::na(107.95, 1, idx),
-                    Attack::na(117.98, 1, idx),
-                    Attack::na(142.12, 1, idx),
+                    Attack::na(88.06, 1, idx, &icd_timer),
+                    Attack::na(84.49, 1, idx, &icd_timer),
+                    Attack::na(107.95, 1, idx, &icd_timer),
+                    Attack::na(117.98, 1, idx, &icd_timer),
+                    Attack::na(142.12, 1, idx, &icd_timer),
                 ]
             ),
             // a1
@@ -129,7 +129,7 @@ impl Bennett {
                 element: &PYRO_GAUGE2B,
                 multiplier: 261.44,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[12.0, 3.0], Attack {
@@ -137,7 +137,7 @@ impl Bennett {
                 element: &PYRO_GAUGE2B,
                 multiplier: 419.04,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -149,13 +149,13 @@ impl Bennett {
 }
 
 impl SpecialAbility for Bennett {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         match (self.burst.timer.ping, self.burst.timer.n) {
-            (true, 1) => for s in modifiable_state.iter_mut() {
-                s.flat_atk += data.state().base_atk * self.bonus;
+            (true, 1) => for data in modifiable_data.iter_mut() {
+                data.state.flat_atk += data.state.base_atk * self.bonus;
             },
-            (true, 2) => for s in modifiable_state.iter_mut() {
-                s.flat_atk -= data.state().base_atk * self.bonus;
+            (true, 2) => for data in modifiable_data.iter_mut() {
+                data.state.flat_atk -= data.state.base_atk * self.bonus;
             },
             _ => (),
         }
@@ -185,17 +185,17 @@ impl Xiangling {
             .em(96.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.4 seconds
                 &[0.48,0.48,0.48,0.48,0.48],
                 vec![
-                    Attack::na(83.13, 1, idx),
-                    Attack::na(83.3, 1, idx),
-                    Attack::na(103.02, 1, idx),
-                    Attack::na(111.52, 1, idx),
-                    Attack::na(140.42, 1, idx),
+                    Attack::na(83.13, 1, idx, &icd_timer),
+                    Attack::na(83.3, 1, idx, &icd_timer),
+                    Attack::na(103.02, 1, idx, &icd_timer),
+                    Attack::na(111.52, 1, idx, &icd_timer),
+                    Attack::na(140.42, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkillDot::new(&[2.0,2.0,2.0,2.0,4.0], Particle::new(Pyro, 1.0), Attack {
@@ -203,7 +203,7 @@ impl Xiangling {
                 element: &PYRO_GAUGE1A,
                 multiplier: 200.3,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 10.0], Attack {
@@ -211,14 +211,14 @@ impl Xiangling {
                 element: &PYRO_GAUGE1A,
                 multiplier: (129.6 + 158.4 + 197.28) / 3.0,
                 hits: 3,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &PYRO_GAUGE1A,
                 multiplier: 201.6,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
             skill_a4: DurationTimer::new(10.0, &[0.0]),
@@ -235,9 +235,9 @@ impl SpecialAbility for Xiangling {
         self.skill_a4.update(time, self.skill.timer.ping && self.skill.timer.n == 5);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // a4
-        let state = &mut modifiable_state[0];
+        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
         match (self.skill_a4.ping, self.skill_a4.n) {
             (true, 1) => state.atk += 10.0,
             (true, 0) => state.atk -= 10.0,
@@ -262,7 +262,7 @@ pub struct DilucSkill {
 }
 
 impl DilucSkill {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             timer1: NTimer::new(&[10.0]),
             timer2: NTimer::new(&[10.0]),
@@ -272,7 +272,7 @@ impl DilucSkill {
                 element: &PYRO_GAUGE1A,
                 multiplier: 169.92,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             attack2: Attack {
@@ -280,7 +280,7 @@ impl DilucSkill {
                 element: &PYRO_GAUGE1A,
                 multiplier: 175.68,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             attack3: Attack {
@@ -288,7 +288,7 @@ impl DilucSkill {
                 element: &PYRO_GAUGE1A,
                 multiplier: 231.84,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             particle: Particle::new(Pyro, 1.3333),
@@ -305,12 +305,6 @@ impl SkillAbility for DilucSkill {
 }
 
 impl SpecialAbility for DilucSkill {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack1.icd_timer = &mut timers.skill;
-        self.attack2.icd_timer = &mut timers.skill;
-        self.attack3.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         self.attack1.to_event(&self.timer1)
             .or(self.attack2.to_event(&self.timer2))
@@ -358,32 +352,32 @@ impl Diluc {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 4 attacks in 2.834 seconds
                 &[0.7085,0.7085,0.7085,0.7085],
                 vec![
-                    Attack::na(177.31, 1, idx),
-                    Attack::na(173.23, 1, idx),
-                    Attack::na(195.33, 1, idx),
-                    Attack::na(264.86, 1, idx),
+                    Attack::na(177.31, 1, idx, &icd_timer),
+                    Attack::na(173.23, 1, idx, &icd_timer),
+                    Attack::na(195.33, 1, idx, &icd_timer),
+                    Attack::na(264.86, 1, idx, &icd_timer),
                 ]
             ),
-            skill: DilucSkill::new(idx),
+            skill: DilucSkill::new(idx, icd_timer),
             burst: BurstDamage2Dot::new(&[0.5,0.5,0.5, 10.5], Attack {
                 kind: AttackType::Burst,
                 element: &PYRO_GAUGE1A,
                 multiplier: 367.2,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &PYRO_GAUGE1A,
                 multiplier: 114.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -395,8 +389,8 @@ impl Diluc {
 }
 
 impl SpecialAbility for Diluc {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.skill.attack1.idx.0].state;
         // a4
         match (self.burst.timer.ping, self.burst.timer.n) {
             (true, 1) => {
@@ -420,7 +414,7 @@ pub struct KleeCa {
 }
 
 impl KleeCa {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             timer: NTimer::with_condition(&[1.5]),
             attack: Attack {
@@ -428,7 +422,7 @@ impl KleeCa {
                 element: &PYRO_GAUGE1A,
                 multiplier: 283.25,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             },
             na_count: 0,
@@ -437,10 +431,6 @@ impl KleeCa {
 }
 
 impl SpecialAbility for KleeCa {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.ca;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         self.attack.to_event(&self.timer)
     }
@@ -482,7 +472,7 @@ pub struct KleeSkill {
 }
 
 impl KleeSkill {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             timer1: NTimer::new(&[1.0,1.0, 18.0]),
             timer2: NTimer::new(&[1.0,1.0, 18.0]),
@@ -491,7 +481,7 @@ impl KleeSkill {
                 element: &PYRO_GAUGE2B,
                 multiplier: 171.36,
                 hits: 3,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             dot: Attack {
@@ -499,7 +489,7 @@ impl KleeSkill {
                 element: &PYRO_GAUGE1A,
                 multiplier: 59.04,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             particle: Particle::new(Pyro, 4.0),
@@ -515,11 +505,6 @@ impl SkillAbility for KleeSkill {
 }
 
 impl SpecialAbility for KleeSkill {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.skill;
-        self.dot.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         self.attack.to_event(&self.timer1)
             .or(self.attack.to_event(&self.timer2))
@@ -570,25 +555,25 @@ impl Klee {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 3 attacks in 1.467 seconds
                 &[0.489,0.489,0.489,],
                 vec![
-                    Attack::na(129.89, 1, idx),
-                    Attack::na(112.32, 1, idx),
-                    Attack::na(161.86, 1, idx),
+                    Attack::na(129.89, 1, idx, &icd_timer),
+                    Attack::na(112.32, 1, idx, &icd_timer),
+                    Attack::na(161.86, 1, idx, &icd_timer),
                 ]
             ),
-            ca: KleeCa::new(idx),
-            skill: KleeSkill::new(idx),
+            ca: KleeCa::new(idx, icd_timer),
+            skill: KleeSkill::new(idx, icd_timer),
             burst: SimpleBurstDot::new(&[1.0,1.0,1.0,1.0,1.0,1.0, 9.0], Attack {
                 kind: AttackType::BurstDot,
                 element: &PYRO_GAUGE1A,
                 multiplier: 76.76,
                 hits: 4,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -603,7 +588,7 @@ impl SpecialAbility for Klee {
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
         // a4
         if self.ca.timer.ping && self.ca.timer.n == 1 {
-            particles.push_e(2.0 * data.state().cr / 100.0);
+            particles.push_e(2.0 * data.state.cr / 100.0);
         }
     }
 

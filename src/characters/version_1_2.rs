@@ -28,17 +28,17 @@ impl Albedo {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.567 seconds
                 &[0.5134,0.5134,0.5134,0.5134,0.5134],
                 vec![
-                    Attack::na(72.62, 1, idx),
-                    Attack::na(72.62, 1, idx),
-                    Attack::na(93.81, 1, idx),
-                    Attack::na(98.35, 1, idx),
-                    Attack::na(122.7, 1, idx),
+                    Attack::na(72.62, 1, idx, &icd_timer),
+                    Attack::na(72.62, 1, idx, &icd_timer),
+                    Attack::na(93.81, 1, idx, &icd_timer),
+                    Attack::na(98.35, 1, idx, &icd_timer),
+                    Attack::na(122.7, 1, idx, &icd_timer),
                 ]
             ),
             skill: SkillDamage2DotParticle::new(&[2.0,2.0,2.0,2.0,2.0], Particle::new(Geo, 0.8), Attack {
@@ -46,14 +46,14 @@ impl Albedo {
                 element: &GEO_GAUGE1A,
                 multiplier: 234.72,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }, Attack {
                 kind: AttackType::SkillDot,
                 element: &GEO_GAUGE1A,
                 multiplier: 240.48,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[0.5,0.5,0.5, 8.5, 2.0], Attack {
@@ -61,14 +61,14 @@ impl Albedo {
                 element: &GEO_GAUGE1A,
                 multiplier: 660.96,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &GEO_GAUGE1A,
                 multiplier: 129.6,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -80,15 +80,15 @@ impl Albedo {
 }
 
 impl SpecialAbility for Albedo {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.burst.timer.ping {
             // a4
             match self.burst.timer.n {
-                1 => for s in modifiable_state.iter_mut() {
-                    s.em += 125.0;
+                1 => for data in modifiable_data.iter_mut() {
+                    data.state.em += 125.0;
                 },
-                5 => for s in modifiable_state.iter_mut() {
-                    s.em -= 125.0;
+                5 => for data in modifiable_data.iter_mut() {
+                    data.state.em -= 125.0;
                 },
                 _ => (),
             }
@@ -111,14 +111,14 @@ impl Ganyu {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             ca: SimpleCa::new(0.0, 2.466, Attack {
                 kind: AttackType::Ca,
                 element: &CRYO_GAUGE1A,
                 multiplier: 230.4 + 391.68,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.ca),
                 idx,
             }),
             skill: SimpleSkillDot::new(&[5.0,5.0], Particle::new(Cryo, 2.0), Attack {
@@ -126,7 +126,7 @@ impl Ganyu {
                 element: &CRYO_GAUGE1A,
                 multiplier: 237.6,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurstDot::new(&[0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,0.83,], Attack {
@@ -134,7 +134,7 @@ impl Ganyu {
                 element: &CRYO_GAUGE1A,
                 multiplier: 126.49,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -146,15 +146,15 @@ impl Ganyu {
 }
 
 impl SpecialAbility for Ganyu {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.burst.timer.ping {
             // a4
             match self.burst.timer.n {
-                1 => for s in modifiable_state.iter_mut() {
-                    s.cryo_dmg += 20.0;
+                1 => for data in modifiable_data.iter_mut() {
+                    data.state.cryo_dmg += 20.0;
                 },
-                18 => for s in modifiable_state.iter_mut() {
-                    s.cryo_dmg -= 20.0;
+                18 => for data in modifiable_data.iter_mut() {
+                    data.state.cryo_dmg -= 20.0;
                 },
                 _ => (),
             }

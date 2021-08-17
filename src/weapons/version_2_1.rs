@@ -1,6 +1,6 @@
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy};
-use crate::fc::{SpecialAbility, CharacterData, WeaponRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, DurationTimer};
 
 use AttackType::*;
@@ -8,13 +8,15 @@ use WeaponType::*;
 // use Vision::*;
 
 pub struct GrasscuttersLight {
+    idx: FieldCharacterIndex,
     once: bool,
     timer: DurationTimer,
 }
 
 impl GrasscuttersLight {
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             once: true,
             timer: DurationTimer::new(12.0, &[0.0]),
         }
@@ -35,13 +37,13 @@ impl SpecialAbility for GrasscuttersLight {
         if self.once {
             self.once = false;
         }
-        self.timer.update(time, event.idx == data.idx && event.kind == Burst);
+        self.timer.update(time, event.idx == self.idx && event.kind == Burst);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         if self.once {
-            state.atk += 0.28 * data.state().er;
+            state.atk += 0.28 * state.er;
         }
         match (self.timer.ping, self.timer.n) {
             (true, 1) => state.er += 30.0,
@@ -57,14 +59,16 @@ impl SpecialAbility for GrasscuttersLight {
 }
 
 pub struct FumetsuGekka {
+    idx: FieldCharacterIndex,
     did_na: bool,
     once: bool,
     timer: DurationTimer,
 }
 
 impl FumetsuGekka {
-    pub fn new() -> Self {
+    pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
+            idx,
             did_na: false,
             once: true,
             timer: DurationTimer::new(12.0, &[0.0]),
@@ -87,18 +91,18 @@ impl SpecialAbility for FumetsuGekka {
         if self.once {
             self.once = false;
         }
-        self.did_na = event.idx == data.idx && event.kind == Burst;
-        self.timer.update(time, event.idx == data.idx && event.kind == Burst);
+        self.did_na = event.idx == self.idx && event.kind == Burst;
+        self.timer.update(time, event.idx == self.idx && event.kind == Burst);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, _enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.once {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.idx.0].state;
             // TODO incorrect
-            state.na_dmg += 0.0001 * data.state().HP();
+            state.na_dmg += 0.0001 * state.HP();
         }
         if self.timer.n == 1 && self.did_na {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.idx.0].state;
             state.energy += state.ER() * 0.6;
         }
     }

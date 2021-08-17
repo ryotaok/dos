@@ -48,13 +48,13 @@ pub struct Attack {
 }
 
 impl Attack {
-    pub fn na(multiplier: f32, hits: usize, idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn na(multiplier: f32, hits: usize, idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             kind: AttackType::Na,
             element: &PHYSICAL_GAUGE,
             multiplier,
             hits,
-            icd_timer: Rc::clone(icd_timer),
+            icd_timer: Rc::clone(&icd_timer.na),
             idx,
         }
     }
@@ -81,10 +81,10 @@ impl Attack {
     pub fn outgoing_damage(&self, state: Option<State>, fc: &CharacterData) -> f32 {
         // use ad-hoc state if available
         if let Some(mut state) = state {
-            state.merge(&fc.state());
+            state.merge(&fc.state);
             self.outgoing_damage_inner(&state, fc)
         } else {
-            self.outgoing_damage_inner(&fc.state(), fc)
+            self.outgoing_damage_inner(&fc.state, fc)
         }
     }
 
@@ -132,7 +132,7 @@ impl Attack {
         for _ in 0..self.hits {
             // weapons do not have ICD timers.
             if self.kind != AdditionalAttack && self.icd_cleared() {
-                let state = fc.state();
+                let state = &fc.state;
                 let elemental_reaction = ElementalReaction::new(enemy.aura.aura, self.element.aura);
                 total_dmg += match elemental_reaction {
                     Overloaded(ref er) |
@@ -155,12 +155,10 @@ impl Attack {
                 if let Superconduct(_) = elemental_reaction {
                     enemy.physical_res_debuff.push(Debuff::superconduct());
                 }
-                let icd_timer = unsafe { &mut *self.icd_timer };
-                icd_timer.count_hit();
+                self.icd_timer.borrow_mut().count_hit();
             } else {
                 if self.kind != AdditionalAttack {
-                    let icd_timer = unsafe { &mut *self.icd_timer };
-                    icd_timer.count_hit();
+                    self.icd_timer.borrow_mut().count_hit();
                 }
                 total_dmg += outgoing_damage;
             }
@@ -177,7 +175,7 @@ pub struct ElementalAbsorption {
 }
 
 impl ElementalAbsorption {
-    pub fn new(idx: FieldCharacterIndex, kind: AttackType, multiplier: f32, timer: NTimer, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, kind: AttackType, multiplier: f32, timer: NTimer, icd_timer: &ICDTimers) -> Self {
         Self {
             timer,
             attack: Attack {
@@ -185,14 +183,16 @@ impl ElementalAbsorption {
                 element: &PHYSICAL_GAUGE,
                 multiplier,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: match &kind {
+                    Na => Rc::clone(&icd_timer.na),
+                    Ca => Rc::clone(&icd_timer.ca),
+                    PressSkill | HoldSkill | SkillDot => Rc::clone(&icd_timer.skill),
+                    Burst | BurstDot => Rc::clone(&icd_timer.burst),
+                    _ => unimplemented!(),
+                },
                 idx,
             }
         }
-    }
-
-    pub fn icd(&mut self) -> &mut *mut ICDTimer {
-        &mut self.attack.icd_timer
     }
 
     pub fn did_absorb(&self) -> bool {
@@ -527,12 +527,6 @@ impl NaLoop {
 }
 
 impl SpecialAbility for NaLoop {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        for a in self.attack.iter_mut() {
-            a.icd_timer = &mut timers.na;
-        }
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         if (!self.timer.ping && self.timer.n == 0) || (self.timer.ping && self.timer.n > 0) {
             Some(AttackEvent {
@@ -545,9 +539,8 @@ impl SpecialAbility for NaLoop {
     }
 
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        let state = data.state();
         self.timer.update_na(time, event == &self.attack[0]);
-        if state.infusion && !self.did_infuse {
+        if data.state.infusion && !self.did_infuse {
             self.did_infuse = true;
             match &data.character.vision {
                 Vision::Pyro => for a in self.attack.iter_mut() { a.element = &PYRO_GAUGE1A; },
@@ -559,7 +552,7 @@ impl SpecialAbility for NaLoop {
                 Vision::Dendro => for a in self.attack.iter_mut() { a.element = &DENDRO_GAUGE1A; },
                 _ => (),
             }
-        } else if !state.infusion && self.did_infuse {
+        } else if !data.state.infusion && self.did_infuse {
             self.did_infuse = false;
             for a in self.attack.iter_mut() { a.element = &PHYSICAL_GAUGE; }
         }
@@ -601,10 +594,6 @@ impl SimpleCa {
 }
 
 impl SpecialAbility for SimpleCa {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.ca;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         // TODO Attack.to_event
         if self.timer.n == 0 {
@@ -659,10 +648,6 @@ impl SkillAbility for SimpleSkill {
 }
 
 impl SpecialAbility for SimpleSkill {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         self.attack.to_event(&self.timer)
     }
@@ -710,10 +695,6 @@ impl SkillAbility for SimpleSkillDot {
 }
 
 impl SpecialAbility for SimpleSkillDot {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         if self.timer.n == 0 {
             Some(AttackEvent {
@@ -770,11 +751,6 @@ impl SkillAbility for SkillDamage2Dot {
 }
 
 impl SpecialAbility for SkillDamage2Dot {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.skill;
-        self.dot.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         self.attack.to_event(&self.timer)
     }
@@ -828,11 +804,6 @@ impl SkillAbility for SkillDamage2DotParticle {
 }
 
 impl SpecialAbility for SkillDamage2DotParticle {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.skill;
-        self.dot.icd_timer = &mut timers.skill;
-    }
-
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
         self.attack.to_event(&self.timer)
     }
@@ -876,10 +847,6 @@ impl SimpleBurst {
 }
 
 impl SpecialAbility for SimpleBurst {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.burst;
-    }
-
     fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
         if data.can_burst() {
             self.attack.to_event(&self.timer)
@@ -922,10 +889,6 @@ impl SimpleBurstDot {
 }
 
 impl SpecialAbility for SimpleBurstDot {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.burst;
-    }
-
     fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
         if self.timer.n == 0 && data.can_burst() {
             Some(AttackEvent {
@@ -971,11 +934,6 @@ impl BurstDamage2Dot {
 }
 
 impl SpecialAbility for BurstDamage2Dot {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.attack.icd_timer = &mut timers.burst;
-        self.dot.icd_timer = &mut timers.burst;
-    }
-
     fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
         if data.can_burst() {
             self.attack.to_event(&self.timer)
@@ -1046,6 +1004,12 @@ impl ICDTimer {
             self.counting = false;
         }
     }
+
+    pub fn reset(&mut self) -> () {
+        self.cd = 0.0;
+        self.n_hits = 0;
+        self.counting = false;
+    }
 }
 
 #[derive(Debug)]
@@ -1054,6 +1018,7 @@ pub struct ICDTimers {
     pub ca: Rc<RefCell<ICDTimer>>,
     pub skill: Rc<RefCell<ICDTimer>>,
     pub burst: Rc<RefCell<ICDTimer>>,
+    pub noop: Rc<RefCell<ICDTimer>>,
 }
 
 impl ICDTimers {
@@ -1063,14 +1028,24 @@ impl ICDTimers {
             ca: Rc::new(RefCell::new(ICDTimer::new())),
             skill: Rc::new(RefCell::new(ICDTimer::new())),
             burst: Rc::new(RefCell::new(ICDTimer::new())),
+            noop: Rc::new(RefCell::new(ICDTimer::new())),
         }
     }
 
     pub fn update(&mut self, time: f32) -> () {
-        self.na.get_mut().update(time);
-        self.ca.get_mut().update(time);
-        self.skill.get_mut().update(time);
-        self.burst.get_mut().update(time);
+        self.na.borrow_mut().update(time);
+        self.ca.borrow_mut().update(time);
+        self.skill.borrow_mut().update(time);
+        self.burst.borrow_mut().update(time);
+        // noop
+    }
+
+    pub fn reset(&mut self) -> () {
+        self.na.borrow_mut().reset();
+        self.ca.borrow_mut().reset();
+        self.skill.borrow_mut().reset();
+        self.burst.borrow_mut().reset();
+        // noop
     }
 }
 

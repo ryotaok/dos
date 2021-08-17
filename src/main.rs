@@ -121,14 +121,8 @@ fn near_eq(a: f32, b: f32) -> bool {
 
 fn main_loop(members: &mut [CharacterData], abilities: &mut [FieldAbility], args: &Args) -> Recorder {
     let mut enemy = Enemy::hilichurl();
-    let mut state: Vec<State> = Vec::new();
     let mut atk_queue: Vec<*const Attack> = Vec::new();
     let mut field_energy: Vec<FieldEnergy> = Vec::new();
-    for i in 0..members.len() {
-        state.push(State::new());
-        members[i].init(&mut state[i]);
-    }
-    // println!("{:?}", state[0]);
     // setup for Emulator
     let mut head: Vec<&str> = Vec::new();
     for m in members.iter() {
@@ -141,14 +135,14 @@ fn main_loop(members: &mut [CharacterData], abilities: &mut [FieldAbility], args
     let mut total_dmg = 0.0;
     // // accumulate passives of weapons and artifacts at the 0 second.
     // {
-    //     let mut modifiable_state: Vec<State> = Vec::with_capacity(members.len());
+    //     let mut modifiable_data: Vec<State> = Vec::with_capacity(members.len());
     //     for _ in 0..members.len() {
-    //         modifiable_state.push(State::new());
+    //         modifiable_data.push(State::new());
     //     }
     //     for FieldCharacterData { fc, .. } in members.iter_mut() {
-    //         fc.modify(&mut modifiable_state, &mut enemy);
+    //         fc.modify(&mut modifiable_data, &mut enemy);
     //     }
-    //     for (state, FieldCharacterData { fc, .. }) in modifiable_state.into_iter().zip(members.iter_mut()) {
+    //     for (state, FieldCharacterData { fc, .. }) in modifiable_data.into_iter().zip(members.iter_mut()) {
     //         fc.data.state.merge(&state);
     //     }
     // }
@@ -156,22 +150,22 @@ fn main_loop(members: &mut [CharacterData], abilities: &mut [FieldAbility], args
         if current_time == 0.0 {
             if args.start_energy < 0 {
                 for m in members.iter_mut() {
-                    state[m.idx.0].energy = m.character.energy_cost;
+                    m.state.energy = m.character.energy_cost;
                 }
             } else {
                 let e = args.start_energy as f32;
                 for m in members.iter_mut() {
-                    state[m.idx.0].energy = e;
+                    m.state.energy = e;
                 }
             }
         }
         if near_eq(current_time, 5.0) || near_eq(current_time, 15.0) {
         // if near_eq(current_time, 5.0) {
             for m in members.iter_mut() {
-                state[m.idx.0].energy += 10.0 * state[m.idx.0].ER();
+                m.state.energy += 10.0 * m.state.ER();
             }
         }
-        total_dmg += simulate::simulate(args.unit_time, members, &mut state, abilities, &mut atk_queue, &mut field_energy, &mut enemy);
+        total_dmg += simulate::simulate(args.unit_time, members, abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         current_time += args.unit_time;
         rc.record(current_time, total_dmg);
     }
@@ -318,8 +312,8 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
     let mut characters2 = AllCharacters::new(idx1, &timers1);
     let mut weapons1 = AllWeapons::new(idx0, &timers0);
     let mut weapons2 = AllWeapons::new(idx1, &timers1);
-    let mut artifacts1 = AllArtifacts::new();
-    let mut artifacts2 = AllArtifacts::new();
+    let mut artifacts1 = AllArtifacts::new(idx0);
+    let mut artifacts2 = AllArtifacts::new(idx1);
     let input_characters: Vec<CharacterName> = CharacterName::cryo().drain(start..end).collect();
     // TODO
     let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
@@ -379,8 +373,8 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
             for a in abilities.iter_mut() {
                 a.reset();
             }
-            *timers0 = ICDTimers::new();
-            *timers1 = ICDTimers::new();
+            timers0.reset();
+            timers1.reset();
             ar1.dry_goblet();
             ar2.dry_goblet();
             member2.back((character_name2, weapon_name2, artifact_name2));
@@ -396,7 +390,7 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
     let mut timers0 = ICDTimers::new();
     let mut characters = AllCharacters::new(idx, &timers0);
     let mut weapons = AllWeapons::new(idx, &timers0);
-    let mut artifacts = AllArtifacts::new();
+    let mut artifacts = AllArtifacts::new(idx);
     let input_characters: Vec<CharacterName> = CharacterName::vec().drain(start..end).collect();
     // TODO
     let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
@@ -423,7 +417,7 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
             ar1.infuse_goblet(&cr1.vision);
         }
         members.push(CharacterData::new(idx, &cr1, &wr1, &ar1));
-        abilities.push(builder.build(&mut timers));
+        abilities.push(builder.build(&mut timers0));
         let rc = main_loop(&mut members, &mut abilities, args);
         items.push(rc);
 
@@ -431,7 +425,7 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         for a in abilities.iter_mut() {
             a.reset();
         }
-        *timers = ICDTimers::new();
+        timers0.reset();
         ar1.dry_goblet();
         member1.back((character_name, weapon_name, artifact_name));
     }
@@ -440,11 +434,11 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
 
 fn debugging(args: &Args, debug_args: Vec<String>) -> () {
     let idx = FieldCharacterIndex(0);
-    let mut timers = Box::new(ICDTimers::new());
+    let mut timers = ICDTimers::new();
     let mut builder = FieldAbilityBuilder::new();
-    let mut characters = AllCharacters::new(idx);
-    let mut weapons = AllWeapons::new(idx);
-    let mut artifacts = AllArtifacts::new();
+    let mut characters = AllCharacters::new(idx, &timers);
+    let mut weapons = AllWeapons::new(idx, &timers);
+    let mut artifacts = AllArtifacts::new(idx);
     let mut character_name = MaybeUninit::<CharacterName>::uninit();
     let mut weapon_name = MaybeUninit::<WeaponName>::uninit();
     let mut artifact_name = MaybeUninit::<ArtifactName>::uninit();

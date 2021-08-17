@@ -30,19 +30,19 @@ impl Tartaglia {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             once: true,
             na: NaLoop::new(
                 // 6 attacks in 2.415 seconds
                 &[0.4025,0.4025,0.4025,0.4025,0.4025,0.4025],
                 vec![
-                    Attack::na(76.84, 1, idx),
-                    Attack::na(82.28, 1, idx),
-                    Attack::na(111.35, 1, idx),
-                    Attack::na(118.49, 1, idx),
-                    Attack::na(109.31, 1, idx),
-                    Attack::na((70.04+74.46) / 2.0, 2, idx),
+                    Attack::na(76.84, 1, idx, &icd_timer),
+                    Attack::na(82.28, 1, idx, &icd_timer),
+                    Attack::na(111.35, 1, idx, &icd_timer),
+                    Attack::na(118.49, 1, idx, &icd_timer),
+                    Attack::na(109.31, 1, idx, &icd_timer),
+                    Attack::na((70.04+74.46) / 2.0, 2, idx, &icd_timer),
                 ]
             ),
             riptide_slash: Attack {
@@ -50,7 +50,7 @@ impl Tartaglia {
                 element: &HYDRO_GAUGE1A,
                 multiplier: 119.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             },
             riptide_timer: NTimer::new(&[1.5]),
@@ -60,7 +60,7 @@ impl Tartaglia {
                 element: &HYDRO_GAUGE1A,
                 multiplier: 122.4,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[15.0], Attack {
@@ -68,7 +68,7 @@ impl Tartaglia {
                 element: &HYDRO_GAUGE2B,
                 multiplier: (835.2 + 216.0) / 2.0,
                 hits: 2,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -80,15 +80,11 @@ impl Tartaglia {
 }
 
 impl SpecialAbility for Tartaglia {
-    fn init(&mut self, timers: &mut ICDTimers) -> () {
-        self.riptide_slash.icd_timer = &mut timers.na;
-    }
- 
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         if self.once {
             self.once = false;
         }
-        self.riptide_timer.update(time, event.idx == data.idx && event.kind == Na);
+        self.riptide_timer.update(time, event.idx == self.skill.attack.idx && event.kind == Na);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
@@ -98,9 +94,9 @@ impl SpecialAbility for Tartaglia {
         }
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.skill.timer.ping {
-            let state = &mut modifiable_state[data.idx.0];
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
             match self.skill.timer.n {
                 1 => state.infusion = true,
                 2 => state.infusion = false,
@@ -109,8 +105,8 @@ impl SpecialAbility for Tartaglia {
         }
         if self.once {
             // Master of Weaponry
-            for s in modifiable_state.iter_mut() {
-                s.na_talent += 5.0;
+            for data in modifiable_data.iter_mut() {
+                data.state.na_talent += 5.0;
             }
         }
     }
@@ -136,17 +132,17 @@ impl Diona {
             .energy_cost(80.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 5 attacks in 2.333 seconds
                 &[0.4466,0.4466,0.4466,0.4466,0.4466],
                 vec![
-                    Attack::na(71.4, 1, idx),
-                    Attack::na(66.3, 1, idx),
-                    Attack::na(90.1, 1, idx),
-                    Attack::na(85.0, 1, idx),
-                    Attack::na(106.25, 1, idx),
+                    Attack::na(71.4, 1, idx, &icd_timer),
+                    Attack::na(66.3, 1, idx, &icd_timer),
+                    Attack::na(90.1, 1, idx, &icd_timer),
+                    Attack::na(85.0, 1, idx, &icd_timer),
+                    Attack::na(106.25, 1, idx, &icd_timer),
                 ]
             ),
             skill: SimpleSkill::new(&[15.0], Particle::new(Cryo, 4.5), Attack {
@@ -154,7 +150,7 @@ impl Diona {
                 element: &CRYO_GAUGE1A,
                 multiplier: 75.46,
                 hits: 5,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[2.0,2.0,2.0,2.0,2.0,2.0, 8.0], Attack {
@@ -162,14 +158,14 @@ impl Diona {
                 element: &CRYO_GAUGE1A,
                 multiplier: 144.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &CRYO_GAUGE1A,
                 multiplier: 94.75,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -197,18 +193,18 @@ impl Zhongli {
             .energy_cost(40.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 6 attacks in 2.925 seconds
                 &[0.4875,0.4875,0.4875,0.4875,0.4875,0.4875],
                 vec![
-                    Attack::na(60.82, 1, idx),
-                    Attack::na(61.58, 1, idx),
-                    Attack::na(76.26, 1, idx),
-                    Attack::na(84.88, 1, idx),
-                    Attack::na((21.25*4.0) / 4.0, 4, idx),
-                    Attack::na(107.73, 1, idx),
+                    Attack::na(60.82, 1, idx, &icd_timer),
+                    Attack::na(61.58, 1, idx, &icd_timer),
+                    Attack::na(76.26, 1, idx, &icd_timer),
+                    Attack::na(84.88, 1, idx, &icd_timer),
+                    Attack::na((21.25*4.0) / 4.0, 4, idx, &icd_timer),
+                    Attack::na(107.73, 1, idx, &icd_timer),
                 ]
             ),
             skill: SkillDamage2DotParticle::new(&[2.0,2.0,2.0,2.0,2.0], Particle::new(Geo, 0.5), Attack {
@@ -216,14 +212,14 @@ impl Zhongli {
                 element: &GEO_GAUGE2B,
                 multiplier: 28.8,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }, Attack {
                 kind: AttackType::SkillDot,
                 element: &GEO_GAUGE1A,
                 multiplier: 57.6,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: SimpleBurst::new(&[12.0], Attack {
@@ -231,7 +227,7 @@ impl Zhongli {
                 element: &GEO_GAUGE4C,
                 multiplier: 899.72,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -259,16 +255,16 @@ impl Xinyan {
             .energy_cost(60.0)
     }
 
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             na: NaLoop::new(
                 // 4 attacks in 2.8 seconds
                 &[0.7,0.7,0.7,0.7],
                 vec![
-                    Attack::na(151.3, 1, idx),
-                    Attack::na(146.2, 1, idx),
-                    Attack::na(188.7, 1, idx),
-                    Attack::na(228.99, 1, idx),
+                    Attack::na(151.3, 1, idx, &icd_timer),
+                    Attack::na(146.2, 1, idx, &icd_timer),
+                    Attack::na(188.7, 1, idx, &icd_timer),
+                    Attack::na(228.99, 1, idx, &icd_timer),
                 ]
             ),
             skill: SkillDamage2Dot::new(&[2.0,2.0,2.0,2.0,2.0,2.0, 6.0], Particle::new(Pyro, 4.0), Attack {
@@ -276,14 +272,14 @@ impl Xinyan {
                 element: &PYRO_GAUGE1A,
                 multiplier: 305.28,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }, Attack {
                 kind: AttackType::SkillDot,
                 element: &PYRO_GAUGE1A,
                 multiplier: 60.48,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
             }),
             burst: BurstDamage2Dot::new(&[0.25,0.25,0.25,0.25, 14.0], Attack {
@@ -291,14 +287,14 @@ impl Xinyan {
                 element: &PHYSICAL_GAUGE,
                 multiplier: 613.44,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }, Attack {
                 kind: AttackType::BurstDot,
                 element: &PYRO_GAUGE1A,
                 multiplier: 72.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
         }
@@ -310,14 +306,14 @@ impl Xinyan {
 }
 
 impl SpecialAbility for Xinyan {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.skill.timer.ping && self.skill.timer.n == 1 {
-            for s in modifiable_state.iter_mut() {
-                s.physical_dmg += 15.0;
+            for data in modifiable_data.iter_mut() {
+                data.state.physical_dmg += 15.0;
             }
         } else if self.skill.timer.ping && self.skill.timer.n == 7 {
-            for s in modifiable_state.iter_mut() {
-                s.physical_dmg -= 15.0;
+            for data in modifiable_data.iter_mut() {
+                data.state.physical_dmg -= 15.0;
             }
         }
     }

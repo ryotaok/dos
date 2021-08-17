@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, FieldEnergy, VecFieldEnergy, Particle, Vision, PHYSICAL_GAUGE, DRAGONSBANE};
 use crate::fc::{FieldCharacterIndex, SpecialAbility, CharacterData, WeaponRecord, Enemy};
-use crate::action::{Attack, AttackEvent, ICDTimer, DurationTimer, Time};
+use crate::action::{Attack, AttackEvent, ICDTimers, DurationTimer, Time};
 // use crate::testutil;
 
 use AttackType::*;
@@ -15,15 +15,8 @@ use WeaponType::*;
 // version 1.0
 
 pub struct PrototypeStarglitterR5 {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
-}
-
-impl PrototypeStarglitterR5 {
-    pub fn new() -> Self {
-        Self {
-            timer: DurationTimer::new(12.0, &[0.0,0.0]),
-        }
-    }
 }
 
 impl PrototypeStarglitterR5 {
@@ -33,6 +26,13 @@ impl PrototypeStarglitterR5 {
             .base_atk(510.0)
             .er(45.9)
     }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            timer: DurationTimer::new(12.0, &[0.0,0.0]),
+        }
+    }
 }
 
 impl SpecialAbility for PrototypeStarglitterR5 {
@@ -41,8 +41,8 @@ impl SpecialAbility for PrototypeStarglitterR5 {
         self.timer.update(time, should_update);
     }
 
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n > 0) {
             (true, true) => {
                 state.na_dmg += 16.0;
@@ -62,21 +62,23 @@ impl SpecialAbility for PrototypeStarglitterR5 {
 }
 
 pub struct CrescentPikeR5 {
+    idx: FieldCharacterIndex,
     timer: DurationTimer,
     aa: Attack,
     did_na: bool,
 }
 
 impl CrescentPikeR5 {
-    pub fn new(idx: FieldCharacterIndex, icd_timer: &Rc<RefCell<ICDTimer>>) -> Self {
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            idx,
             timer: DurationTimer::new(5.0, &[0.0]),
             aa: Attack {
                 kind: AdditionalAttack,
                 element: &PHYSICAL_GAUGE,
                 multiplier: 40.0,
                 hits: 1,
-                icd_timer: Rc::clone(icd_timer),
+                icd_timer: Rc::clone(&icd_timer.noop),
                 idx,
             },
             did_na: false,
@@ -97,7 +99,7 @@ impl SpecialAbility for CrescentPikeR5 {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         let should_update = particles.has_particles();
         self.timer.update(time, should_update);
-        self.did_na = event.idx == data.idx && (event.kind == Na || event.kind == Ca);
+        self.did_na = event.idx == self.idx && (event.kind == Na || event.kind == Ca);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
@@ -166,7 +168,9 @@ impl WhiteTasselR5 {
     }
 }
 
-pub struct DragonsBaneR5;
+pub struct DragonsBaneR5 {
+    idx: FieldCharacterIndex
+}
 
 impl DragonsBaneR5 {
     pub fn record() -> WeaponRecord {
@@ -175,11 +179,17 @@ impl DragonsBaneR5 {
             .base_atk(454.0)
             .em(221.0)
     }
+
+    pub fn new(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx
+        }
+    }
 }
 
 impl SpecialAbility for DragonsBaneR5 {
-    fn modify(&self, modifiable_state: &mut [State], data: &CharacterData, enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_state[data.idx.0];
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let state = &mut modifiable_data[self.idx.0].state;
         match (&enemy.aura.aura, state.stacked_buff != DRAGONSBANE) {
             (Vision::Hydro, true) |
             (Vision::Pyro, true) => {
