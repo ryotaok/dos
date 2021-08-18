@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy, Debuff};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy, Debuff};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, StaminaTimer, ICDTimers};
 
 use AttackType::*;
@@ -11,6 +11,8 @@ use WeaponType::*;
 use Vision::*;
 
 pub struct Yanfei {
+    na_noop: NoopAbility,
+    ca_noop: NoopAbility,
     scarlet_seal: usize,
     na: NaLoop,
     ca_0: Attack,
@@ -37,6 +39,8 @@ impl Yanfei {
 
     pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            na_noop: NoopAbility,
+            ca_noop: NoopAbility,
             scarlet_seal: 0,
             na: NaLoop::new(
                 // 3 attacks in 1.5 seconds
@@ -114,10 +118,17 @@ impl Yanfei {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Yanfei {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na_noop }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca_noop }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na_noop }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca_noop }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Yanfei {
@@ -323,6 +334,7 @@ impl SpecialAbility for EulaSkill {
 pub struct Eula {
     lightfall_sword_stack: usize,
     na: NaLoop,
+    ca: NoopAbility,
     skill: EulaSkill,
     burst: SimpleBurst,
     burst_lightfall_sword: Attack,
@@ -352,6 +364,7 @@ impl Eula {
                     Attack::na(142.0, 2, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: EulaSkill::new(idx, icd_timer),
             burst: SimpleBurst::new(&[7.0, 13.0], Attack {
                 kind: AttackType::Burst,
@@ -379,10 +392,17 @@ impl Eula {
             },
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Eula {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Eula {

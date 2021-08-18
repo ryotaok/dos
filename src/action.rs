@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use crate::state::State;
-use crate::fc::{CharacterData, FieldCharacterIndex, SpecialAbility, SkillAbility, FieldAbilityBuilder, Enemy, Debuff};
+use crate::fc::{CharacterData, FieldCharacterIndex, SpecialAbility, SkillAbility, Enemy, Debuff};
 use crate::types::{AttackType, Vision, FieldEnergy, Particle, VecFieldEnergy, ElementalGauge, ElementalReactionType, ElementalReaction, PHYSICAL_GAUGE, PYRO_GAUGE1A, HYDRO_GAUGE1A, ELECTRO_GAUGE1A, CRYO_GAUGE1A, ANEMO_GAUGE1A, GEO_GAUGE1A, DENDRO_GAUGE1A};
 
 use AttackType::*;

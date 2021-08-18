@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleCa, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SkillDamage2DotParticle, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
@@ -15,6 +15,7 @@ use Vision::*;
 
 pub struct Albedo {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SkillDamage2DotParticle,
     burst: BurstDamage2Dot,
 }
@@ -41,6 +42,7 @@ impl Albedo {
                     Attack::na(122.7, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SkillDamage2DotParticle::new(&[2.0,2.0,2.0,2.0,2.0], Particle::new(Geo, 0.8), Attack {
                 kind: AttackType::PressSkill,
                 element: &GEO_GAUGE1A,
@@ -73,10 +75,17 @@ impl Albedo {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Albedo {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Albedo {
@@ -97,6 +106,7 @@ impl SpecialAbility for Albedo {
 }
 
 pub struct Ganyu {
+    na: NoopAbility,
     ca: SimpleCa,
     skill: SimpleSkillDot,
     burst: SimpleBurstDot,
@@ -113,6 +123,7 @@ impl Ganyu {
 
     pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            na: NoopAbility,
             ca: SimpleCa::new(0.0, 2.466, Attack {
                 kind: AttackType::Ca,
                 element: &CRYO_GAUGE1A,
@@ -139,10 +150,17 @@ impl Ganyu {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.ca(&mut self.ca).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Ganyu {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Ganyu {

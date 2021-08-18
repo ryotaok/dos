@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, ELECTRO_GAUGE4C, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy, Debuff};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy, Debuff};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SkillDamage2DotParticle, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 // StaminaTimer
 
@@ -15,6 +15,7 @@ use Vision::*;
 
 pub struct Beidou {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: BurstDamage2Dot,
 }
@@ -41,6 +42,7 @@ impl Beidou {
                     Attack::na(221.68, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkill::new(&[7.5], Particle::new(Electro, 2.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &ELECTRO_GAUGE2B,
@@ -67,9 +69,17 @@ impl Beidou {
         }
     }
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+}
+
+impl CharacterAbility for Beidou {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Beidou {
@@ -104,6 +114,7 @@ impl SpecialAbility for Beidou {
 pub struct Fischl {
     electro_er: bool,
     na: NaLoop,
+    ca: NoopAbility,
     skill: SkillDamage2DotParticle,
     burst: SimpleBurst,
     aa_a4: Attack,
@@ -132,6 +143,7 @@ impl Fischl {
                     Attack::na(142.46, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SkillDamage2DotParticle::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 13.0], Particle::new(Electro, 1.0), Attack {
                 kind: AttackType::PressSkill,
                 element: &ELECTRO_GAUGE1A,
@@ -166,9 +178,17 @@ impl Fischl {
         }
     }
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+}
+
+impl CharacterAbility for Fischl {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Fischl {
@@ -271,6 +291,7 @@ impl SpecialAbility for LisaSkill {
 
 pub struct Lisa {
     na: NaLoop,
+    ca: NoopAbility,
     skill: LisaSkill,
     burst: SimpleBurstDot,
 }
@@ -297,6 +318,7 @@ impl Lisa {
                     Attack::na(98.93, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: LisaSkill::new(idx, icd_timer),
             burst: SimpleBurstDot::new(&[0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555,0.5555, 4.446], Attack {
                 kind: AttackType::BurstDot,
@@ -309,9 +331,17 @@ impl Lisa {
         }
     }
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+}
+
+impl CharacterAbility for Lisa {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Lisa {
@@ -413,6 +443,7 @@ impl SpecialAbility for RazorSkill {
 
 pub struct Razor {
     na: NaLoop,
+    ca: NoopAbility,
     skill: RazorSkill,
     burst: BurstDamage2Dot,
     a4_condition: bool,
@@ -442,6 +473,7 @@ impl Razor {
                     Attack::na(242.72, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: RazorSkill::new(idx, icd_timer),
             burst: BurstDamage2Dot::new(&[0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75, 5.0,], Attack {
                 kind: AttackType::Burst,
@@ -461,9 +493,17 @@ impl Razor {
         }
     }
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+}
+
+impl CharacterAbility for Razor {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Razor {
@@ -574,6 +614,7 @@ impl SpecialAbility for KeqingBurst {
 
 pub struct Keqing {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: KeqingBurst,
 }
@@ -600,6 +641,7 @@ impl Keqing {
                     Attack::na(132.43, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkill::new(&[5.0, 2.5], Particle::new(Electro, 2.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &ELECTRO_GAUGE1A,
@@ -612,9 +654,17 @@ impl Keqing {
         }
     }
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+}
+
+impl CharacterAbility for Keqing {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Keqing {

@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, StaminaTimer, ICDTimers};
 
 use AttackType::*;
@@ -81,6 +81,8 @@ impl SpecialAbility for XiaoSkill {
 
 // should not register `Builder.na()`
 pub struct Xiao {
+    na_noop: NoopAbility,
+    ca_noop: NoopAbility,
     na: NaLoop,
     plunge: Attack,
     ca_timer: NTimer,
@@ -99,6 +101,8 @@ impl Xiao {
 
     pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            na_noop: NoopAbility,
+            ca_noop: NoopAbility,
             na: NaLoop::new(
                 // 6 attacks in 3.75 seconds
                 &[0.625,0.625,0.625,0.625,0.625,0.625],
@@ -133,9 +137,17 @@ impl Xiao {
         }
     }
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+}
+
+impl CharacterAbility for Xiao {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na_noop }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca_noop }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na_noop }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca_noop }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Xiao {
@@ -188,6 +200,8 @@ impl SpecialAbility for Xiao {
 }
 
 pub struct HuTao {
+    na_noop: NoopAbility,
+    ca_noop: NoopAbility,
     na: NaLoop,
     ca: Attack,
     stamina: StaminaTimer,
@@ -208,6 +222,8 @@ impl HuTao {
 
     pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            na_noop: NoopAbility,
+            ca_noop: NoopAbility,
             na: NaLoop::new(
                 // 6 attacks in 2.925 seconds
                 &[0.4875,0.4875,0.4875,0.4875,0.4875,0.4875],
@@ -249,9 +265,17 @@ impl HuTao {
         }
     }
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+}
+
+impl CharacterAbility for HuTao {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na_noop }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca_noop }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na_noop }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca_noop }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for HuTao {

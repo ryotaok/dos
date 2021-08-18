@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
@@ -156,10 +156,17 @@ impl Ningguang {
             }
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).ca(&mut self.ca).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Ningguang {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Ningguang {
@@ -185,6 +192,7 @@ impl SpecialAbility for Ningguang {
 
 pub struct Noelle {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: SimpleBurst,
 }
@@ -210,6 +218,7 @@ impl Noelle {
                     Attack::na(224.23, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             // a1
             skill: SimpleSkill::new(&[24.0], Particle::new(Geo, 0.0), Attack {
                 kind: AttackType::PressSkill,
@@ -229,10 +238,17 @@ impl Noelle {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Noelle {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Noelle {
@@ -263,6 +279,7 @@ impl SpecialAbility for Noelle {
 pub struct TravelerGeo {
     na: NaLoop,
     na_last: Attack,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: SimpleBurst,
 }
@@ -297,6 +314,7 @@ impl TravelerGeo {
                 icd_timer: Rc::clone(&icd_timer.na),
                 idx,
             },
+            ca: NoopAbility,
             skill: SimpleSkill::new(&[6.0], Particle::new(Geo, 3.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &GEO_GAUGE2B,
@@ -315,10 +333,17 @@ impl TravelerGeo {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for TravelerGeo {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for TravelerGeo {

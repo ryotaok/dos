@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, GEO_GAUGE4C, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SkillDamage2DotParticle, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 
 use AttackType::*;
@@ -17,6 +17,7 @@ pub struct Tartaglia {
     na: NaLoop,
     riptide_slash: Attack,
     riptide_timer: NTimer,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: SimpleBurst,
 }
@@ -54,6 +55,7 @@ impl Tartaglia {
                 idx,
             },
             riptide_timer: NTimer::new(&[1.5]),
+            ca: NoopAbility,
             // a1
             skill: SimpleSkill::new(&[30.0, 45.0], Particle::new(Hydro, 10.0), Attack {
                 kind: AttackType::PressSkill,
@@ -73,10 +75,17 @@ impl Tartaglia {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Tartaglia {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Tartaglia {
@@ -119,6 +128,7 @@ impl SpecialAbility for Tartaglia {
 
 pub struct Diona {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: BurstDamage2Dot,
 }
@@ -145,6 +155,7 @@ impl Diona {
                     Attack::na(106.25, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkill::new(&[15.0], Particle::new(Cryo, 4.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &CRYO_GAUGE1A,
@@ -170,16 +181,24 @@ impl Diona {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Diona {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Diona {}
 
 pub struct Zhongli {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SkillDamage2DotParticle,
     burst: SimpleBurst,
 }
@@ -207,6 +226,7 @@ impl Zhongli {
                     Attack::na(107.73, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SkillDamage2DotParticle::new(&[2.0,2.0,2.0,2.0,2.0], Particle::new(Geo, 0.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &GEO_GAUGE2B,
@@ -232,16 +252,24 @@ impl Zhongli {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Zhongli {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Zhongli {}
 
 pub struct Xinyan {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SkillDamage2Dot,
     burst: BurstDamage2Dot,
 }
@@ -267,6 +295,7 @@ impl Xinyan {
                     Attack::na(228.99, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SkillDamage2Dot::new(&[2.0,2.0,2.0,2.0,2.0,2.0, 6.0], Particle::new(Pyro, 4.0), Attack {
                 kind: AttackType::PressSkill,
                 element: &PYRO_GAUGE1A,
@@ -299,10 +328,17 @@ impl Xinyan {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Xinyan {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Xinyan {

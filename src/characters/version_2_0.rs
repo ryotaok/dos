@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 
 use AttackType::*;
@@ -13,6 +13,7 @@ use Vision::*;
 pub struct Ayaka {
     once: bool,
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: BurstDamage2Dot,
 }
@@ -40,6 +41,7 @@ impl Ayaka {
                     Attack::na(154.55, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkill::new(&[6.0, 4.0], Particle::new(Cryo, 3.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &CRYO_GAUGE2B,
@@ -65,10 +67,17 @@ impl Ayaka {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Ayaka {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Ayaka {
@@ -109,6 +118,7 @@ impl SpecialAbility for Ayaka {
 pub struct Yoimiya {
     skill_a1: DurationTimer,
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: BurstDamage2Dot,
 }
@@ -136,6 +146,7 @@ impl Yoimiya {
                     Attack::na(188.87, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkill::new(&[10.0, 8.0], Particle::new(Pyro, 4.0), Attack {
                 kind: AttackType::PressSkill,
                 element: &PYRO_GAUGE1A,
@@ -161,10 +172,17 @@ impl Yoimiya {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Yoimiya {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Yoimiya {
@@ -219,6 +237,7 @@ impl SpecialAbility for Yoimiya {
 
 pub struct Sayu {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: BurstDamage2Dot,
     skill_ea: ElementalAbsorption,
@@ -245,6 +264,7 @@ impl Sayu {
                     Attack::na(193.97, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkill::new(&[6.0], Particle::new(Anemo, 3.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &ANEMO_GAUGE1A,
@@ -271,10 +291,17 @@ impl Sayu {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Sayu {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Sayu {

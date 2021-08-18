@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SkillDamage2DotParticle, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 
 use AttackType::*;
@@ -16,9 +16,9 @@ pub struct RaidenShogun {
     musou_isshin_energy: DurationTimer,
     a1_timer: NTimer,
     na: NaLoop,
+    ca: NoopAbility,
     skill: SkillDamage2DotParticle,
     burst: SimpleBurst,
-
 }
 
 impl RaidenShogun {
@@ -47,6 +47,7 @@ impl RaidenShogun {
                     Attack::na(129.37, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SkillDamage2DotParticle::new(&[0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9], Particle::new(Electro, 0.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &ELECTRO_GAUGE1A,
@@ -72,10 +73,17 @@ impl RaidenShogun {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for RaidenShogun {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for RaidenShogun {
@@ -159,6 +167,7 @@ impl SpecialAbility for RaidenShogun {
 pub struct SangonomiyaKokomi {
     once: bool,
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkillDot,
     burst: SimpleBurst,
 }
@@ -186,6 +195,7 @@ impl SangonomiyaKokomi {
                     Attack::na(169.75, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkillDot::new(&[2.0,2.0,2.0,2.0,2.0,2.0, 8.0], Particle::new(Hydro, 0.75), Attack {
                 kind: AttackType::SkillDot,
                 element: &HYDRO_GAUGE1A,
@@ -204,10 +214,17 @@ impl SangonomiyaKokomi {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for SangonomiyaKokomi {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for SangonomiyaKokomi {
@@ -250,6 +267,7 @@ impl SpecialAbility for SangonomiyaKokomi {
 pub struct KujouSara {
     bonus_timer: DurationTimer,
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: BurstDamage2Dot,
 }
@@ -277,6 +295,7 @@ impl KujouSara {
                     Attack::na(114.75, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkill::new(&[6.0, 4.0], Particle::new(Electro, 2.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &ELECTRO_GAUGE1A,
@@ -302,10 +321,17 @@ impl KujouSara {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for KujouSara {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for KujouSara {
@@ -351,6 +377,7 @@ impl SpecialAbility for KujouSara {
 pub struct Aloy {
     skill_a4: DurationTimer,
     na: NaLoop,
+    ca: NoopAbility,
     skill: SkillDamage2Dot,
     burst: SimpleBurst,
 }
@@ -377,6 +404,7 @@ impl Aloy {
                     Attack::na(117.12, 1, idx, &icd_timer),
                 ]
             ),
+    ca: NoopAbility,
             skill: SkillDamage2Dot::new(&[1.0,1.0,1.0,1.0, 10.0, 6.0], Particle::new(Cryo, 4.0), Attack {
                 kind: AttackType::PressSkill,
                 element: &CRYO_GAUGE1A,
@@ -402,10 +430,17 @@ impl Aloy {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Aloy {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Aloy {

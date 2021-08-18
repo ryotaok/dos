@@ -1,10 +1,7 @@
-use std::ptr;
-
 use crate::state::State;
 use crate::artifact::Artifact;
 use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, ICDTimers};
 use crate::types::{Vision, WeaponType, FieldEnergy, ElementalGauge, ElementalReaction, ElementalReactionType};
-
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct FieldCharacterIndex(pub usize);
@@ -15,8 +12,6 @@ pub trait SpecialAbility {
     // `SpecialAbility`.
 
     fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> { None }
-
-    // fn build(&mut self, builder: &mut FieldAbilityBuilder) -> ();
 
     // Synchronize own timers to the emulator so that cool down times and
     // passive effect duration are up to date. The three methods of
@@ -55,6 +50,32 @@ pub trait SpecialAbility {
     fn reset(&mut self) -> () {}
 }
 
+#[derive(Debug)]
+pub struct NoopAbility;
+
+impl SpecialAbility for NoopAbility {}
+
+#[derive(Debug)]
+pub struct NoopSkillAbility;
+
+impl SpecialAbility for NoopSkillAbility {}
+
+impl SkillAbility for NoopSkillAbility {
+    fn accelerate(&mut self, _f: fn(&mut NTimer)) -> () {}
+}
+
+pub trait CharacterAbility : SpecialAbility {
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility;
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility;
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility;
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility;
+    fn na_ref(&self) -> & dyn SpecialAbility;
+    fn ca_ref(&self) -> & dyn SpecialAbility;
+    fn skill_ref(&self) -> & dyn SkillAbility;
+    fn burst_ref(&self) -> & dyn SpecialAbility;
+    // passive -> Self
+}
+
 pub trait SkillAbility : SpecialAbility {
     fn accelerate(&mut self, f: fn(&mut NTimer)) -> ();
 }
@@ -62,55 +83,51 @@ pub trait SkillAbility : SpecialAbility {
 // #[derive(Debug)]
 pub struct FieldAbility<'a> {
     pub timers: &'a mut ICDTimers,
-    pub na: &'a mut dyn SpecialAbility,
-    pub ca: &'a mut dyn SpecialAbility,
-    pub skill: &'a mut dyn SkillAbility,
-    pub burst: &'a mut dyn SpecialAbility,
-    pub passive: &'a mut dyn SpecialAbility,
+    pub character: &'a mut dyn CharacterAbility,
     pub weapon: &'a mut dyn SpecialAbility,
     pub artifact: &'a mut dyn SpecialAbility,
 }
 
 impl<'a> FieldAbility<'a> {
     pub fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        self.na.additional_attack(atk_queue, particles, data);
-        self.ca.additional_attack(atk_queue, particles, data);
-        self.skill.additional_attack(atk_queue, particles, data);
-        self.burst.additional_attack(atk_queue, particles, data);
-        self.passive.additional_attack(atk_queue, particles, data);
+        self.character.na_ref().additional_attack(atk_queue, particles, data);
+        self.character.ca_ref().additional_attack(atk_queue, particles, data);
+        self.character.skill_ref().additional_attack(atk_queue, particles, data);
+        self.character.burst_ref().additional_attack(atk_queue, particles, data);
+        self.character.additional_attack(atk_queue, particles, data);
         self.weapon.additional_attack(atk_queue, particles, data);
     }
 
     pub fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        self.passive.modify(modifiable_data, enemy);
+        self.character.modify(modifiable_data, enemy);
         self.weapon.modify(modifiable_data, enemy);
         self.artifact.modify(modifiable_data, enemy);
     }
 
     pub fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         self.timers.update(time);
-        self.na.update(time * (1.0 + data.state.atk_spd / 100.0), event, data, attack, particles, enemy);
-        self.ca.update(time, event, data, attack, particles, enemy);
-        self.skill.update(time, event, data, attack, particles, enemy);
-        self.burst.update(time, event, data, attack, particles, enemy);
-        self.passive.update(time, event, data, attack, particles, enemy);
+        self.character.na_mut().update(time * (1.0 + data.state.atk_spd / 100.0), event, data, attack, particles, enemy);
+        self.character.ca_mut().update(time, event, data, attack, particles, enemy);
+        self.character.skill_mut().update(time, event, data, attack, particles, enemy);
+        self.character.burst_mut().update(time, event, data, attack, particles, enemy);
+        self.character.update(time, event, data, attack, particles, enemy);
         self.weapon.update(time, event, data, attack, particles, enemy);
         self.artifact.update(time, event, data, attack, particles, enemy);
     }
 
     pub fn accelerate(&mut self) -> () {
-        if let Some(f) = self.passive.accelerator() {
-            self.skill.accelerate(f);
+        if let Some(f) = self.character.accelerator() {
+            self.character.skill_mut().accelerate(f);
         }
         if let Some(f) = self.weapon.accelerator() {
-            self.skill.accelerate(f);
+            self.character.skill_mut().accelerate(f);
         }
     }
 
     pub fn intensify(&self, attack: &Attack) -> Option<State> {
         let mut result: Option<State> = None;
         let xs = &mut [
-            self.passive.intensify(attack),
+            self.character.intensify(attack),
             self.weapon.intensify(attack),
         ];
         for some_state in xs.iter_mut() {
@@ -125,144 +142,14 @@ impl<'a> FieldAbility<'a> {
     }
 
     pub fn reset(&mut self) -> () {
-        self.na.reset();
-        self.ca.reset();
-        self.skill.reset();
-        self.burst.reset();
-        self.passive.reset();
+        self.character.na_mut().reset();
+        self.character.ca_mut().reset();
+        self.character.skill_mut().reset();
+        self.character.burst_mut().reset();
+        self.character.reset();
         self.weapon.reset();
         self.artifact.reset();
     }
-}
-
-pub struct FieldAbilityBuilder {
-    na: Option<*mut dyn SpecialAbility>,
-    ca: Option<*mut dyn SpecialAbility>,
-    skill: Option<*mut dyn SkillAbility>,
-    burst: Option<*mut dyn SpecialAbility>,
-    passive: Option<*mut dyn SpecialAbility>,
-    weapon: Option<*mut dyn SpecialAbility>,
-    artifact: Option<*mut dyn SpecialAbility>,
-
-    na_noop: Option<NoopAbility>,
-    ca_noop: Option<NoopAbility>,
-    skill_noop: Option<NoopSkillAbility>,
-    burst_noop: Option<NoopAbility>,
-    passive_noop: Option<NoopAbility>,
-    weapon_noop: Option<NoopAbility>,
-    artifact_noop: Option<NoopAbility>,
-}
-
-impl FieldAbilityBuilder {
-    pub fn new() -> Self {
-        Self {
-            na: None,
-            ca: None,
-            skill: None,
-            burst: None,
-            passive: None,
-            weapon: None,
-            artifact: None,
-            na_noop: None,
-            ca_noop: None,
-            skill_noop: None,
-            burst_noop: None,
-            passive_noop: None,
-            weapon_noop: None,
-            artifact_noop: None,
-        }
-    }
-
-    pub fn na(&mut self, na: *mut dyn SpecialAbility) -> &mut Self {
-        self.na = Some(na);
-        self
-    }
-
-    pub fn ca(&mut self, ca: *mut dyn SpecialAbility) -> &mut Self {
-        self.ca = Some(ca);
-        self
-    }
-
-    pub fn skill(&mut self, skill: *mut dyn SkillAbility) -> &mut Self {
-        self.skill = Some(skill);
-        self
-    }
-
-    pub fn burst(&mut self, burst: *mut dyn SpecialAbility) -> &mut Self {
-        self.burst = Some(burst);
-        self
-    }
-
-    pub fn passive(&mut self, passive: *mut dyn SpecialAbility) -> &mut Self {
-        self.passive = Some(passive);
-        self
-    }
-
-    pub fn weapon(&mut self, weapon: *mut dyn SpecialAbility) -> &mut Self {
-        self.weapon = Some(weapon);
-        self
-    }
-
-    pub fn artifact(&mut self, artifact: *mut dyn SpecialAbility) -> &mut Self {
-        self.artifact = Some(artifact);
-        self
-    }
-
-    pub fn build<'a>(&'a mut self, timers: &'a mut ICDTimers) -> FieldAbility<'a> {
-        let na = match self.na.take() {
-            Some(ability) => unsafe { &mut *ability },
-            None => self.na_noop.insert(NoopAbility),
-        };
-        let ca = match self.ca.take() {
-            Some(ability) => unsafe { &mut *ability },
-            None => self.ca_noop.insert(NoopAbility),
-        };
-        // let skill = unsafe { &mut *self.skill.take().unwrap() };
-        let skill = match self.skill.take() {
-            Some(ability) => unsafe { &mut *ability },
-            None => self.skill_noop.insert(NoopSkillAbility),
-        };
-        let burst = match self.burst.take() {
-            Some(ability) => unsafe { &mut *ability },
-            None => self.burst_noop.insert(NoopAbility),
-        };
-        let passive = match self.passive.take() {
-            Some(ability) => unsafe { &mut *ability },
-            None => self.passive_noop.insert(NoopAbility),
-        };
-        let weapon = match self.weapon.take() {
-            Some(ability) => unsafe { &mut *ability },
-            None => self.weapon_noop.insert(NoopAbility),
-        };
-        let artifact = match self.artifact.take() {
-            Some(ability) => unsafe { &mut *ability },
-            None => self.artifact_noop.insert(NoopAbility),
-        };
-        FieldAbility {
-            timers,
-            na,
-            ca,
-            skill,
-            burst,
-            passive,
-            weapon,
-            artifact,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct NoopAbility;
-
-impl SpecialAbility for NoopAbility {}
-
-#[derive(Debug)]
-pub struct NoopSkillAbility;
-
-impl SpecialAbility for NoopSkillAbility {}
-
-impl SkillAbility for NoopSkillAbility {
-    fn accelerate(&mut self, _f: fn(&mut NTimer)) -> () {}
 }
 
 #[derive(Debug)]

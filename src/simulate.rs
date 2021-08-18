@@ -19,27 +19,27 @@ pub fn simulate(time: f32, members: &mut [CharacterData], abilities: &mut [Field
         let data = &members[i];
         let fa = &abilities[i];
         if burst.is_none() {
-            burst = fa.burst.maybe_attack(data);
+            burst = fa.character.burst_ref().maybe_attack(data);
             if burst.is_some() {
                 continue;
             }
         }
         if skill.is_none() {
-            skill = fa.skill.maybe_attack(data);
+            skill = fa.character.skill_ref().maybe_attack(data);
             if skill.is_some() {
                 continue;
             }
         }
         if ca.is_none() {
-            ca = fa.ca.maybe_attack(data);
+            ca = fa.character.ca_ref().maybe_attack(data);
             if ca.is_some() {
                 continue;
             }
         }
         if na.is_none() {
-            na = fa.na.maybe_attack(data);
+            na = fa.character.na_ref().maybe_attack(data);
             if na.is_none() {
-                na = fa.passive.maybe_attack(data);
+                na = fa.character.maybe_attack(data);
             }
         }
     }

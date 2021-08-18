@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy, Debuff};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy, Debuff};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
@@ -15,6 +15,7 @@ use Vision::*;
 
 pub struct Chongyun {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: SimpleBurst,
 }
@@ -40,6 +41,7 @@ impl Chongyun {
                     Attack::na(200.09, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkill::new(&[3.0, 7.0, 5.0], Particle::new(Cryo, 4.0), Attack {
                 kind: AttackType::PressSkill,
                 element: &CRYO_GAUGE2B,
@@ -58,10 +60,17 @@ impl Chongyun {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Chongyun {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Chongyun {
@@ -97,6 +106,7 @@ impl SpecialAbility for Chongyun {
 pub struct Kaeya {
     skill_a4: bool,
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: SimpleBurstDot,
 }
@@ -124,6 +134,7 @@ impl Kaeya {
                     Attack::na(174.42, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkill::new(&[6.0], Particle::new(Cryo, 2.5), Attack {
                 kind: AttackType::PressSkill,
                 element: &CRYO_GAUGE2B,
@@ -142,10 +153,17 @@ impl Kaeya {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Kaeya {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Kaeya {
@@ -162,6 +180,7 @@ impl SpecialAbility for Kaeya {
 
 pub struct Qiqi {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SkillDamage2Dot,
     burst: SimpleBurst,
 }
@@ -186,6 +205,7 @@ impl Qiqi {
                     Attack::na(124.61, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SkillDamage2Dot::new(&[3.0,3.0,3.0,3.0, 18.0], Particle::new(Cryo, 0.0), Attack {
                 kind: AttackType::PressSkill,
                 element: &CRYO_GAUGE1A,
@@ -211,10 +231,17 @@ impl Qiqi {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Qiqi {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Qiqi {}

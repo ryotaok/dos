@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, FieldAbilityBuilder, SpecialAbility, SkillAbility, CharacterData, CharacterRecord, Enemy};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleCa, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, Time, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
@@ -15,6 +15,7 @@ use Vision::*;
 
 pub struct Amber {
     ca_timer: DurationTimer,
+    na: NoopAbility,
     ca: SimpleCa,
     skill: SimpleSkill,
     burst: SimpleBurst,
@@ -32,6 +33,7 @@ impl Amber {
     pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
             ca_timer: DurationTimer::new(10.0, &[0.0]),
+            na: NoopAbility,
             ca: SimpleCa::new(0.0, 2.0, Attack {
                 kind: AttackType::Ca,
                 element: &PYRO_GAUGE2B,
@@ -58,10 +60,17 @@ impl Amber {
             }),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.ca(&mut self.ca).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Amber {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Amber {
@@ -96,6 +105,7 @@ impl SpecialAbility for Amber {
 pub struct Bennett {
     bonus: f32,
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkill,
     burst: SimpleBurst,
 }
@@ -123,6 +133,7 @@ impl Bennett {
                     Attack::na(142.12, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             // a1
             skill: SimpleSkill::new(&[5.0 * 0.8], Particle::new(Pyro, 2.0), Attack {
                 kind: AttackType::PressSkill,
@@ -143,9 +154,17 @@ impl Bennett {
         }
     }
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+}
+
+impl CharacterAbility for Bennett {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Bennett {
@@ -172,6 +191,7 @@ impl SpecialAbility for Bennett {
 
 pub struct Xiangling {
     na: NaLoop,
+    ca: NoopAbility,
     skill: SimpleSkillDot,
     burst: BurstDamage2Dot,
     skill_a4: DurationTimer,
@@ -198,6 +218,7 @@ impl Xiangling {
                     Attack::na(140.42, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: SimpleSkillDot::new(&[2.0,2.0,2.0,2.0,4.0], Particle::new(Pyro, 1.0), Attack {
                 kind: AttackType::SkillDot,
                 element: &PYRO_GAUGE1A,
@@ -224,10 +245,17 @@ impl Xiangling {
             skill_a4: DurationTimer::new(10.0, &[0.0]),
         }
     }
+}
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+impl CharacterAbility for Xiangling {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Xiangling {
@@ -339,6 +367,7 @@ impl SpecialAbility for DilucSkill {
 
 pub struct Diluc {
     na: NaLoop,
+    ca: NoopAbility,
     skill: DilucSkill,
     burst: BurstDamage2Dot,
 }
@@ -364,6 +393,7 @@ impl Diluc {
                     Attack::na(264.86, 1, idx, &icd_timer),
                 ]
             ),
+            ca: NoopAbility,
             skill: DilucSkill::new(idx, icd_timer),
             burst: BurstDamage2Dot::new(&[0.5,0.5,0.5, 10.5], Attack {
                 kind: AttackType::Burst,
@@ -383,9 +413,17 @@ impl Diluc {
         }
     }
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+}
+
+impl CharacterAbility for Diluc {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Diluc {
@@ -579,9 +617,17 @@ impl Klee {
         }
     }
 
-    pub fn build(&mut self, builder: &mut FieldAbilityBuilder) -> () {
-        builder.na(&mut self.na).ca(&mut self.ca).skill(&mut self.skill).burst(&mut self.burst).passive(self);
-    }
+}
+
+impl CharacterAbility for Klee {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for Klee {

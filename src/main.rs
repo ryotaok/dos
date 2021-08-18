@@ -29,11 +29,9 @@ mod testutil;
 mod cli;
 
 use crate::state::State;
-use crate::characters::{AllCharacters, CharacterName};
-use crate::weapons::{AllWeapons, WeaponName};
-use crate::artifact::{Artifact, AllArtifacts, ArtifactName};
+use crate::artifact::{Artifact};
 use crate::action::{Attack, ICDTimers};
-use crate::fc::{FieldCharacterIndex, FieldAbility, FieldAbilityBuilder, CharacterRecord, WeaponRecord, CharacterData, Enemy};
+use crate::fc::{FieldCharacterIndex, FieldAbility, CharacterAbility, CharacterRecord, WeaponRecord, CharacterData, Enemy};
 use crate::types::{Vision, Preference, FieldEnergy};
 use crate::permutools::Permutation3;
 use crate::cli::Args;
@@ -308,33 +306,28 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
     let idx1 = FieldCharacterIndex(1);
     let mut timers0 = ICDTimers::new();
     let mut timers1 = ICDTimers::new();
-    let mut characters1 = AllCharacters::new(idx0, &timers0);
-    let mut characters2 = AllCharacters::new(idx1, &timers1);
-    let mut weapons1 = AllWeapons::new(idx0, &timers0);
-    let mut weapons2 = AllWeapons::new(idx1, &timers1);
-    let mut artifacts1 = AllArtifacts::new(idx0);
-    let mut artifacts2 = AllArtifacts::new(idx1);
-    let input_characters: Vec<CharacterName> = CharacterName::cryo().drain(start..end).collect();
+    let input_characters: Vec<(CharacterRecord, Box<dyn CharacterAbility>)> = characters::cryo(idx0, &timers0).drain(start..end).collect();
     // TODO
     let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
 
     let mut member1 = Permutation3::new(
         input_characters,
-        WeaponName::vec(),
-        ArtifactName::vec(),
+        weapons::all(idx0, &timers0),
+        artifact::all(idx0),
     );
     let mut member2 = Permutation3::new(
-        CharacterName::electro(),
-        WeaponName::vec(),
-        ArtifactName::vec(),
+        characters::electro(idx1, &timers1),
+        weapons::all(idx1, &timers1),
+        artifact::all(idx1),
     );
-    for (character_name1, weapon_name1, artifact_name1) in member1.iter() {
-        let mut builder1 = FieldAbilityBuilder::new();
-        let (cr1, ca1) = characters1.find(&character_name1, &mut builder1);
-        let (wr1, wa1) = weapons1.find(&weapon_name1, &mut builder1);
-        let (ar1, aa1) = artifacts1.find(&artifact_name1, &mut builder1);
+    // let mut member2 = Permutation3::new(
+    //     CharacterName::electro(),
+    //     WeaponName::vec(),
+    //     ArtifactName::vec(),
+    // );
+    for ((cr1, mut ca1), (wr1, mut wa1), (mut ar1, mut aa1)) in member1.iter() {
         if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
-            member1.back((character_name1, weapon_name1, artifact_name1));
+            member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
             continue;
         }
         if physical_infusion.contains(&cr1.name) {
@@ -344,17 +337,13 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         }
 
         let mut items: Vec<Recorder> = Vec::new();
-        for (character_name2, weapon_name2, artifact_name2) in member2.iter() {
-            let mut builder2 = FieldAbilityBuilder::new();
+        for ((cr2, mut ca2), (wr2, mut wa2), (mut ar2, mut aa2)) in member2.iter() {
             let mut members: Vec<CharacterData> = Vec::with_capacity(2);
             let mut abilities: Vec<FieldAbility> = Vec::with_capacity(2);
-            let (cr2, ca2) = characters2.find(&character_name2, &mut builder2);
-            let (wr2, wa2) = weapons2.find(&weapon_name2, &mut builder2);
-            let (ar2, aa2) = artifacts2.find(&artifact_name2, &mut builder2);
             // identical characters cannot be on the same field.
             if cr1.name == cr2.name ||
                !combination_filter_supporter(&cr2, &wr2, &ar2, args) {
-                member2.back((character_name2, weapon_name2, artifact_name2));
+                member2.back(((cr2, ca2), (wr2, wa2), (ar2, aa2)));
                 continue;
             }
             if physical_infusion.contains(&cr2.name) {
@@ -364,8 +353,18 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
             }
             members.push(CharacterData::new(idx0, &cr1, &wr1, &ar1));
             members.push(CharacterData::new(idx1, &cr2, &wr2, &ar2));
-            abilities.push(builder1.build(&mut timers0));
-            abilities.push(builder2.build(&mut timers1));
+            abilities.push(FieldAbility {
+                timers: &mut timers0,
+                character: &mut *ca1,
+                weapon: &mut *wa1,
+                artifact: &mut *aa1,
+            });
+            abilities.push(FieldAbility {
+                timers: &mut timers1,
+                character: &mut *ca2,
+                weapon: &mut *wa2,
+                artifact: &mut *aa2,
+            });
             let rc = main_loop(&mut members, &mut abilities, args);
             items.push(rc);
 
@@ -377,10 +376,10 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
             timers1.reset();
             ar1.dry_goblet();
             ar2.dry_goblet();
-            member2.back((character_name2, weapon_name2, artifact_name2));
+            member2.back(((cr2, ca2), (wr2, wa2), (ar2, aa2)));
         }
         member2.reset();
-        member1.back((character_name1, weapon_name1, artifact_name1));
+        member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
         tx.send(items).unwrap();
     }
 }
@@ -388,27 +387,20 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
 fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
     let idx = FieldCharacterIndex(0);
     let mut timers0 = ICDTimers::new();
-    let mut characters = AllCharacters::new(idx, &timers0);
-    let mut weapons = AllWeapons::new(idx, &timers0);
-    let mut artifacts = AllArtifacts::new(idx);
-    let input_characters: Vec<CharacterName> = CharacterName::vec().drain(start..end).collect();
+    let input_characters: Vec<(CharacterRecord, Box<dyn CharacterAbility>)> = characters::all(idx, &timers0).drain(start..end).collect();
     // TODO
     let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
     let mut member1 = Permutation3::new(
         input_characters,
-        WeaponName::vec(),
-        ArtifactName::vec(),
+        weapons::all(idx, &timers0),
+        artifact::all(idx),
     );
     let mut items: Vec<Recorder> = Vec::new();
-    for (character_name, weapon_name, artifact_name) in member1.iter() {
-        let mut builder = FieldAbilityBuilder::new();
+    for ((cr1, mut ca1), (wr1, mut wa1), (mut ar1, mut aa1)) in member1.iter() {
         let mut members: Vec<CharacterData> = Vec::with_capacity(1);
         let mut abilities: Vec<FieldAbility> = Vec::with_capacity(1);
-        let (cr1, ca1) = characters.find(&character_name, &mut builder);
-        let (wr1, wa1) = weapons.find(&weapon_name, &mut builder);
-        let (ar1, aa1) = artifacts.find(&artifact_name, &mut builder);
         if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
-            member1.back((character_name, weapon_name, artifact_name));
+            member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
             continue;
         }
         if physical_infusion.contains(&cr1.name) {
@@ -417,7 +409,12 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
             ar1.infuse_goblet(&cr1.vision);
         }
         members.push(CharacterData::new(idx, &cr1, &wr1, &ar1));
-        abilities.push(builder.build(&mut timers0));
+        abilities.push(FieldAbility {
+            timers: &mut timers0,
+            character: &mut *ca1,
+            weapon: &mut *wa1,
+            artifact: &mut *aa1,
+        });
         let rc = main_loop(&mut members, &mut abilities, args);
         items.push(rc);
 
@@ -427,54 +424,55 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         }
         timers0.reset();
         ar1.dry_goblet();
-        member1.back((character_name, weapon_name, artifact_name));
+        member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
     }
     tx.send(items).unwrap();
 }
 
-fn debugging(args: &Args, debug_args: Vec<String>) -> () {
-    let idx = FieldCharacterIndex(0);
-    let mut timers = ICDTimers::new();
-    let mut builder = FieldAbilityBuilder::new();
-    let mut characters = AllCharacters::new(idx, &timers);
-    let mut weapons = AllWeapons::new(idx, &timers);
-    let mut artifacts = AllArtifacts::new(idx);
-    let mut character_name = MaybeUninit::<CharacterName>::uninit();
-    let mut weapon_name = MaybeUninit::<WeaponName>::uninit();
-    let mut artifact_name = MaybeUninit::<ArtifactName>::uninit();
-    let mut members: Vec<CharacterData> = Vec::new();
-    let mut abilities: Vec<FieldAbility> = Vec::new();
-    for i in 0..3 {
-        match i {
-            0 => unsafe { character_name.as_mut_ptr().write(CharacterName::from(debug_args[0].as_str())) },
-            1 => unsafe { weapon_name.as_mut_ptr().write(WeaponName::from(debug_args[1].as_str())) },
-            2 => unsafe { artifact_name.as_mut_ptr().write(ArtifactName::from(debug_args[2].as_str())) },
-            _ => (),
-        }
-    };
-    let (cr1, ca1) = characters.find(unsafe { &character_name.assume_init() }, &mut builder);
-    let (wr1, wa1) = weapons.find(unsafe { &weapon_name.assume_init() }, &mut builder);
-    let (ar1, aa1) = artifacts.find(unsafe { &artifact_name.assume_init() }, &mut builder);
-    let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
-    if physical_infusion.contains(&cr1.name) {
-        ar1.infuse_goblet(&Vision::Physical);
-    } else {
-        ar1.infuse_goblet(&cr1.vision);
-    }
-    members.push(CharacterData::new(idx, &cr1, &wr1, &ar1));
-    abilities.push(builder.build(&mut timers));
-    println!("debugging: {:?} {:?} {:?}", cr1.name, wr1.name, ar1.name);
-    main_loop(&mut members, &mut abilities, args);
-}
+// fn debugging(args: &Args, debug_args: Vec<String>) -> () {
+//     let idx = FieldCharacterIndex(0);
+//     let mut timers = ICDTimers::new();
+//     let mut builder = FieldAbilityBuilder::new();
+//     let mut characters = AllCharacters::new(idx, &timers);
+//     let mut weapons = AllWeapons::new(idx, &timers);
+//     let mut artifacts = AllArtifacts::new(idx);
+//     let mut character_name = MaybeUninit::<CharacterName>::uninit();
+//     let mut weapon_name = MaybeUninit::<WeaponName>::uninit();
+//     let mut artifact_name = MaybeUninit::<ArtifactName>::uninit();
+//     let mut members: Vec<CharacterData> = Vec::new();
+//     let mut abilities: Vec<FieldAbility> = Vec::new();
+//     for i in 0..3 {
+//         match i {
+//             0 => unsafe { character_name.as_mut_ptr().write(CharacterName::from(debug_args[0].as_str())) },
+//             1 => unsafe { weapon_name.as_mut_ptr().write(WeaponName::from(debug_args[1].as_str())) },
+//             2 => unsafe { artifact_name.as_mut_ptr().write(ArtifactName::from(debug_args[2].as_str())) },
+//             _ => (),
+//         }
+//     };
+//     let (cr1, ca1) = characters.find(unsafe { &character_name.assume_init() }, &mut builder);
+//     let (wr1, wa1) = weapons.find(unsafe { &weapon_name.assume_init() }, &mut builder);
+//     let (ar1, aa1) = artifacts.find(unsafe { &artifact_name.assume_init() }, &mut builder);
+//     let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
+//     if physical_infusion.contains(&cr1.name) {
+//         ar1.infuse_goblet(&Vision::Physical);
+//     } else {
+//         ar1.infuse_goblet(&cr1.vision);
+//     }
+//     members.push(CharacterData::new(idx, &cr1, &wr1, &ar1));
+//     abilities.push(builder.build(&mut timers));
+//     println!("debugging: {:?} {:?} {:?}", cr1.name, wr1.name, ar1.name);
+//     main_loop(&mut members, &mut abilities, args);
+// }
 
 fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
     let mut debug_args: Vec<String> = Vec::new();
     let args = Args::parse(&mut env::args(), &mut debug_args)?;
     if debug_args.len() > 0 {
-        return Ok(debugging(&args, debug_args));
+        return Ok(());
+        // return Ok(debugging(&args, debug_args));
     }
     let num_cpu = 4;
-    let character_size = CharacterName::cryo().len();
+    let character_size = characters::N_CRYO;
     let chunk_size = character_size / num_cpu + 1;
     let (tx, rx) = mpsc::channel();
     if num_cpu == 1 {
