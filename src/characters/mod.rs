@@ -94,7 +94,7 @@ pub fn all(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Vec<(CharacterRec
     ]
 }
 
-pub const N_CRYO: usize = 9;
+pub const N_CRYO: usize = 18;
 
 pub fn cryo(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Vec<(CharacterRecord, Box<dyn CharacterAbility>)> {
     vec![
@@ -114,6 +114,21 @@ pub fn cryo(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Vec<(CharacterRe
     (Ayaka::record(), Box::new(Ayaka::new(idx, icd_timer))),
     // version_2_1
     (Aloy::record(), Box::new(Aloy::new(idx, icd_timer))),
+
+    // pyro
+    (Amber::record(), Box::new(Amber::new(idx, icd_timer))),
+    (Bennett::record(), Box::new(Bennett::new(idx, icd_timer))),
+    (Xiangling::record(), Box::new(Xiangling::new(idx, icd_timer))),
+    (Diluc::record(), Box::new(Diluc::new(idx, icd_timer))),
+    (Klee::record(), Box::new(Klee::new(idx, icd_timer))),
+    // version_1_1
+    (Xinyan::record(), Box::new(Xinyan::new(idx, icd_timer))),
+    // version_1_3
+    (HuTao::record(), Box::new(HuTao::new(idx, icd_timer))),
+    // version_1_5
+    (Yanfei::record(), Box::new(Yanfei::new(idx, icd_timer))),
+    // version_2_0
+    (Yoimiya::record(), Box::new(Yoimiya::new(idx, icd_timer))),
     ]
 }
 
@@ -133,50 +148,54 @@ pub fn electro(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Vec<(Characte
     ]
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     use crate::state::State;
-//     use crate::simulate::simulate;
-//     use crate::testutil::{TestEnvironment, TestWeapon, TestArtifact, TestAbility};
+    use crate::state::State;
+    use crate::types::Vision;
+    use crate::simulate::simulate;
+    use crate::testutil::{TestEnvironment2, TestCharacter};
+    use crate::fc::NoopAbility;
 
-//     #[test]
-//     fn eula_0() {
-//         let mut members = vec![TestEnvironment::no_skill(
-//             Box::new(TestAbility(Eula::new())),
-//             Box::new(TestWeapon),
-//             Box::new(TestArtifact(State::new()))
-//         )];
-//         let mut enemy = TestEnvironment::enemy();
-//         let mut total_dmg = 0.0;
-//         let mut current_time = 0.0;
-//         while current_time < 8.0 {
-//             total_dmg += simulate(&mut members, &mut enemy, 0.1);
-//             current_time += 0.1;
-//         }
-//         // 12 times na
-//         let expect = 0.5 * (100.0 * 12.0);
-//         assert_eq!(total_dmg, expect);
-//     }
+    use Vision::*;
 
-//     #[test]
-//     fn eula_1() {
-//         let mut members = vec![TestEnvironment::no_skill(
-//             Box::new(TestAbility(Eula::new())),
-//             Box::new(TestWeapon),
-//             Box::new(TestArtifact(State::new()))
-//         )];
-//         members[0].0.state.energy += members[0].0.state.energy_cost;
-//         let mut enemy = TestEnvironment::enemy();
-//         let mut total_dmg = 0.0;
-//         let mut current_time = 0.0;
-//         while current_time < 8.0 {
-//             total_dmg += simulate(&mut members, &mut enemy, 0.1);
-//             current_time += 0.1;
-//         }
-//         // hit 10 times nas and 1 burst before lightfall sword epires
-//         let expect = 0.5 * (300.0 + 100.0 * 12.0 + 2356.2);
-//         assert_eq!(total_dmg, expect);
-//     }
-// }
+    // #[test]
+    // fn eula_0() {
+    //     let mut members = vec![TestEnvironment::no_skill(
+    //         Box::new(TestAbility(Eula::new())),
+    //         Box::new(TestWeapon),
+    //         Box::new(TestArtifact(State::new()))
+    //     )];
+    //     let mut enemy = TestEnvironment::enemy();
+    //     let mut total_dmg = 0.0;
+    //     let mut current_time = 0.0;
+    //     while current_time < 8.0 {
+    //         total_dmg += simulate(&mut members, &mut enemy, 0.1);
+    //         current_time += 0.1;
+    //     }
+    //     // 12 times na
+    //     let expect = 0.5 * (100.0 * 12.0);
+    //     assert_eq!(total_dmg, expect);
+    // }
+
+    // #[test]
+    // fn eula_1() {
+    //     let mut members = vec![TestEnvironment::no_skill(
+    //         Box::new(TestAbility(Eula::new())),
+    //         Box::new(TestWeapon),
+    //         Box::new(TestArtifact(State::new()))
+    //     )];
+    //     members[0].0.state.energy += members[0].0.state.energy_cost;
+    //     let mut enemy = TestEnvironment::enemy();
+    //     let mut total_dmg = 0.0;
+    //     let mut current_time = 0.0;
+    //     while current_time < 8.0 {
+    //         total_dmg += simulate(&mut members, &mut enemy, 0.1);
+    //         current_time += 0.1;
+    //     }
+    //     // hit 10 times nas and 1 burst before lightfall sword epires
+    //     let expect = 0.5 * (300.0 + 100.0 * 12.0 + 2356.2);
+    //     assert_eq!(total_dmg, expect);
+    // }
+}

@@ -32,13 +32,9 @@ Currently, all party members are on the field.
 
 All stats are hard coded, so the current program does not support user inputs. I think the program should be able to simulate damages differently.
 
-- Why does Keqing use Skyward Blade?
-
-Within the 20 seconds, she recharged fully and was able to cast her burst again when she used it. This kind of behaviors are found in other characters who recharge fast like Fischl, Albedo and Geo traveler.
-
 - Where is the 2 member simulation result?
 
-As I'm improving [the reports on my GitHub Page](https://ryotaok.github.io/dos/), it was removed at this moment.
+Visit [my GitHub Page](https://ryotaok.github.io/dos/), and navigate to each character at the bottom of the page.
 
 ## Credit
 

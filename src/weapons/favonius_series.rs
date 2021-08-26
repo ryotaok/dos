@@ -22,9 +22,12 @@ impl SpecialAbility for Windfall {
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        match (self.timer.ping, self.timer.n) {
-            (true, 1) => particles.push_p(Particle::neutral(3.0 * data.state.cr / 100.0)),
-            _ => (),
+        if self.timer.ping && self.timer.n == 1 {
+            particles.push_p(Particle::neutral(if data.state.cr > 100.0 {
+                3.0
+            } else {
+                3.0 * data.state.cr / 100.0
+            }))
         }
     }
 
@@ -47,9 +50,6 @@ impl FavoniusGreatswordR5 {
     pub fn new() -> Self {
         Self(Windfall::new())
     }
-}
-
-impl FavoniusGreatswordR5 {
 }
 
 impl SpecialAbility for FavoniusGreatswordR5 {
@@ -81,9 +81,6 @@ impl FavoniusSwordR5 {
     }
 }
 
-impl FavoniusSwordR5 {
-}
-
 impl SpecialAbility for FavoniusSwordR5 {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         self.0.update(time, event, data, attack, particles, enemy);
@@ -111,9 +108,6 @@ impl FavoniusLanceR5 {
     pub fn new() -> Self {
         Self(Windfall::new())
     }
-}
-
-impl FavoniusLanceR5 {
 }
 
 impl SpecialAbility for FavoniusLanceR5 {
@@ -145,9 +139,6 @@ impl FavoniusWarbowR5 {
     }
 }
 
-impl FavoniusWarbowR5 {
-}
-
 impl SpecialAbility for FavoniusWarbowR5 {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
         self.0.update(time, event, data, attack, particles, enemy);
@@ -175,9 +166,6 @@ impl FavoniusCodexR5 {
     pub fn new() -> Self {
         Self(Windfall::new())
     }
-}
-
-impl FavoniusCodexR5 {
 }
 
 impl SpecialAbility for FavoniusCodexR5 {

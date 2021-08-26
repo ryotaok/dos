@@ -1,6 +1,6 @@
 use crate::state::State;
 use crate::artifact::Artifact;
-use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, ICDTimers};
+use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, ICDTimers, DurationTimer};
 use crate::types::{Vision, WeaponType, FieldEnergy, ElementalGauge, ElementalReaction, ElementalReactionType};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -105,9 +105,10 @@ impl<'a> FieldAbility<'a> {
     }
 
     pub fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        let speedup_time = time * (1.0 + data.state.atk_spd / 100.0);
         self.timers.update(time);
-        self.character.na_mut().update(time * (1.0 + data.state.atk_spd / 100.0), event, data, attack, particles, enemy);
-        self.character.ca_mut().update(time, event, data, attack, particles, enemy);
+        self.character.na_mut().update(speedup_time, event, data, attack, particles, enemy);
+        self.character.ca_mut().update(speedup_time, event, data, attack, particles, enemy);
         self.character.skill_mut().update(time, event, data, attack, particles, enemy);
         self.character.burst_mut().update(time, event, data, attack, particles, enemy);
         self.character.update(time, event, data, attack, particles, enemy);
@@ -258,112 +259,80 @@ impl WeaponRecord {
 }
 
 #[derive(Debug)]
-pub struct Debuff {
-    caster: usize,
-    amount: f32,
-    duration: f32,
+pub struct Resistance {
+    pub pyro: f32,
+    pub hydro: f32,
+    pub electro: f32,
+    pub cryo: f32,
+    pub anemo: f32,
+    pub geo: f32,
+    pub dendro: f32,
+    pub physical: f32,
 }
 
-// https://genshin-impact.fandom.com/wiki/Damage#Resistance
-impl Debuff {
-    // pub fn new(caster: usize, amount: f32, duration: f32) -> Self {
-    //     Self { caster, amount, duration }
-    // }
-
-    pub fn superconduct() -> Self {
-        Self { caster: 1, amount: 40.0, duration: 12.0 }
-    }
-
-    // pub fn frozen() -> Self {
-    //     Self { caster: 2, amount: 1.0, duration: 4.0 }
-    // }
-
-    pub fn viridescent_venerer() -> Self {
-        Self { caster: 3, amount: 40.0, duration: 10.0 }
-    }
-
-    pub fn lisa_a4() -> Self {
-        Self { caster: 4, amount: 15.0, duration: 10.0 }
-    }
-
-    pub fn chongyun_a4() -> Self {
-        Self { caster: 5, amount: 10.0, duration: 8.0 }
-    }
-
-    pub fn eula_cryo() -> Self {
-        Self { caster: 6, amount: 25.0, duration: 7.0 }
-    }
-
-    pub fn eula_physical() -> Self {
-        Self { caster: 7, amount: 25.0, duration: 7.0 }
-    }
-
-    pub fn value(&self) -> f32 {
-        if self.duration > 0.0 {
-            self.amount
-        } else {
-            0.0
+impl Resistance {
+    pub fn normal() -> Self {
+        Self {
+            pyro: 10.0,
+            hydro: 10.0,
+            electro: 10.0,
+            cryo: 10.0,
+            anemo: 10.0,
+            geo: 10.0,
+            dendro: 10.0,
+            physical: 10.0,
         }
     }
 
-    pub fn update(&mut self, time: f32) -> () {
-        self.duration -= time;
-    }
-
-    pub fn accumulate(list: &Vec<Debuff>) -> f32 {
-        let mut m: Vec<usize> = Vec::with_capacity(list.len());
-        let mut res = 0.0;
-        for debuff in list {
-            // do not stack the same RES down debuff
-            if !m.contains(&debuff.caster) {
-                let v = debuff.value();
-                res += v;
-                if v != 0.0 {
-                    m.push(debuff.caster);
-                }
-            }
+    pub fn zero() -> Self {
+        Self {
+            pyro: 0.0,
+            hydro: 0.0,
+            electro: 0.0,
+            cryo: 0.0,
+            anemo: 0.0,
+            geo: 0.0,
+            dendro: 0.0,
+            physical: 0.0,
         }
-        res
     }
 }
 
 #[derive(Debug)]
 pub struct Enemy {
-    pub element_res: f32,
-    pub physical_res: f32,
     pub level: f32,
+    pub default: Resistance,
 
     pub aura: ElementalGauge,
     pub isfrozen: bool,
-    pub element_res_debuff: Vec<Debuff>,
-    pub physical_res_debuff: Vec<Debuff>,
-    pub def_down_debuff: Vec<Debuff>,
+
+    pub debuff: Resistance,
+    pub def_down: f32,
+    pub superconduct: DurationTimer,
 }
 
 impl Enemy {
     pub fn hilichurl() -> Self {
         Self {
-            element_res: 10.0,
-            physical_res: 10.0,
             level: 90.0,
+            default: Resistance::normal(),
             aura: ElementalGauge::default(),
             isfrozen: false,
-            element_res_debuff: Vec::new(),
-            physical_res_debuff: Vec::new(),
-            def_down_debuff: Vec::new()
+            debuff: Resistance::zero(),
+            def_down: 0.0,
+            superconduct: DurationTimer::new(12.0, &[0.0]),
         }
     }
 
     pub fn simple() -> Self {
         Self {
-            element_res: 0.0,
-            physical_res: 0.0,
             level: 90.0,
+            default: Resistance::zero(),
             aura: ElementalGauge::default(),
             isfrozen: false,
-            element_res_debuff: Vec::new(),
-            physical_res_debuff: Vec::new(),
-            def_down_debuff: Vec::new()
+            debuff: Resistance::zero(),
+            def_down: 0.0,
+            superconduct: DurationTimer::new(12.0, &[0.0]),
         }
     }
 
@@ -371,39 +340,61 @@ impl Enemy {
         ElementalReaction::new(self.aura.aura, *e)
     }
 
-    pub fn get_element_res(&self) -> f32 {
-        if self.element_res_debuff.len() == 0 {
-            0.0
-        } else {
-            Debuff::accumulate(&self.element_res_debuff)
-        }
-    }
-
-    pub fn get_physical_res(&self) -> f32 {
-        if self.physical_res_debuff.len() == 0 {
-            0.0
-        } else {
-            Debuff::accumulate(&self.physical_res_debuff)
-        }
-    }
-
-    pub fn get_def_down(&self) -> f32 {
-        if self.def_down_debuff.len() == 0 {
-            0.0
-        } else {
-            Debuff::accumulate(&self.def_down_debuff)
-        }
-    }
-
-    // TODO slow?
     pub fn update(&mut self, time: f32) -> () {
         self.aura.update(time);
+        self.superconduct.update(time, false);
         if self.isfrozen && self.aura.aura == Vision::Physical {
             self.isfrozen = false;
         }
-        for x in &mut self.element_res_debuff { x.update(time); }
-        for x in &mut self.physical_res_debuff { x.update(time); }
-        for x in &mut self.def_down_debuff { x.update(time); }
+    }
+
+    pub fn resistance(&self, element: &Vision) -> f32 {
+        let resistance: f32;
+        let debuff: f32;
+        match element {
+            Vision::Pyro => {
+                resistance = self.default.pyro;
+                debuff = self.debuff.pyro;
+            },
+            Vision::Hydro => {
+                resistance = self.default.hydro;
+                debuff = self.debuff.hydro;
+            },
+            Vision::Electro => {
+                resistance = self.default.electro;
+                debuff = self.debuff.electro;
+            },
+            Vision::Cryo => {
+                resistance = self.default.cryo;
+                debuff = self.debuff.cryo;
+            },
+            Vision::Anemo => {
+                resistance = self.default.anemo;
+                debuff = self.debuff.anemo;
+            },
+            Vision::Geo => {
+                resistance = self.default.geo;
+                debuff = self.debuff.geo;
+            },
+            Vision::Dendro => {
+                resistance = self.default.dendro;
+                debuff = self.debuff.dendro;
+            },
+            Vision::Physical => {
+                resistance = self.default.physical;
+                debuff = self.debuff.physical + if self.superconduct.n == 1 {
+                    40.0
+                } else {
+                    0.0
+                };
+            },
+        }
+        let res = if debuff > resistance {
+            -0.5 * (debuff - resistance)
+        } else {
+            resistance - debuff
+        };
+        (100.0 - res) / 100.0
     }
 }
 

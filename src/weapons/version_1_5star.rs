@@ -179,7 +179,6 @@ impl WolfsGravestone {
             .base_atk(608.0)
             .atk(49.6 + 20.0)
     }
-    // TODO Box::new(FixedStack::new(MovementActivator, 30.0, 12.0, Atk(40.0)))
 }
 
 impl SpecialAbility for WolfsGravestone {}

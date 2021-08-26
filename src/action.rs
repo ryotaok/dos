@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use crate::state::State;
-use crate::fc::{CharacterData, FieldCharacterIndex, SpecialAbility, SkillAbility, Enemy, Debuff};
+use crate::fc::{CharacterData, FieldCharacterIndex, SpecialAbility, SkillAbility, Enemy};
 use crate::types::{AttackType, Vision, FieldEnergy, Particle, VecFieldEnergy, ElementalGauge, ElementalReactionType, ElementalReaction, PHYSICAL_GAUGE, PYRO_GAUGE1A, HYDRO_GAUGE1A, ELECTRO_GAUGE1A, CRYO_GAUGE1A, ANEMO_GAUGE1A, GEO_GAUGE1A, DENDRO_GAUGE1A};
 
 use AttackType::*;
@@ -28,7 +28,7 @@ impl PartialEq<Attack> for AttackEvent {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Attack {
     // type of this `Attack`. For example, Xiangling's skill summons Guoba to
     // deal DoT Pyro DMG. This DMG is considered as an additional attack and
@@ -101,29 +101,11 @@ impl Attack {
     }
 
     pub fn incoming_damage(&self, outgoing_damage: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
-        let def_down = 1.0 - enemy.get_def_down() / 100.0;
+        let def_down = 1.0 - enemy.def_down / 100.0;
         let enemy_defense = enemy.level / (enemy.level * def_down + enemy.level);
-        let resistance = self.resistance(&enemy);
+        let resistance = enemy.resistance(&self.element.aura);
         let dmg = outgoing_damage * resistance * enemy_defense;
         self.elemental_reaction(dmg, resistance, fc, enemy)
-    }
-
-    fn resistance(&self, enemy: &Enemy) -> f32 {
-        let enemy_res: f32;
-        let res_decrease: f32;
-        if self.element.aura == Vision::Physical {
-            enemy_res = enemy.physical_res;
-            res_decrease = enemy.get_physical_res();
-        } else {
-            enemy_res = enemy.element_res;
-            res_decrease = enemy.get_element_res();
-        }
-        let res = if res_decrease > enemy_res {
-            -0.5 * (res_decrease - enemy_res)
-        } else {
-            enemy_res - res_decrease
-        };
-        (100.0 - res) / 100.0
     }
 
     pub fn elemental_reaction(&self, outgoing_damage: f32, resistance: f32, fc: &CharacterData, enemy: &mut Enemy) -> f32 {
@@ -138,8 +120,8 @@ impl Attack {
                     Overloaded(ref er) |
                     Shatter(ref er) |
                     ElectorCharged(ref er) |
-                    Swirl(ref er) |
-                    Superconduct(ref er) => outgoing_damage + resistance * er.transformative_reaction(state.em, state.transformative_bonus),
+                    Superconduct(ref er) |
+                    Swirl(ref er) => outgoing_damage + enemy.resistance(&er.attack) * er.transformative_reaction(state.em, state.transformative_bonus),
                     Vaporize(ref er) |
                     Melt(ref er) => outgoing_damage * er.amplifying_reaction(state.em, state.amplifying_bonus),
                     Crystallize(_) |
@@ -153,7 +135,7 @@ impl Attack {
                     enemy.isfrozen = true;
                 }
                 if let Superconduct(_) = elemental_reaction {
-                    enemy.physical_res_debuff.push(Debuff::superconduct());
+                    enemy.superconduct.update(0.0, true);
                 }
                 self.icd_timer.borrow_mut().count_hit();
             } else {
@@ -224,14 +206,14 @@ impl ElementalAbsorption {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Time {
     Waiting(f32),
     Done,
 }
 
 // n = 0 means inactive
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NTimer {
     pub n: usize,
     cool_down: &'static [f32],
@@ -505,7 +487,7 @@ impl StaminaTimer {
     }
 }
 
-// #[derive(Debug)]
+#[derive(Clone)]
 pub struct NaLoop {
     idx: FieldCharacterIndex,
     pub timer: NTimer,
@@ -521,6 +503,22 @@ impl NaLoop {
             idx,
             timer: NTimer::new(cool_down),
             attack,
+            did_infuse: false,
+        }
+    }
+
+    pub fn noop(idx: FieldCharacterIndex) -> Self {
+        Self {
+            idx,
+            timer: NTimer::new(&[0.0]),
+            attack: vec![Attack {
+                kind: AttackType::StandStill,
+                element: &PHYSICAL_GAUGE,
+                multiplier: 0.0,
+                hits: 0,
+                icd_timer: Rc::new(RefCell::new(ICDTimer::new())),
+                idx,
+            }],
             did_infuse: false,
         }
     }
@@ -595,7 +593,6 @@ impl SimpleCa {
 
 impl SpecialAbility for SimpleCa {
     fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
-        // TODO Attack.to_event
         if self.timer.n == 0 {
             Some(AttackEvent {
                 kind: self.attack.kind,
@@ -986,7 +983,6 @@ impl ICDTimer {
     }
 
     pub fn count_hit(&mut self) -> () {
-        // TODO counter increases if attack is infused (dont function on physical attack)
         self.counting = true;
         self.n_hits += 1;
         if self.n_hits >= 3 {
@@ -1243,6 +1239,49 @@ impl SoBP {
     }
 
     #[test]
+    fn durationtimer_1() {
+        let mut timer = DurationTimer::new(3.0, &[0.0]);
+        timer.update(0.0, true);
+        assert_eq!(timer.n, 1);
+        assert_eq!(timer.ping, true);
+        assert_eq!(timer.cd, 0.0);
+        assert_eq!(timer.dr, Time::Waiting(3.0));
+    }
+
+    #[test]
+    fn durationtimer_2() {
+        let mut timer = DurationTimer::new(3.0, &[0.0]);
+        timer.update(0.5, true);
+        timer.update(0.5, true);
+        assert_eq!(timer.n, 1);
+        assert_eq!(timer.ping, false);
+        assert_eq!(timer.cd, 0.0);
+        assert_eq!(timer.dr, Time::Waiting(3.0));
+    }
+
+    #[test]
+    fn durationtimer_3() {
+        let mut timer = DurationTimer::new(3.0, &[0.0]);
+        timer.update(0.5, true);
+        timer.update(0.5, false);
+        assert_eq!(timer.n, 1);
+        assert_eq!(timer.ping, false);
+        assert_eq!(timer.cd < 0.0, true);
+        assert_eq!(timer.dr, Time::Waiting(2.5));
+    }
+
+    #[test]
+    fn durationtimer_4() {
+        let mut timer = DurationTimer::new(3.0, &[0.0]);
+        timer.update(0.5, true);
+        timer.update(3.0, false);
+        assert_eq!(timer.n, 0);
+        assert_eq!(timer.ping, true);
+        assert_eq!(timer.cd < 0.0, true);
+        assert_eq!(timer.dr, Time::Done);
+    }
+
+    #[test]
     fn stamina_1() {
         let mut stamina = StaminaTimer::new(1.0);
         stamina.update(0.0, 0.0, true);
@@ -1250,6 +1289,7 @@ impl SoBP {
         assert_eq!(stamina.ping, true);
         assert_eq!(stamina.motion, Time::Waiting(1.0));
         assert_eq!(stamina.recovery, Time::Done);
+        assert_eq!(stamina.stamina, 240.0);
     }
 
     #[test]
@@ -1260,6 +1300,7 @@ impl SoBP {
         assert_eq!(stamina.ping, true);
         assert_eq!(stamina.motion, Time::Waiting(0.5));
         assert_eq!(stamina.recovery, Time::Done);
+        assert_eq!(stamina.stamina, 240.0);
     }
 
     #[test]
@@ -1270,6 +1311,7 @@ impl SoBP {
         assert_eq!(stamina.ping, true);
         assert_eq!(stamina.motion, Time::Done);
         assert_eq!(stamina.recovery, Time::Done);
+        assert_eq!(stamina.stamina, 240.0);
     }
 
     #[test]
@@ -1281,6 +1323,7 @@ impl SoBP {
         assert_eq!(stamina.ping, false);
         assert_eq!(stamina.motion, Time::Waiting(0.3));
         assert_eq!(stamina.recovery, Time::Done);
+        assert_eq!(stamina.stamina, 240.0);
         let mut stamina = StaminaTimer::new(1.0);
         stamina.update(0.5, 0.0, true);
         stamina.update(0.2, 0.0, false);
@@ -1288,6 +1331,7 @@ impl SoBP {
         assert_eq!(stamina.ping, false);
         assert_eq!(stamina.motion, Time::Waiting(0.3));
         assert_eq!(stamina.recovery, Time::Done);
+        assert_eq!(stamina.stamina, 240.0);
     }
 
     #[test]
@@ -1299,6 +1343,7 @@ impl SoBP {
         assert_eq!(stamina.ping, true);
         assert_eq!(stamina.motion, Time::Waiting(0.5));
         assert_eq!(stamina.recovery, Time::Done);
+        assert_eq!(stamina.stamina, 240.0);
     }
 
     #[test]
@@ -1310,5 +1355,6 @@ impl SoBP {
         assert_eq!(stamina.ping, false);
         assert_eq!(stamina.motion, Time::Done);
         assert_eq!(stamina.recovery, Time::Done);
+        assert_eq!(stamina.stamina, 240.0);
     }
 }

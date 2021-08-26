@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy, Debuff};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, StaminaTimer, ICDTimers};
 
 use AttackType::*;
@@ -143,8 +143,9 @@ impl SpecialAbility for Yanfei {
     }
 
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.ca_timer.update(time, event == &self.ca_0);
-        self.na.update(time, event, data, attack, particles, enemy);
+        let speedup_time = time * (1.0 + data.state.atk_spd / 100.0);
+        self.ca_timer.update(speedup_time, event == &self.ca_0);
+        self.na.update(speedup_time, event, data, attack, particles, enemy);
         if event.idx == self.burst.attack.idx {
             match &event.kind {
                 Na => self.scarlet_seal += 1,
@@ -332,6 +333,7 @@ impl SpecialAbility for EulaSkill {
 }
 
 pub struct Eula {
+    skill_debuff: DurationTimer,
     lightfall_sword_stack: usize,
     na: NaLoop,
     ca: NoopAbility,
@@ -352,6 +354,7 @@ impl Eula {
 
     pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            skill_debuff: DurationTimer::new(7.0, &[0.0]),
             lightfall_sword_stack: 0,
             na: NaLoop::new(
                 // 5 attacks in 3.85 seconds
@@ -407,6 +410,7 @@ impl CharacterAbility for Eula {
 
 impl SpecialAbility for Eula {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.skill_debuff.update(time, self.skill.hold_timer.ping && self.skill.hold_timer.n == 1);
         // accumulate stacks
         if self.burst.timer.n == 1 {
             unsafe {
@@ -436,9 +440,12 @@ impl SpecialAbility for Eula {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.skill.hold_timer.ping && self.skill.hold_timer.n == 1 {
-            enemy.element_res_debuff.push(Debuff::eula_cryo());
-            enemy.physical_res_debuff.push(Debuff::eula_physical());
+        if self.skill_debuff.ping {
+            match self.skill_debuff.n {
+                1 => { enemy.debuff.cryo += 25.0; enemy.debuff.physical += 25.0 },
+                0 => { enemy.debuff.cryo -= 25.0; enemy.debuff.physical -= 25.0 },
+                _ => (),
+            }
         }
     }
 

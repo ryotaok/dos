@@ -137,8 +137,10 @@ pub fn all(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Vec<(WeaponRecord
     (Hamayumi::record(), Box::new(Hamayumi::new(idx))),
     (HakushinRing::record(), Box::new(HakushinRing::new(idx))),
     // version_2_1
-    (GrasscuttersLight::record(), Box::new(GrasscuttersLight::new(idx))),
-    (FumetsuGekka::record(), Box::new(FumetsuGekka::new(idx))),
+    (EngulfingLightning::record(), Box::new(EngulfingLightning::new(idx))),
+    (EverlastingMoonglow::record(), Box::new(EverlastingMoonglow::new(idx))),
+    (LuxuriousSeaLord::record(), Box::new(LuxuriousSeaLord::new(idx, icd_timer))),
+    (TheCatch::record(), Box::new(TheCatch(idx))),
     ]
 }
 
@@ -180,7 +182,7 @@ mod tests {
         // skill na na na
         // TODO why twice 116.0
         let expect = 200.0 + 108.0 + 116.0 * 2.0 + 124.0 + 132.0;
-        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(total_dmg, expect);
     }
 
     #[test]
@@ -205,7 +207,7 @@ mod tests {
         }
         // 20 na, 2 flute
         let expect = 20.0 * 100.0 + 2.0 * 200.0;
-        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(total_dmg, expect);
     }
 
     #[test]
@@ -230,7 +232,7 @@ mod tests {
         }
         // skill na na na na (prototype_archaic)
         let expect = 200.0 + 5.0 * 100.0 + 480.0;
-        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(total_dmg, expect);
     }
 
     #[test]
@@ -255,7 +257,7 @@ mod tests {
         }
         // skill na na na na (prototype_archaic)
         let expect = 200.0 + 5.0 * 110.0 + 480.0 * 1.1;
-        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(total_dmg, expect);
     }
 
     #[test]
@@ -280,7 +282,7 @@ mod tests {
         }
         // skill na na na (prototype_archaic)
         let expect = 200.0 + 5.0 * 110.0 + 480.0;
-        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(total_dmg, expect);
     }
 
     #[test]
@@ -306,7 +308,7 @@ mod tests {
 
         // na na (prototype_archaic) na na (prototype_archaic)
         let expect = 100.0 + 100.0 + 480.0 + 100.0 + 100.0 + 480.0;
-        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(total_dmg, expect);
     }
 
     #[test]
@@ -334,7 +336,7 @@ mod tests {
         // TODO one extra AA?
         // burst na na na na
         let expect = 300.0 + 5.0 * 120.0 + 20.0;
-        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(total_dmg, expect);
     }
 
     #[test]
@@ -359,6 +361,6 @@ mod tests {
         }
 
         let expect = 6.0 * 100.0 + 13.0 * 120.0;
-        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(total_dmg, expect);
     }
 }

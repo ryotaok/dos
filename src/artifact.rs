@@ -1,5 +1,5 @@
 use crate::state::{State, GearScore};
-use crate::fc::{FieldCharacterIndex, CharacterData, SpecialAbility, Enemy, Debuff};
+use crate::fc::{FieldCharacterIndex, CharacterData, SpecialAbility, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, NTimer, DurationTimer};
 use crate::types::{AttackType, WeaponType, FieldEnergy, ElementalReaction, Preference, Vision, NOBLESSE_OBLIGE, TENACITY_OF_THE_MILLELITH, THUNDERSOOTHER, LAVAWALKER, BLIZZARDSTRAYER1, BLIZZARDSTRAYER2};
 
@@ -189,11 +189,17 @@ impl SpecialAbility for ThunderingFury {
 }
 
 #[derive(Debug)]
-pub struct ViridescentVenerer(pub bool);
+pub struct ViridescentVenerer {
+    timer: DurationTimer,
+    element: Vision,
+}
 
 impl ViridescentVenerer {
     pub fn new() -> Self {
-        Self(false)
+        Self {
+            timer: DurationTimer::new(10.0, &[0.0]),
+            element: Vision::Physical,
+        }
     }
 
     pub fn record() -> Artifact {
@@ -209,23 +215,34 @@ impl ViridescentVenerer {
 }
 
 impl SpecialAbility for ViridescentVenerer {
-
-    fn update(&mut self, _time: f32, _event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.0 = false;
+    fn update(&mut self, time: f32, _event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        let mut should_update = false;
         unsafe {
             for &a in attack {
                 let atk = & *a;
-                if atk.idx == data.idx && ElementalReaction::new(enemy.aura.aura, atk.element.aura).is_swirl() {
-                    self.0 = true;
+                if atk.idx == data.idx && enemy.trigger_er(&atk.element.aura).is_swirl() {
+                    self.element = enemy.aura.aura;
+                    should_update = true;
                     break;
                 }
             }
         }
+        self.timer.update(time, should_update);
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.0 {
-            enemy.element_res_debuff.push(Debuff::viridescent_venerer());
+        if self.timer.ping {
+            match (self.timer.n, &self.element) {
+                (1, Vision::Pyro) => enemy.debuff.pyro += 40.0,
+                (1, Vision::Hydro) => enemy.debuff.hydro += 40.0,
+                (1, Vision::Electro) => enemy.debuff.electro += 40.0,
+                (1, Vision::Cryo) => enemy.debuff.cryo += 40.0,
+                (0, Vision::Pyro) => enemy.debuff.pyro -= 40.0,
+                (0, Vision::Hydro) => enemy.debuff.hydro -= 40.0,
+                (0, Vision::Electro) => enemy.debuff.electro -= 40.0,
+                (0, Vision::Cryo) => enemy.debuff.cryo -= 40.0,
+                _ => (),
+            }
         }
     }
 }
@@ -252,6 +269,10 @@ impl VVem {
 }
 
 impl SpecialAbility for VVem {
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.0.update(time, event, data, attack, particles, enemy);
+    }
+
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         self.0.modify(modifiable_data, enemy);
     }
@@ -1301,7 +1322,7 @@ mod tests {
         // (burst skill na na na) and (skill na na na)
         let expect = (300.0 + 200.0 + 100.0 + 100.0 + 100.0)
                    + (200.0 + 100.0 + 100.0 + 100.0);
-        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(total_dmg, expect);
     }
 
     #[test]
@@ -1332,7 +1353,7 @@ mod tests {
         // (burst skill na na na) and (skill na na na)
         let expect = 1.2 * (300.0 + 200.0 + 100.0 + 100.0 + 100.0)
                    + 1.2 * (200.0 + 100.0 + 100.0 + 100.0);
-        let differnce = (total_dmg - 0.5 * expect).abs();
+        let differnce = (total_dmg - expect).abs();
         assert!(differnce <= 0.001);
     }
 
@@ -1366,7 +1387,7 @@ mod tests {
         // twice (burst skill na na na)
         let expect = 1.2 * (300.0 + 200.0 + 3.0 * 100.0)
                    + 1.2 * (300.0 + 200.0 + 2.0 * 100.0);
-        let differnce = (total_dmg - 0.5 * expect).abs();
+        let differnce = (total_dmg - expect).abs();
         assert!(differnce <= 0.001);
     }
 
@@ -1411,7 +1432,7 @@ mod tests {
     //     // for _ in 0..10 {
     //     //     total_dmg += simulate(&mut members, &mut enemy, 0.2);
     //     // }
-    //     let expect = 0.5 * (
+    //     let expect = (
     //         // skill (level multiplier * reaction multiplier * bonus * TODO resistance (* TODO bypass enemy defense))
     //           (725.36 * 1.2) * 1.2 * 2.0 + 200.0 * 1.2
     //         // na
@@ -1456,7 +1477,7 @@ mod tests {
         }
 
         // skill 15 na, skill 5 na
-        let expect = 0.5 * (
+        let expect = (
               1.09 * (200.0 + 16.0 * 100.0)
             + 1.18 * (200.0 + 4.0 * 100.0)
         );
@@ -1486,6 +1507,6 @@ mod tests {
         let expect = 4.0 * 200.0       // skill
                    + 9.0 * 100.0 * 1.5 // na
                    + 9.0 * 100.0;      // na
-        assert_eq!(total_dmg, 0.5 * expect);
+        assert_eq!(total_dmg, expect);
     }
 }

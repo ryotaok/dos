@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy, Debuff};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 use crate::testutil;
 
@@ -14,6 +14,7 @@ use Vision::*;
 // version 1.0
 
 pub struct Chongyun {
+    a4_timer: DurationTimer,
     na: NaLoop,
     ca: NoopAbility,
     skill: SimpleSkill,
@@ -31,6 +32,7 @@ impl Chongyun {
 
     pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            a4_timer: DurationTimer::new(8.0, &[0.0]),
             na: NaLoop::new(
                 // 4 attacks in 2.834 seconds
                 &[0.7085,0.7085,0.7085,0.7085],
@@ -74,6 +76,10 @@ impl CharacterAbility for Chongyun {
 }
 
 impl SpecialAbility for Chongyun {
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.a4_timer.update(time, self.skill.timer.ping && self.skill.timer.n == 3);
+    }
+
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
         match (self.skill.timer.ping, self.skill.timer.n) {
             (true, 3) => atk_queue.push(&self.skill.attack),
@@ -97,8 +103,14 @@ impl SpecialAbility for Chongyun {
         match (self.skill.timer.ping, self.skill.timer.n) {
             (true, 1) => state.infusion = true,
             (true, 2) => state.infusion = false,
-            (true, 3) => enemy.element_res_debuff.push(Debuff::chongyun_a4()),
             _ => (),
+        }
+        if self.a4_timer.ping {
+            match self.a4_timer.n {
+                1 => enemy.debuff.cryo += 10.0,
+                0 => enemy.debuff.cryo -= 10.0,
+                _ => (),
+            }
         }
     }
 }

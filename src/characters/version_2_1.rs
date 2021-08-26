@@ -19,6 +19,7 @@ pub struct RaidenShogun {
     ca: NoopAbility,
     skill: SkillDamage2DotParticle,
     burst: SimpleBurst,
+    na_burst: NaLoop,
 }
 
 impl RaidenShogun {
@@ -31,22 +32,27 @@ impl RaidenShogun {
     }
 
     pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
+        let na = NaLoop::new(
+            // 5 attacks in 2.117 seconds
+            &[0.4234,0.4234,0.4234,0.4234,0.4234],
+            vec![
+                Attack::na(78.37, 1, idx, &icd_timer),
+                Attack::na(78.54, 1, idx, &icd_timer),
+                Attack::na(98.6, 1, idx, &icd_timer),
+                Attack::na(57.29, 2, idx, &icd_timer),
+                Attack::na(129.37, 1, idx, &icd_timer),
+            ]
+        );
+        let mut na_burst = na.clone();
+        for a in na_burst.attack.iter_mut() {
+            a.kind = BurstDot;
+        }
         Self {
             once: true,
-            resolve_stack: 60.0, // TODO starting 200 energy consumption
+            resolve_stack: 40.0, // TODO starting 200 energy consumption
             musou_isshin_energy: DurationTimer::new(7.0, &[1.0,1.0,1.0,1.0,1.0]),
             a1_timer: NTimer::new(&[3.0]),
-            na: NaLoop::new(
-                // 5 attacks in 2.117 seconds
-                &[0.4234,0.4234,0.4234,0.4234,0.4234],
-                vec![
-                    Attack::na(78.37, 1, idx, &icd_timer),
-                    Attack::na(78.54, 1, idx, &icd_timer),
-                    Attack::na(98.6, 1, idx, &icd_timer),
-                    Attack::na(57.29, 2, idx, &icd_timer),
-                    Attack::na(129.37, 1, idx, &icd_timer),
-                ]
-            ),
+            na,
             ca: NoopAbility,
             skill: SkillDamage2DotParticle::new(&[0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9], Particle::new(Electro, 0.5), Attack {
                 kind: AttackType::PressSkill,
@@ -71,53 +77,61 @@ impl RaidenShogun {
                 icd_timer: Rc::clone(&icd_timer.burst),
                 idx,
             }),
+            na_burst,
         }
     }
 }
 
 impl CharacterAbility for RaidenShogun {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.ca }
     fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
     fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
     fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
     fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
     fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
     fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
 }
 
 impl SpecialAbility for RaidenShogun {
+    fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
+        if self.burst.timer.n == 1 {
+            self.na_burst.maybe_attack(data)
+        } else {
+            self.na.maybe_attack(data)
+        }
+    }
+
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        let speedup_time = time * (1.0 + data.state.atk_spd / 100.0);
+        self.na.update(speedup_time, event, data, attack, particles, enemy);
+        self.na_burst.update(speedup_time, event, data, attack, particles, enemy);
         if self.once {
             self.once = false;
         }
-        // self.a1_timer.update(time, particles.has_particles());
-        // if self.a1_timer.ping && self.a1_timer.n > 0 {
-        //     self.resolve_stack += 2.0;
-        // }
-        if self.burst.timer.n == 1 {
-            self.musou_isshin_energy.update(time, event.idx == self.skill.attack.idx && event.kind == Na);
+        self.a1_timer.update(time, particles.has_particles());
+        if self.a1_timer.ping && self.a1_timer.n > 0 {
+            self.resolve_stack += 2.0;
         }
-        // if self.burst.timer.ping && self.burst.timer.n == 2 {
-        //     self.resolve_stack = 0.0;
-        //     self.musou_isshin_energy.reset();
-        // }
+        if self.burst.timer.n == 1 {
+            self.musou_isshin_energy.update(time, event.idx == data.idx && (event.kind == Na || event.kind == BurstDot));
+        }
         if self.burst.timer.ping {
             match self.burst.timer.n {
                 1 => {
                     self.burst.attack.multiplier += 7.0 * self.resolve_stack;
                     let na = 1.31 * self.resolve_stack;
-                    for a in self.na.attack.iter_mut() {
+                    for a in self.na_burst.attack.iter_mut() {
                         a.multiplier += na;
                     }
                 },
                 2 => {
                     self.burst.attack.multiplier -= 7.0 * self.resolve_stack;
                     let na = 1.31 * self.resolve_stack;
-                    for a in self.na.attack.iter_mut() {
+                    for a in self.na_burst.attack.iter_mut() {
                         a.multiplier -= na;
                     }
-                    self.resolve_stack = 0.0;
+                    self.resolve_stack = 30.0; // TODO gives 30 stacks regardless
                     self.musou_isshin_energy.reset();
                 },
                 _ => (),
@@ -126,6 +140,8 @@ impl SpecialAbility for RaidenShogun {
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
+        self.na.additional_attack(atk_queue, particles, data);
+        self.na_burst.additional_attack(atk_queue, particles, data);
         if self.musou_isshin_energy.ping && 0 < self.musou_isshin_energy.n && self.musou_isshin_energy.n <= 5 {
             let bonus = 1.0 + 0.6 * data.state.er / 100.0;
             particles.push_e(2.5 * bonus);
@@ -158,9 +174,15 @@ impl SpecialAbility for RaidenShogun {
 
     fn reset(&mut self) -> () {
         self.once = true;
-        self.resolve_stack = 0.0;
+        self.resolve_stack = 40.0;
         self.musou_isshin_energy.reset();
         self.a1_timer.reset();
+        self.na_burst.attack[0].multiplier = self.na.attack[0].multiplier;
+        self.na_burst.attack[1].multiplier = self.na.attack[1].multiplier;
+        self.na_burst.attack[2].multiplier = self.na.attack[2].multiplier;
+        self.na_burst.attack[3].multiplier = self.na.attack[3].multiplier;
+        self.na_burst.attack[4].multiplier = self.na.attack[4].multiplier;
+        self.burst.attack.multiplier = 721.44;
     }
 }
 

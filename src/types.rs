@@ -99,7 +99,7 @@ impl Particle {
         }
     }
 
-    // TODO forget about number of members
+    // do not consider the number of members
     pub fn on_field_energy(&self, reciver_element: &Vision) -> f32 {
         self.n * if self.element == *reciver_element {
             3.0
@@ -464,8 +464,9 @@ impl ElementalReactionType {
 
 #[derive(Debug)]
 pub struct ElementalReaction {
-    enemy_aura: Vision,
-    trigger: Vision,
+    pub enemy_aura: Vision,
+    pub trigger: Vision,
+    pub attack: Vision,
     // reaction multiplier
     rm: f32,
 }
@@ -473,49 +474,48 @@ pub struct ElementalReaction {
 impl ElementalReaction {
     pub fn new(enemy_aura: Vision, trigger: Vision) -> ElementalReactionType {
         match (&enemy_aura, &trigger) {
-            (Physical, Physical)=> Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Physical, _)       => Equalize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Pyro, Pyro)        => Equalize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Pyro, Hydro)       => Vaporize(Self { enemy_aura, trigger, rm: 2.0 }),
-            (Pyro, Electro)     => Overloaded(Self { enemy_aura, trigger, rm: 4.0 }),
-            (Pyro, Cryo)        => Melt(Self { enemy_aura, trigger, rm: 1.5 }),
-            (Pyro, Anemo)       => Swirl(Self { enemy_aura, trigger, rm: 1.2 }),
-            (Pyro, Geo)         => Crystallize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Pyro, Dendro)      => Burn(Self { enemy_aura, trigger, rm: 1.0 }),
-            (Pyro, Physical)    => Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
+            (Physical, Physical)=> Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Physical, _)       => Equalize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Pyro, Pyro)        => Equalize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Pyro, Hydro)       => Vaporize(Self { enemy_aura, trigger, attack: trigger, rm: 2.0 }),
+            (Pyro, Electro)     => Overloaded(Self { enemy_aura, trigger, attack: Pyro, rm: 4.0 }),
+            (Pyro, Cryo)        => Melt(Self { enemy_aura, trigger, attack: trigger, rm: 1.5 }),
+            (Pyro, Anemo)       => Swirl(Self { enemy_aura, trigger, attack: Pyro, rm: 1.2 }),
+            (Pyro, Geo)         => Crystallize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Pyro, Dendro)      => Burn(Self { enemy_aura, trigger, attack: Pyro, rm: 1.0 }),
+            (Pyro, Physical)    => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
 
-            (Hydro, Pyro)       => Vaporize(Self { enemy_aura, trigger, rm: 1.5 }),
-            (Hydro, Hydro)      => Equalize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Hydro, Electro)    => ElectorCharged(Self { enemy_aura, trigger, rm: 2.4 }),
-            (Hydro, Cryo)       => Freeze(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Hydro, Anemo)      => Swirl(Self { enemy_aura, trigger, rm: 1.2 }),
-            (Hydro, Geo)        => Crystallize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Hydro, Dendro)     => Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Hydro, Physical)   => Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
+            (Hydro, Pyro)       => Vaporize(Self { enemy_aura, trigger, attack: trigger, rm: 1.5 }),
+            (Hydro, Hydro)      => Equalize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Hydro, Electro)    => ElectorCharged(Self { enemy_aura, trigger, attack: Electro, rm: 2.4 }),
+            (Hydro, Cryo)       => Freeze(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Hydro, Anemo)      => Swirl(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }), // Hydro Swirl only spreads hydro aura.
+            (Hydro, Geo)        => Crystallize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Hydro, Dendro)     => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Hydro, Physical)   => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
 
-            (Electro, Pyro)     => Overloaded(Self { enemy_aura, trigger, rm: 4.0 }),
-            (Electro, Hydro)    => ElectorCharged(Self { enemy_aura, trigger, rm: 2.4 }),
-            (Electro, Electro)  => Equalize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Electro, Cryo)     => Superconduct(Self { enemy_aura, trigger, rm: 1.0 }),
-            (Electro, Anemo)    => Swirl(Self { enemy_aura, trigger, rm: 1.2 }),
-            (Electro, Geo)      => Crystallize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Electro, Dendro)   => Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Electro, Physical) => Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
+            (Electro, Pyro)     => Overloaded(Self { enemy_aura, trigger, attack: Pyro, rm: 4.0 }),
+            (Electro, Hydro)    => ElectorCharged(Self { enemy_aura, trigger, attack: Electro, rm: 2.4 }),
+            (Electro, Electro)  => Equalize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Electro, Cryo)     => Superconduct(Self { enemy_aura, trigger, attack: Cryo, rm: 1.0 }),
+            (Electro, Anemo)    => Swirl(Self { enemy_aura, trigger, attack: Electro, rm: 1.2 }),
+            (Electro, Geo)      => Crystallize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Electro, Dendro)   => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Electro, Physical) => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
 
-            (Cryo, Pyro)        => Melt(Self { enemy_aura, trigger, rm: 2.0 }),
-            (Cryo, Hydro)       => Freeze(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Cryo, Electro)     => Superconduct(Self { enemy_aura, trigger, rm: 1.0 }),
-            (Cryo, Cryo)        => Equalize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Cryo, Anemo)       => Swirl(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Cryo, Geo)         => Crystallize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Cryo, Dendro)      => Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
-            (Cryo, Physical)    => Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
+            (Cryo, Pyro)        => Melt(Self { enemy_aura, trigger, attack: trigger, rm: 2.0 }),
+            (Cryo, Hydro)       => Freeze(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Cryo, Electro)     => Superconduct(Self { enemy_aura, trigger, attack: Cryo, rm: 1.0 }),
+            (Cryo, Cryo)        => Equalize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Cryo, Anemo)       => Swirl(Self { enemy_aura, trigger, attack: Cryo, rm: 0.0 }),
+            (Cryo, Geo)         => Crystallize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Cryo, Dendro)      => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
+            (Cryo, Physical)    => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
 
-            _ => Neutralize(Self { enemy_aura, trigger, rm: 0.0 }),
+            _ => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
         }
     }
 
-    // TODO level is fixed to 90
     pub fn transformative_reaction(&self, em: f32, bonus: f32) -> f32 {
         let bonus = 1.0 + (16.0 * em) / (2000.0 + em) + bonus / 100.0;
         let level_multiplier = 725.36;

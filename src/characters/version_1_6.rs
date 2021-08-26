@@ -127,10 +127,18 @@ impl SpecialAbility for Kazuha {
             let em = modifiable_data[self.burst.attack.idx.0].state.em;
             match self.swirl_a4.n {
                 1 => for data in modifiable_data.iter_mut() {
-                    data.state.elemental_dmg += em * 0.04;
+                    let bonus = em * 0.04;
+                    data.state.pyro_dmg += bonus;
+                    data.state.hydro_dmg += bonus;
+                    data.state.electro_dmg += bonus;
+                    data.state.cryo_dmg += bonus;
                 },
                 0 => for data in modifiable_data.iter_mut() {
-                    data.state.elemental_dmg -= em * 0.04;
+                    let bonus = em * 0.04;
+                    data.state.pyro_dmg -= bonus;
+                    data.state.hydro_dmg -= bonus;
+                    data.state.electro_dmg -= bonus;
+                    data.state.cryo_dmg -= bonus;
                 },
                 _ => (),
             }

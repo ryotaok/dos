@@ -215,7 +215,7 @@ impl SpecialAbility for AmenomaKageuchi {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         if self.energy_timer.ping && self.energy_timer.n == 2 {
             let state = &mut modifiable_data[self.idx.0].state;
-            state.energy += state.ER() * 12.0 * self.skill_timer.n as f32;
+            state.energy += 12.0 * self.skill_timer.n as f32;
         }
     }
 
@@ -266,9 +266,9 @@ impl SpecialAbility for KatsuragikiriNagamasa {
         if self.timer.ping {
             let state = &mut modifiable_data[self.idx.0].state;
             match self.timer.n {
-                1 => state.energy += state.ER() * (5.0 - 3.0),
+                1 => state.energy += (5.0 - 3.0),
                 2 |
-                3 => state.energy += state.ER() * 5.0,
+                3 => state.energy += 5.0,
                 _ => (),
             }
         }
@@ -320,9 +320,9 @@ impl SpecialAbility for KitainCrossSpear {
         if self.timer.ping {
             let state = &mut modifiable_data[self.idx.0].state;
             match self.timer.n {
-                1 => state.energy += state.ER() * (5.0 - 3.0),
+                1 => state.energy += (5.0 - 3.0),
                 2 |
-                3 => state.energy += state.ER() * 5.0,
+                3 => state.energy += 5.0,
                 _ => (),
             }
         }
@@ -418,50 +418,36 @@ impl HakushinRing {
 }
 
 impl SpecialAbility for HakushinRing {
-    fn update(&mut self, time: f32, _event: &AttackEvent, _data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], enemy: &Enemy) -> () {
+    fn update(&mut self, time: f32, _event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], _particles: &[FieldEnergy], enemy: &Enemy) -> () {
         // TODO should include electro, anemo and geo?
+        let mut should_update = false;
         unsafe {
             for &a in attack {
                 let atk = & *a;
-                if atk.element.aura == Electro {
+                if atk.idx == data.idx && atk.element.aura == Electro {
                     let er = ElementalReaction::new(enemy.aura.aura, atk.element.aura);
                     if er.is_electro() {
-                        self.timer.update(time, true);
+                        should_update = true;
                         break;
                     }
                 }
             }
         }
+        self.timer.update(time, should_update);
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        // TODO
-        // match (self.timer.ping, self.timer.n) {
-        //     (true, 1) => match self.bonus_element {
-        //         Pyro => for s in modifiable_data {
-        //             s.pyro_dmg += 20.0;
-        //         },
-        //         Hydro => for s in modifiable_data {
-        //             s.hydro_dmg += 20.0;
-        //         },
-        //         Cryo => for s in modifiable_data {
-        //             s.cryo_dmg += 20.0;
-        //         },
-        //         _ => (),
-        //     },
-        //     None => expr,
-        // }
         match (self.timer.ping, self.timer.n) {
             (true, 1) => for data in modifiable_data {
                 data.state.pyro_dmg += 20.0;
                 data.state.hydro_dmg += 20.0;
-                data.state.elemental_dmg += 20.0;
+                data.state.electro_dmg += 20.0;
                 data.state.cryo_dmg += 20.0;
             },
             (true, 0) => for data in modifiable_data {
                 data.state.pyro_dmg -= 20.0;
                 data.state.hydro_dmg -= 20.0;
-                data.state.elemental_dmg -= 20.0;
+                data.state.electro_dmg -= 20.0;
                 data.state.cryo_dmg -= 20.0;
             },
             _ => (),

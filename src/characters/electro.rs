@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use crate::state::State;
 use crate::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, ELECTRO_GAUGE4C, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy, Debuff};
+use crate::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
 use crate::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SkillDamage2DotParticle, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
 // StaminaTimer
 
@@ -68,7 +68,6 @@ impl Beidou {
             }),
         }
     }
-
 }
 
 impl CharacterAbility for Beidou {
@@ -84,15 +83,16 @@ impl CharacterAbility for Beidou {
 
 impl SpecialAbility for Beidou {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
         // a4
         match (self.skill.timer.ping, self.skill.timer.n) {
             (true, 1) => {
+                let state = &mut modifiable_data[self.skill.attack.idx.0].state;
                 state.na_dmg += 15.0;
                 state.ca_dmg += 15.0;
                 state.atk_spd += 15.0;
             },
             (true, 0) => {
+                let state = &mut modifiable_data[self.skill.attack.idx.0].state;
                 state.na_dmg -= 15.0;
                 state.ca_dmg -= 15.0;
                 state.atk_spd -= 15.0;
@@ -177,7 +177,6 @@ impl Fischl {
             }
         }
     }
-
 }
 
 impl CharacterAbility for Fischl {
@@ -223,7 +222,7 @@ impl LisaSkill {
             press: Attack {
                 kind: AttackType::PressSkill,
                 element: &ELECTRO_GAUGE2B,
-                multiplier: 200.0,
+                multiplier: 144.0,
                 hits: 1,
                 icd_timer: Rc::clone(&icd_timer.skill),
                 idx,
@@ -261,10 +260,11 @@ impl SpecialAbility for LisaSkill {
     fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
         self.hold_timer.update(time, event == &self.hold_3);
         self.press_timer.update(time, event == &self.press);
+        if self.conductive_status == 3 {
+            self.conductive_status = 0;
+        }
         if self.press_timer.ping && self.press_timer.n == 1 {
             self.conductive_status += 1;
-        } else if self.conductive_status == 3 {
-            self.conductive_status = 0;
         }
     }
 
@@ -276,7 +276,7 @@ impl SpecialAbility for LisaSkill {
             },
             (_, _, true, 1) => {
                 atk_queue.push(&self.press);
-                particles.push_p(Particle::new(Electro, 1.0));
+                particles.push_p(Particle::new(Electro, 0.3));
             },
             _ => (),
         }
@@ -290,6 +290,7 @@ impl SpecialAbility for LisaSkill {
 }
 
 pub struct Lisa {
+    a4_timer: DurationTimer,
     na: NaLoop,
     ca: NoopAbility,
     skill: LisaSkill,
@@ -308,6 +309,7 @@ impl Lisa {
 
     pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
+            a4_timer: DurationTimer::new(10.0, &[0.0]),
             na: NaLoop::new(
                 // 4 attacks in 1.5 seconds
                 &[0.375,0.375,0.375,0.375],
@@ -330,7 +332,6 @@ impl Lisa {
             }),
         }
     }
-
 }
 
 impl CharacterAbility for Lisa {
@@ -345,10 +346,17 @@ impl CharacterAbility for Lisa {
 }
 
 impl SpecialAbility for Lisa {
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        self.a4_timer.update(time, self.burst.timer.ping && 0 < self.burst.timer.n && self.burst.timer.n <= 28);
+    }
+
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if 0 < self.burst.timer.n && self.burst.timer.n <= 28 {
-            // a4
-            enemy.def_down_debuff.push(Debuff::lisa_a4());
+        if self.a4_timer.ping {
+            match self.a4_timer.n {
+                1 => enemy.def_down += 15.0,
+                0 => enemy.def_down -= 15.0,
+                _ => (),
+            }
         }
     }
 
@@ -492,7 +500,6 @@ impl Razor {
             }),
         }
     }
-
 }
 
 impl CharacterAbility for Razor {
@@ -526,7 +533,7 @@ impl SpecialAbility for Razor {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         let mut state = &mut modifiable_data[self.burst.attack.idx.0].state;
         match (self.skill.hold_timer.ping, self.skill.hold_timer.n) {
-            (true, 1) => state.energy += state.ER() * 5.0 * self.skill.electro_sigil as f32,
+            (true, 1) => state.energy += 5.0 * self.skill.electro_sigil as f32,
             _ => (),
         }
         // TODO ER bonus by electro_sigil
@@ -653,7 +660,6 @@ impl Keqing {
             burst: KeqingBurst::new(idx, icd_timer),
         }
     }
-
 }
 
 impl CharacterAbility for Keqing {
@@ -686,5 +692,33 @@ impl SpecialAbility for Keqing {
             },
             _ => (),
         }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::types::Vision;
+    use crate::simulate::simulate;
+    use crate::testutil::{TestEnvironment2, TestCharacter};
+
+    #[test]
+    fn lisa() {
+        let mut timers = ICDTimers::new();
+        let cr = TestCharacter::record(Vision::Electro);
+        let mut character = Lisa::new(FieldCharacterIndex(0), &timers);
+        character.na = NaLoop::noop(FieldCharacterIndex(0));
+
+        let mut env = TestEnvironment2::character(0, &mut timers, State::new(), &cr, &mut character);
+
+        let mut total_dmg = 0.0;
+        for _ in 0..10 {
+            total_dmg += simulate(0.5, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
+        }
+
+        let expect = 3.0 * 144.0 + 876.96;
+        assert_eq!(total_dmg, expect);
     }
 }

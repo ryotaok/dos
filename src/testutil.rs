@@ -252,7 +252,7 @@ impl TestCharacter {
     pub fn record(vision: Vision) -> CharacterRecord {
         CharacterRecord::default()
             .vision(vision)
-            .base_atk(100.0)
+            .base_atk(200.0)
             .cr(0.0).cd(0.0)
             .energy_cost(40.0)
     }
@@ -596,5 +596,58 @@ impl TestEnvironment {
             weapon: wa,
             artifact: &mut self.artifact,
         })
+    }
+}
+
+
+pub struct TestEnvironment2<'a> {
+    pub idx: FieldCharacterIndex,
+    pub timers: &'a mut ICDTimers,
+
+    pub weapon: TestWeapon,
+    pub artifact: TestArtifact,
+    pub wr: Option<WeaponRecord>,
+    pub ar: Option<Artifact>,
+
+    pub data: Vec<CharacterData<'a>>,
+    pub ability: Vec<FieldAbility<'a>>,
+    pub atk_queue: Vec<*const Attack>,
+    pub field_energy: Vec<FieldEnergy>,
+    pub enemy: Enemy,
+}
+
+impl<'a> TestEnvironment2<'a> {
+    pub fn new(i: usize, icd_timer: &'a mut ICDTimers) -> Self {
+        Self {
+            idx: FieldCharacterIndex(i),
+            timers: icd_timer,
+            weapon: TestWeapon,
+            artifact: TestArtifact,
+            wr: None,
+            ar: None,
+            data: Vec::new(),
+            ability: Vec::new(),
+            atk_queue: Vec::new(),
+            field_energy: Vec::new(),
+            enemy: Enemy::simple(),
+        }
+    }
+
+    pub fn character(i: usize, icd_timer: &'a mut ICDTimers, state: State, cr: &'a CharacterRecord, ca: &'a mut (dyn CharacterAbility + 'a)) -> Box<Self> {
+        let mut oneself = Box::new(Self::new(i, icd_timer));
+        oneself.wr.insert(TestWeapon::record());
+        oneself.ar.insert(TestArtifact::record(state));
+        oneself.data.push(CharacterData::new(
+            oneself.idx,
+            cr,
+            unsafe { & *(oneself.wr.as_ref().unwrap() as *const WeaponRecord) },
+            unsafe { & *(oneself.ar.as_ref().unwrap() as *const Artifact) } ));
+        oneself.ability.push(FieldAbility {
+            timers: unsafe { &mut *(oneself.timers as *mut ICDTimers) },
+            character: ca,
+            weapon: unsafe { &mut *(&mut oneself.weapon as *mut dyn SpecialAbility) },
+            artifact: unsafe { &mut *(&mut oneself.artifact as *mut dyn SpecialAbility) },
+        });
+        oneself
     }
 }

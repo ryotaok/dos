@@ -165,7 +165,6 @@ impl SpecialAbility for Sucrose {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        // TODO inaccurate
         match (self.skill_a1.ping, self.skill_a1.n) {
             (true, 1) => for data in modifiable_data.iter_mut() {
                 data.state.em += 50.0;
@@ -188,7 +187,6 @@ impl SpecialAbility for Sucrose {
                 let em = modifiable_data[self.burst.attack.idx.0].state.em;
                 for (i, data) in modifiable_data.iter_mut().enumerate() {
                     if i != self.burst.attack.idx.0 {
-                        // TODO inaccurate
                         data.state.em -= em * 0.2;
                     }
                 }

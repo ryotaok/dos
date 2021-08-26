@@ -162,8 +162,9 @@ impl SpecialAbility for Xiao {
     }
 
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.ca_timer.update(time, event == &self.plunge);
-        self.na.update(time, event, data, attack, particles, enemy);
+        let speedup_time = time * (1.0 + data.state.atk_spd / 100.0);
+        self.ca_timer.update(speedup_time, event == &self.plunge);
+        self.na.update(speedup_time, event, data, attack, particles, enemy);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
@@ -290,8 +291,9 @@ impl SpecialAbility for HuTao {
     }
 
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.stamina.update(time, 25.0 + 18.0, event == &self.ca);
-        self.na.update(time, event, data, attack, particles, enemy);
+        let speedup_time = time * (1.0 + data.state.atk_spd / 100.0);
+        self.stamina.update(speedup_time, 25.0 + 18.0, event == &self.ca);
+        self.na.update(speedup_time, event, data, attack, particles, enemy);
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {

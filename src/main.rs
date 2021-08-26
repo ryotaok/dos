@@ -1,5 +1,5 @@
 // #![feature(destructuring_assignment)]
-#![feature(unsized_tuple_coercion)]
+// #![feature(unsized_tuple_coercion)]
 #![allow(dead_code, unused)]
 
 use std::error::Error;
@@ -131,19 +131,16 @@ fn main_loop(members: &mut [CharacterData], abilities: &mut [FieldAbility], args
     let mut rc = Recorder::new(head);
     let mut current_time = 0.0;
     let mut total_dmg = 0.0;
-    // // accumulate passives of weapons and artifacts at the 0 second.
-    // {
-    //     let mut modifiable_data: Vec<State> = Vec::with_capacity(members.len());
-    //     for _ in 0..members.len() {
-    //         modifiable_data.push(State::new());
-    //     }
-    //     for FieldCharacterData { fc, .. } in members.iter_mut() {
-    //         fc.modify(&mut modifiable_data, &mut enemy);
-    //     }
-    //     for (state, FieldCharacterData { fc, .. }) in modifiable_data.into_iter().zip(members.iter_mut()) {
-    //         fc.data.state.merge(&state);
-    //     }
-    // }
+
+    // setup for artifacts and supporters
+    for data in members.iter_mut() {
+        data.state.flat_atk += 311.0;
+        if data.idx.0 > 0 {
+            // data.state.na_dmg -= 100.0;
+            // data.state.ca_dmg -= 100.0;
+            data.state.atk_spd -= 90.0;
+        }
+    }
     while current_time < args.simulation_time {
         if current_time == 0.0 {
             if args.start_energy < 0 {
@@ -306,7 +303,7 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
     let idx1 = FieldCharacterIndex(1);
     let mut timers0 = ICDTimers::new();
     let mut timers1 = ICDTimers::new();
-    let input_characters: Vec<(CharacterRecord, Box<dyn CharacterAbility>)> = characters::cryo(idx0, &timers0).drain(start..end).collect();
+    let input_characters: Vec<(CharacterRecord, Box<dyn CharacterAbility>)> = characters::all(idx0, &timers0).drain(start..end).collect();
     // TODO
     let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
 
@@ -316,15 +313,10 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         artifact::all(idx0),
     );
     let mut member2 = Permutation3::new(
-        characters::electro(idx1, &timers1),
+        characters::all(idx1, &timers1),
         weapons::all(idx1, &timers1),
         artifact::all(idx1),
     );
-    // let mut member2 = Permutation3::new(
-    //     CharacterName::electro(),
-    //     WeaponName::vec(),
-    //     ArtifactName::vec(),
-    // );
     for ((cr1, mut ca1), (wr1, mut wa1), (mut ar1, mut aa1)) in member1.iter() {
         if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
             member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
@@ -472,7 +464,7 @@ fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
         // return Ok(debugging(&args, debug_args));
     }
     let num_cpu = 4;
-    let character_size = characters::N_CRYO;
+    let character_size = characters::N_CHARACTERS;
     let chunk_size = character_size / num_cpu + 1;
     let (tx, rx) = mpsc::channel();
     if num_cpu == 1 {
