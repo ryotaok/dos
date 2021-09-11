@@ -59,61 +59,6 @@ impl SpecialAbility for EngulfingLightning {
     }
 }
 
-pub struct EverlastingMoonglow {
-    idx: FieldCharacterIndex,
-    did_na: bool,
-    once: bool,
-    timer: DurationTimer,
-}
-
-impl EverlastingMoonglow {
-    pub fn new(idx: FieldCharacterIndex) -> Self {
-        Self {
-            idx,
-            did_na: false,
-            once: true,
-            timer: DurationTimer::new(12.0, &[0.0]),
-        }
-    }
-}
-
-impl EverlastingMoonglow {
-    pub fn record() -> WeaponRecord {
-        WeaponRecord::default()
-            .name("Everlasting Moonglow").type_(Catalyst).version(2.1)
-            .base_atk(608.0)
-            // TODO healing bonus
-            .hp(49.6)
-    }
-}
-
-impl SpecialAbility for EverlastingMoonglow {
-    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.once {
-            self.once = false;
-        }
-        self.did_na = event.idx == self.idx && event.kind == Na;
-        self.timer.update(time, event.idx == self.idx && event.kind == Burst);
-    }
-
-    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.once {
-            let state = &mut modifiable_data[self.idx.0].state;
-            // TODO incorrect
-            state.na_dmg += 0.0001 * state.HP();
-        }
-        if self.timer.n == 1 && self.did_na {
-            let state = &mut modifiable_data[self.idx.0].state;
-            state.energy += 0.6;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.once = true;
-        self.timer.reset();
-    }
-}
-
 pub struct LuxuriousSeaLord {
     idx: FieldCharacterIndex,
     timer: NTimer,

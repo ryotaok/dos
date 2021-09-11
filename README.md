@@ -2,8 +2,6 @@
 
 dos is a party damage output simulator (up to 2 members for now).
 
-This program may contain the information from the future game, so if you do not want any spoilers, please do not use it.
-
 ## Simulation settings
 
 Please visit [my GitHub Page](https://ryotaok.github.io/dos/simulation_settings.html) for more details.
@@ -11,6 +9,8 @@ Please visit [my GitHub Page](https://ryotaok.github.io/dos/simulation_settings.
 ## Result of single member simulation
 
 ![Result of single member simulation](./images/simulation1_full_energy.png)
+
+For more details about each character and weapon, visit [my GitHub Page](https://ryotaok.github.io/dos/).
 
 ## Limitations
 
@@ -40,7 +40,6 @@ Visit [my GitHub Page](https://ryotaok.github.io/dos/), and navigate to each cha
 
 I'd like to thank these sites that I could use their data, information and formulas:
 
-- <https://genshin.honeyhunterworld.com>
 - <https://keqingmains.com>
 - <https://genshin-impact.fandom.com>
 
