@@ -11,7 +11,6 @@ pub struct MistsplitterReforged {
     idx: FieldCharacterIndex,
     seal_1: DurationTimer,
     seal_2: DurationTimer,
-    previous_seal: usize,
     seal: usize,
 }
 
@@ -21,7 +20,6 @@ impl MistsplitterReforged {
             idx,
             seal_1: DurationTimer::new(5.0, &[0.0]),
             seal_2: DurationTimer::new(10.0, &[0.0]),
-            previous_seal: 0,
             seal: 0,
         }
     }
@@ -57,39 +55,22 @@ impl SpecialAbility for MistsplitterReforged {
         if data.state.energy / data.character.energy_cost < 1.0 {
             seal_3 = 1;
         }
-        self.previous_seal = self.seal;
         self.seal = self.seal_1.n + self.seal_2.n + seal_3;
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         let state = &mut modifiable_data[self.idx.0].state;
-        if self.seal > self.previous_seal {
-            match (self.seal, self.previous_seal) {
-                (3, 0) => state.elemental_dmg += 28.0,
-                (3, 1) => state.elemental_dmg += 20.0,
-                (3, 2) => state.elemental_dmg += 12.0,
-                (2, 0) => state.elemental_dmg += 16.0,
-                (2, 1) => state.elemental_dmg += 8.0,
-                (1, 0) => state.elemental_dmg += 8.0,
-                _ => (),
-            }
-        } else if self.seal < self.previous_seal {
-            match (self.seal, self.previous_seal) {
-                (0, 3) => state.elemental_dmg -= 28.0,
-                (1, 3) => state.elemental_dmg -= 20.0,
-                (2, 3) => state.elemental_dmg -= 12.0,
-                (0, 2) => state.elemental_dmg -= 16.0,
-                (1, 2) => state.elemental_dmg -= 8.0,
-                (0, 1) => state.elemental_dmg -= 8.0,
-                _ => (),
-            }
+        match self.seal {
+            3 => state.elemental_dmg += 28.0,
+            2 => state.elemental_dmg += 16.0,
+            1 => state.elemental_dmg += 8.0,
+            _ => (),
         }
     }
 
     fn reset(&mut self) -> () {
         self.seal_1.reset();
         self.seal_2.reset();
-        self.previous_seal = 0;
         self.seal = 0;
     }
 }
@@ -98,7 +79,6 @@ pub struct ThunderingPulse {
     idx: FieldCharacterIndex,
     seal_1: DurationTimer,
     seal_2: DurationTimer,
-    previous_seal: usize,
     seal: usize,
 }
 
@@ -115,7 +95,6 @@ impl ThunderingPulse {
             idx,
             seal_1: DurationTimer::new(5.0, &[0.0]),
             seal_2: DurationTimer::new(10.0, &[0.0]),
-            previous_seal: 0,
             seal: 0,
         }
     }
@@ -142,39 +121,22 @@ impl SpecialAbility for ThunderingPulse {
         if data.state.energy / data.character.energy_cost < 1.0 {
             seal_3 = 1;
         }
-        self.previous_seal = self.seal;
         self.seal = self.seal_1.n + self.seal_2.n + seal_3;
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         let state = &mut modifiable_data[self.idx.0].state;
-        if self.seal > self.previous_seal {
-            match (self.seal, self.previous_seal) {
-                (3, 0) => state.na_dmg += 40.0,
-                (3, 1) => state.na_dmg += 28.0,
-                (3, 2) => state.na_dmg += 16.0,
-                (2, 0) => state.na_dmg += 24.0,
-                (2, 1) => state.na_dmg += 12.0,
-                (1, 0) => state.na_dmg += 12.0,
-                _ => (),
-            }
-        } else if self.seal < self.previous_seal {
-            match (self.seal, self.previous_seal) {
-                (0, 3) => state.na_dmg -= 40.0,
-                (1, 3) => state.na_dmg -= 28.0,
-                (2, 3) => state.na_dmg -= 16.0,
-                (0, 2) => state.na_dmg -= 24.0,
-                (1, 2) => state.na_dmg -= 12.0,
-                (0, 1) => state.na_dmg -= 12.0,
-                _ => (),
-            }
+        match self.seal {
+            3 => state.na_dmg += 40.0,
+            2 => state.na_dmg += 24.0,
+            1 => state.na_dmg += 12.0,
+            _ => (),
         }
     }
 
     fn reset(&mut self) -> () {
         self.seal_1.reset();
         self.seal_2.reset();
-        self.previous_seal = 0;
         self.seal = 0;
     }
 }
@@ -335,8 +297,6 @@ impl SpecialAbility for KitainCrossSpear {
 
 pub struct Hamayumi {
     idx: FieldCharacterIndex,
-    ping: bool,
-    condition: bool,
 }
 
 impl Hamayumi {
@@ -351,46 +311,17 @@ impl Hamayumi {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
             idx,
-            ping: false,
-            condition: false,
         }
     }
 }
 
 impl SpecialAbility for Hamayumi {
-    fn update(&mut self, _time: f32, _event: &AttackEvent, data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        match (self.condition, data.can_burst()) {
-            (true, false) => {
-                self.ping = true;
-                self.condition = false;
-            },
-            (false, true) => {
-                self.ping = true;
-                self.condition = true;
-            },
-            _ => self.ping = false,
-        }
-    }
-
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.ping, self.condition) {
-            (true, true) => {
-                let state = &mut modifiable_data[self.idx.0].state;
-                state.na_dmg += 32.0;
-                state.ca_dmg += 24.0;
-            },
-            (true, false) => {
-                let state = &mut modifiable_data[self.idx.0].state;
-                state.na_dmg -= 32.0;
-                state.ca_dmg -= 24.0;
-            },
-            _ => (),
+        if modifiable_data[self.idx.0].can_burst() {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.na_dmg += 32.0;
+            state.ca_dmg += 24.0;
         }
-    }
-
-    fn reset(&mut self) -> () {
-        self.ping = false;
-        self.condition = false;
     }
 }
 
@@ -437,20 +368,13 @@ impl SpecialAbility for HakushinRing {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.timer.ping, self.timer.n) {
-            (true, 1) => for data in modifiable_data {
+        if self.timer.n == 1 {
+            for data in modifiable_data {
                 data.state.pyro_dmg += 20.0;
                 data.state.hydro_dmg += 20.0;
                 data.state.electro_dmg += 20.0;
                 data.state.cryo_dmg += 20.0;
-            },
-            (true, 0) => for data in modifiable_data {
-                data.state.pyro_dmg -= 20.0;
-                data.state.hydro_dmg -= 20.0;
-                data.state.electro_dmg -= 20.0;
-                data.state.cryo_dmg -= 20.0;
-            },
-            _ => (),
+            }
         }
     }
 

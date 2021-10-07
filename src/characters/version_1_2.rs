@@ -90,16 +90,10 @@ impl CharacterAbility for Albedo {
 
 impl SpecialAbility for Albedo {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.burst.timer.ping {
-            // a4
-            match self.burst.timer.n {
-                1 => for data in modifiable_data.iter_mut() {
-                    data.state.em += 125.0;
-                },
-                5 => for data in modifiable_data.iter_mut() {
-                    data.state.em -= 125.0;
-                },
-                _ => (),
+        // a4
+        if 1 <= self.burst.timer.n && self.burst.timer.n < 5 {
+            for data in modifiable_data.iter_mut() {
+                data.state.em += 125.0;
             }
         }
     }
@@ -165,16 +159,10 @@ impl CharacterAbility for Ganyu {
 
 impl SpecialAbility for Ganyu {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.burst.timer.ping {
-            // a4
-            match self.burst.timer.n {
-                1 => for data in modifiable_data.iter_mut() {
-                    data.state.cryo_dmg += 20.0;
-                },
-                18 => for data in modifiable_data.iter_mut() {
-                    data.state.cryo_dmg -= 20.0;
-                },
-                _ => (),
+        // a4
+        if 1 <= self.burst.timer.n && self.burst.timer.n < 18 {
+            for data in modifiable_data.iter_mut() {
+                data.state.cryo_dmg += 20.0;
             }
         }
     }

@@ -123,24 +123,14 @@ impl SpecialAbility for Kazuha {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.swirl_a4.ping {
+        if self.swirl_a4.n == 1 {
             let em = modifiable_data[self.burst.attack.idx.0].state.em;
-            match self.swirl_a4.n {
-                1 => for data in modifiable_data.iter_mut() {
-                    let bonus = em * 0.04;
-                    data.state.pyro_dmg += bonus;
-                    data.state.hydro_dmg += bonus;
-                    data.state.electro_dmg += bonus;
-                    data.state.cryo_dmg += bonus;
-                },
-                0 => for data in modifiable_data.iter_mut() {
-                    let bonus = em * 0.04;
-                    data.state.pyro_dmg -= bonus;
-                    data.state.hydro_dmg -= bonus;
-                    data.state.electro_dmg -= bonus;
-                    data.state.cryo_dmg -= bonus;
-                },
-                _ => (),
+            for data in modifiable_data.iter_mut() {
+                let bonus = em * 0.04;
+                data.state.pyro_dmg += bonus;
+                data.state.hydro_dmg += bonus;
+                data.state.electro_dmg += bonus;
+                data.state.cryo_dmg += bonus;
             }
         }
     }

@@ -63,7 +63,7 @@ impl State {
         self.er = 0.0;
         self.em = 0.0;
         self.atk_spd = 0.0;
-        self.energy = 0.0;
+        // self.energy = 0.0;
         self.na_dmg = 0.0;
         self.ca_dmg = 0.0;
         self.skill_dmg = 0.0;

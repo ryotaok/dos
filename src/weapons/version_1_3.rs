@@ -9,67 +9,41 @@ use WeaponType::*;
 
 pub struct ProtectorsVirtue {
     idx: FieldCharacterIndex,
-    once: bool,
 }
 
 impl ProtectorsVirtue {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
             idx,
-            once: true,
         }
     }
 }
 
 impl SpecialAbility for ProtectorsVirtue {
-    fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.once {
-            self.once = false;
-        }
-    }
-
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.once {
-            let hp = modifiable_data[self.idx.0].state.HP();
-            modifiable_data[self.idx.0].state.flat_atk += hp * 0.012;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.once = true;
+        let state = &mut modifiable_data[self.idx.0].state;
+        let hp = state.HP();
+        state.flat_atk += hp * 0.012;
     }
 }
 
 pub struct RecklessCinnabar {
     idx: FieldCharacterIndex,
-    once: bool,
 }
 
 impl RecklessCinnabar {
     pub fn new(idx: FieldCharacterIndex) -> Self {
         Self {
             idx,
-            once: true,
         }
     }
 }
 
 impl SpecialAbility for RecklessCinnabar {
-    fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.once {
-            self.once = false;
-        }
-    }
-
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.once {
-            let hp = modifiable_data[self.idx.0].state.HP();
-            modifiable_data[self.idx.0].state.flat_atk += hp * 0.018;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.once = true;
+        let state = &mut modifiable_data[self.idx.0].state;
+        let hp = state.HP();
+        state.flat_atk += hp * 0.018;
     }
 }
 

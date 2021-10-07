@@ -175,18 +175,9 @@ impl SpecialAbility for Yanfei {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.burst.timer.ping {
-            match self.burst.timer.n {
-                1 => {
-                    let state = &mut modifiable_data[self.burst.attack.idx.0].state;
-                    state.ca_dmg += 54.4;
-                },
-                16 => {
-                    let state = &mut modifiable_data[self.burst.attack.idx.0].state;
-                    state.ca_dmg -= 54.4;
-                },
-                _ => (),
-            }
+        if 1 <= self.burst.timer.n && self.burst.timer.n < 16 {
+            let state = &mut modifiable_data[self.burst.attack.idx.0].state;
+            state.ca_dmg += 54.4;
         }
     }
 

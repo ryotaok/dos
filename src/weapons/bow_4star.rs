@@ -53,17 +53,10 @@ impl SpecialAbility for CompoundBowR5 {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => {
-                state.atk += 8.0;
-                state.atk_spd += 2.4;
-            },
-            (true, false) => {
-                state.atk -= 8.0 * self.timer.previous_n as f32;
-                state.atk_spd -= 2.4 * self.timer.previous_n as f32;
-            },
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.atk += 8.0 * self.timer.n as f32;
+            state.atk_spd += 2.4 * self.timer.n as f32;
         }
     }
 
@@ -109,9 +102,8 @@ impl SpecialAbility for TheViridescentHuntR5 {
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => atk_queue.push(&self.aa),
-            _ => (),
+        if self.timer.ping && self.timer.n > 0 {
+            atk_queue.push(&self.aa);
         }
     }
 

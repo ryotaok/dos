@@ -202,30 +202,20 @@ impl CharacterAbility for Mona {
 
 impl SpecialAbility for Mona {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        if self.once {
-            self.once = false;
-        }
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.once {
-            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            let er = 100.0 + state.er;
-            // a4
-            state.hydro_dmg += er * 0.2;
-        }
-        match (self.burst.timer.ping, self.burst.timer.n) {
-            (true, 1) => for data in modifiable_data.iter_mut() {
-                data.state.all_dmg += 60.0;;
-            },
-            (true, 2) => for data in modifiable_data.iter_mut() {
-                data.state.all_dmg -= 60.0;;
-            },
-            _ => (),
+        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
+        let er = 100.0 + state.er;
+        // a4
+        state.hydro_dmg += er * 0.2;
+        if self.burst.timer.n == 1 {
+            for data in modifiable_data.iter_mut() {
+                data.state.all_dmg += 60.0;
+            }
         }
     }
 
     fn reset(&mut self) -> () {
-        self.once = true;
     }
 }

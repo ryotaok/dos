@@ -34,11 +34,9 @@ impl SpecialAbility for GoldenMajesty {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => state.atk += 8.0,
-            (true, false) => state.atk -= 8.0 * self.timer.previous_n as f32,
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.atk += 8.0 * self.timer.n as f32;
         }
     }
 

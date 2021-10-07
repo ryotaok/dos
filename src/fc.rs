@@ -409,17 +409,19 @@ pub struct CharacterData<'a> {
 
 impl<'a> CharacterData<'a> {
     pub fn new(idx: FieldCharacterIndex, character: &'a CharacterRecord, weapon: &'a WeaponRecord, artifact: &'a Artifact) -> Self {
-        let mut state = State::new();
-        state.merge(&character.state);
-        state.merge(&weapon.state);
-        state.merge(&artifact.state);
         Self {
             idx,
             character,
             weapon,
             artifact,
-            state,
+            state: State::new(),
         }
+    }
+
+    pub fn init(&mut self) -> () {
+        self.state.merge(&self.character.state);
+        self.state.merge(&self.weapon.state);
+        self.state.merge(&self.artifact.state);
     }
 
     pub fn can_burst(&self) -> bool {

@@ -81,28 +81,16 @@ impl CharacterAbility for Rosaria {
 
 impl SpecialAbility for Rosaria {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.skill.timer.ping {
+        if self.skill.timer.n == 1 {
             let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            match self.skill.timer.n {
-                1 => state.cr += 12.0,
-                2 => state.cr -= 12.0,
-                _ => (),
-            }
+            state.cr += 12.0;
         }
-        if self.burst.timer.ping {
+        if 1 <= self.burst.timer.n && self.burst.timer.n < 6 {
             let cr = modifiable_data[self.skill.attack.idx.0].state.cr;
-            match self.burst.timer.n {
-                1 => for (i, data) in modifiable_data.iter_mut().enumerate() {
-                    if i != self.burst.attack.idx.0 {
-                        data.state.cr += cr * 0.15;
-                    }
-                },
-                6 => for (i, data) in modifiable_data.iter_mut().enumerate() {
-                    if i != self.burst.attack.idx.0 {
-                        data.state.cr -= cr * 0.15;
-                    }
-                },
-                _ => (),
+            for (i, data) in modifiable_data.iter_mut().enumerate() {
+                if i != self.burst.attack.idx.0 {
+                    data.state.cr += cr * 0.15;
+                }
             }
         }
     }

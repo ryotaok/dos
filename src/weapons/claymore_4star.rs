@@ -50,9 +50,8 @@ impl SpecialAbility for PrototypeArchaicR5 {
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        match (self.timer.ping, self.timer.n) {
-            (true, 1) => atk_queue.push(&self.aa),
-            _ => (),
+        if self.timer.ping && self.timer.n == 1 {
+            atk_queue.push(&self.aa);
         }
     }
 
@@ -88,17 +87,10 @@ impl SpecialAbility for WhiteblindR5 {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => {
-                state.atk += 12.0;
-                state.def += 12.0;
-            },
-            (true, false) => {
-                state.atk -= 12.0 * self.timer.previous_n as f32;
-                state.def -= 12.0 * self.timer.previous_n as f32;
-            },
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.atk += 12.0 * self.timer.n as f32;
+            state.def += 12.0 * self.timer.n as f32;
         }
     }
 
@@ -135,15 +127,9 @@ impl SpecialAbility for SerpentSpineR5 {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => {
-                state.all_dmg += 10.0;
-            },
-            (true, false) => {
-                state.all_dmg -= 10.0 * self.timer.previous_n as f32;
-            },
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.all_dmg += 10.0 * self.timer.n as f32;
         }
     }
 
@@ -200,20 +186,9 @@ impl RainslasherR5 {
 
 impl SpecialAbility for RainslasherR5 {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (&enemy.aura.aura, state.stacked_buff != LIONSROAR) {
-            (Vision::Electro, true) |
-            (Vision::Hydro, true) => {
-                state.all_dmg += 36.0;
-                state.stacked_buff.turn_on(&LIONSROAR);
-            },
-            (Vision::Electro, false) |
-            (Vision::Hydro, false) => (),
-            (_, false) => {
-                state.all_dmg -= 36.0;
-                state.stacked_buff.turn_off(&LIONSROAR);
-            },
-            _ => (),
+        if enemy.aura.aura == Vision::Electro || enemy.aura.aura == Vision::Hydro {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.all_dmg += 36.0;
         }
     }
 }

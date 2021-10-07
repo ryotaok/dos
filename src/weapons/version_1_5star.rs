@@ -60,11 +60,9 @@ impl SpecialAbility for SkywardBlade {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n) {
-            (true, 1) => state.atk_spd += 18.0,
-            (true, 0) => state.atk_spd -= 18.0,
-            _ => (),
+        if self.timer.n == 1 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.atk_spd += 10.0;
         }
     }
 
@@ -258,21 +256,12 @@ impl SpecialAbility for PrimordialJadeWingedSpear {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => {
-                state.atk += 3.2;
-                if self.timer.n == 7 {
-                    state.all_dmg += 12.0;
-                }
-            },
-            (true, false) => {
-                state.atk -= 3.2 * self.timer.previous_n as f32;
-                if self.timer.previous_n == 7 {
-                    state.all_dmg -= 12.0;
-                }
-            },
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.atk += 3.2 * self.timer.n as f32;
+            if self.timer.n == 7 {
+                state.all_dmg += 12.0;
+            }
         }
     }
 
@@ -418,11 +407,9 @@ impl SpecialAbility for LostPrayerToTheSacredWinds {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => state.elemental_dmg += 8.0,
-            (true, false) => state.elemental_dmg -= 8.0 * self.timer.previous_n as f32,
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.elemental_dmg += 8.0 * self.timer.n as f32
         }
     }
 

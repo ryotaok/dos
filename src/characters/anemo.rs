@@ -165,33 +165,20 @@ impl SpecialAbility for Sucrose {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.skill_a1.ping, self.skill_a1.n) {
-            (true, 1) => for data in modifiable_data.iter_mut() {
-                data.state.em += 50.0;
-            },
-            (true, 0) => for data in modifiable_data.iter_mut() {
-                data.state.em -= 50.0;
-            },
-            _ => (),
+        if self.skill_a1.n == 1 {
+            for (i, data) in modifiable_data.iter_mut().enumerate() {
+                if i != self.burst.attack.idx.0 {
+                    data.state.em += 50.0;
+                }
+            }
         }
-        match (self.skill_a4.ping, self.skill_a4.n) {
-            (true, 1) => {
-                let em = modifiable_data[self.burst.attack.idx.0].state.em;
-                for (i, data) in modifiable_data.iter_mut().enumerate() {
-                    if i != self.burst.attack.idx.0 {
-                        data.state.em += em * 0.2;
-                    }
+        if self.skill_a4.n == 1 {
+            let em = modifiable_data[self.burst.attack.idx.0].state.em;
+            for (i, data) in modifiable_data.iter_mut().enumerate() {
+                if i != self.burst.attack.idx.0 {
+                    data.state.em += em * 0.2;
                 }
-            },
-            (true, 0) => {
-                let em = modifiable_data[self.burst.attack.idx.0].state.em;
-                for (i, data) in modifiable_data.iter_mut().enumerate() {
-                    if i != self.burst.attack.idx.0 {
-                        data.state.em -= em * 0.2;
-                    }
-                }
-            },
-            _ => (),
+            }
         }
     }
 

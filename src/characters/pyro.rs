@@ -79,12 +79,10 @@ impl SpecialAbility for Amber {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
         // a4
-        match (self.ca_timer.ping, self.ca_timer.n) {
-            (true, 1) => state.atk += 15.0,
-            (true, 0) => state.atk -= 15.0,
-            _ => (),
+        if self.ca_timer.n == 1 {
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
+            state.atk += 15.0;
         }
     }
 
@@ -169,14 +167,10 @@ impl CharacterAbility for Bennett {
 
 impl SpecialAbility for Bennett {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.burst.timer.ping, self.burst.timer.n) {
-            (true, 1) => for data in modifiable_data.iter_mut() {
+        if self.burst.timer.n == 1 {
+            for data in modifiable_data.iter_mut() {
                 data.state.flat_atk += data.state.base_atk * self.bonus;
-            },
-            (true, 2) => for data in modifiable_data.iter_mut() {
-                data.state.flat_atk -= data.state.base_atk * self.bonus;
-            },
-            _ => (),
+            }
         }
     }
 
@@ -265,11 +259,9 @@ impl SpecialAbility for Xiangling {
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // a4
-        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-        match (self.skill_a4.ping, self.skill_a4.n) {
-            (true, 1) => state.atk += 10.0,
-            (true, 0) => state.atk -= 10.0,
-            _ => (),
+        if self.skill_a4.n == 1 {
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
+            state.atk += 10.0;
         }
     }
 
@@ -428,18 +420,11 @@ impl CharacterAbility for Diluc {
 
 impl SpecialAbility for Diluc {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.skill.attack1.idx.0].state;
         // a4
-        match (self.burst.timer.ping, self.burst.timer.n) {
-            (true, 1) => {
-                state.pyro_dmg += 20.0;
-                state.infusion = true;
-            },
-            (true, 0) => {
-                state.pyro_dmg -= 20.0;
-                state.infusion = false;
-            },
-            _ => (),
+        if 0 < self.burst.timer.n {
+            let state = &mut modifiable_data[self.skill.attack1.idx.0].state;
+            state.pyro_dmg += 20.0;
+            state.infusion = true;
         }
     }
 }

@@ -178,14 +178,10 @@ impl SpecialAbility for Ningguang {
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // a4
-        match (self.skill.timer.ping, self.skill.timer.n) {
-            (true, 1) => for data in modifiable_data.iter_mut() {
+        if self.skill.timer.n == 1 {
+            for data in modifiable_data.iter_mut() {
                 data.state.geo_dmg += 12.0;
-            },
-            (true, 2) => for data in modifiable_data.iter_mut() {
-                data.state.geo_dmg -= 12.0;
-            },
-            _ => (),
+            }
         }
     }
 }
@@ -261,17 +257,10 @@ impl SpecialAbility for Noelle {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-        match (self.burst.timer.ping, self.burst.timer.n) {
-            (true, 1) => {
-                state.flat_atk += state.DEF() * 0.72;
-                state.infusion = true;
-            },
-            (true, 0) => {
-                state.flat_atk -= state.DEF() * 0.72;
-                state.infusion = false;
-            },
-            _ => (),
+        if self.burst.timer.n == 1 {
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
+            state.flat_atk += state.DEF() * 0.72;
+            state.infusion = true;
         }
     }
 }

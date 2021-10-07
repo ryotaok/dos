@@ -82,36 +82,20 @@ impl CharacterAbility for Ayaka {
 
 impl SpecialAbility for Ayaka {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        if self.once {
-            self.once = false;
-        }
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.once {
-            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            // Alternate Sprint (Kamisato Art: Senho)
-            state.infusion = true;
-            state.cryo_dmg += 18.0;
-        }
-        if self.skill.timer.ping {
-            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            match self.skill.timer.n {
-                1 => {
-                    state.na_dmg += 30.0;
-                    state.ca_dmg += 30.0;
-                },
-                2 => {
-                    state.na_dmg -= 30.0;
-                    state.ca_dmg -= 30.0;
-                },
-                _ => (),
-            }
+        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
+        // Alternate Sprint (Kamisato Art: Senho)
+        state.infusion = true;
+        state.cryo_dmg += 18.0;
+        if self.skill.timer.n == 1 {
+            state.na_dmg += 30.0;
+            state.ca_dmg += 30.0;
         }
     }
 
     fn reset(&mut self) -> () {
-        self.once = true;
     }
 }
 
@@ -191,42 +175,21 @@ impl SpecialAbility for Yoimiya {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.skill_a1.ping {
+        if self.skill_a1.n > 0 {
             let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            if self.skill_a1.n > 0 {
-                state.pyro_dmg += 2.0;
-            } else {
-                state.pyro_dmg -= 2.0 * self.skill_a1.previous_n as f32;
+            state.pyro_dmg += 2.0 * self.skill_a1.n as f32;
+        }
+        if 1 <= self.burst.timer.n && self.burst.timer.n < 6 {
+            for (i, data) in modifiable_data.iter_mut().enumerate() {
+                if i != self.burst.attack.idx.0 {
+                    data.state.atk += 20.0; // TODO should use skill_a1
+                }
             }
         }
-        if self.burst.timer.ping {
-            match self.burst.timer.n {
-                1 => for (i, data) in modifiable_data.iter_mut().enumerate() {
-                    if i != self.burst.attack.idx.0 {
-                        data.state.atk += 20.0; // TODO should use skill_a1
-                    }
-                },
-                0 => for (i, data) in modifiable_data.iter_mut().enumerate() {
-                    if i != self.burst.attack.idx.0 {
-                        data.state.atk -= 20.0; // TODO should use skill_a1
-                    }
-                },
-                _ => (),
-            }
-        }
-        if self.skill.timer.ping {
+        if self.skill.timer.n == 1 {
             let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            match self.skill.timer.n {
-                1 => {
-                    state.infusion = true;
-                    state.na_talent += 61.74;
-                },
-                2 => {
-                    state.infusion = false;
-                    state.na_talent -= 61.74;
-                },
-                _ => (),
-            }
+            state.infusion = true;
+            state.na_talent += 61.74;
         }
     }
 

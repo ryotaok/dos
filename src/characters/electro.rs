@@ -84,20 +84,11 @@ impl CharacterAbility for Beidou {
 impl SpecialAbility for Beidou {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // a4
-        match (self.skill.timer.ping, self.skill.timer.n) {
-            (true, 1) => {
-                let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-                state.na_dmg += 15.0;
-                state.ca_dmg += 15.0;
-                state.atk_spd += 15.0;
-            },
-            (true, 0) => {
-                let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-                state.na_dmg -= 15.0;
-                state.ca_dmg -= 15.0;
-                state.atk_spd -= 15.0;
-            },
-            _ => (),
+        if self.skill.timer.n == 1 {
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
+            state.na_dmg += 15.0;
+            state.ca_dmg += 15.0;
+            state.atk_spd += 15.0;
         }
     }
 
@@ -454,8 +445,6 @@ pub struct Razor {
     ca: NoopAbility,
     skill: RazorSkill,
     burst: BurstDamage2Dot,
-    a4_condition: bool,
-    a4_ping: bool,
 }
 
 impl Razor {
@@ -469,8 +458,6 @@ impl Razor {
 
     pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
         Self {
-            a4_condition: false,
-            a4_ping: false,
             na: NaLoop::new(
                 // 4 attacks in 2.734 seconds
                 &[0.6835,0.6835,0.6835,0.6835],
@@ -515,15 +502,6 @@ impl CharacterAbility for Razor {
 
 impl SpecialAbility for Razor {
     fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        if self.a4_condition && data.state.energy / data.character.energy_cost > 0.5 {
-            self.a4_ping = true;
-            self.a4_condition = false;
-        } else if !self.a4_condition && data.state.energy / data.character.energy_cost <= 0.5 {
-            self.a4_ping = true;
-            self.a4_condition = true;
-        } else {
-            self.a4_ping = false;
-        }
         // a1
         if event == &self.burst.attack {
             self.skill.reset();
@@ -531,23 +509,20 @@ impl SpecialAbility for Razor {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        let energy_cost = modifiable_data[self.burst.attack.idx.0].character.energy_cost;
         let mut state = &mut modifiable_data[self.burst.attack.idx.0].state;
-        match (self.skill.hold_timer.ping, self.skill.hold_timer.n) {
-            (true, 1) => state.energy += 5.0 * self.skill.electro_sigil as f32,
-            _ => (),
+        // a4
+        if state.energy / energy_cost <= 0.5 {
+            state.er += 30.0;
         }
-        // TODO ER bonus by electro_sigil
-        if self.burst.timer.ping {
-            if self.burst.timer.n == 1 {
-                state.atk_spd += 40.0;
-            } else if self.burst.timer.n == 21 {
-                state.atk_spd -= 40.0;
-            }
+        if 0 < self.skill.electro_sigil {
+            state.er += 20.0 * self.skill.electro_sigil as f32;
         }
-        match (self.a4_ping, self.a4_condition) {
-            (true, true) => state.er += 30.0,
-            (true, false) => state.er -= 30.0,
-            _ => (),
+        if self.skill.hold_timer.ping && self.skill.hold_timer.n == 1 {
+            state.energy += 5.0 * self.skill.electro_sigil as f32;
+        }
+        if 1 <= self.burst.timer.n && self.burst.timer.n < 21 {
+            state.atk_spd += 40.0;
         }
     }
 }
@@ -676,21 +651,12 @@ impl CharacterAbility for Keqing {
 impl SpecialAbility for Keqing {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-        match (self.skill.timer.ping, self.skill.timer.n) {
-            (true, 1) => state.infusion = true,
-            (true, 2) => state.infusion = false,
-            _ => (),
+        if self.skill.timer.n == 1 {
+            state.infusion = true;
         }
-        match (self.burst.timer.ping, self.burst.timer.n) {
-            (true, 1) => {
-                state.cr += 15.0;
-                state.er += 15.0;
-            },
-            (true, 5) => {
-                state.cr -= 15.0;
-                state.er -= 15.0;
-            },
-            _ => (),
+        if 1 <= self.burst.timer.n && self.burst.timer.n < 5 {
+            state.cr += 15.0;
+            state.er += 15.0;
         }
     }
 }

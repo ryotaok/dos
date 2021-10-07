@@ -138,6 +138,7 @@ pub fn all(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Vec<(WeaponRecord
     (HakushinRing::record(), Box::new(HakushinRing::new(idx))),
     // version_2_1
     (EngulfingLightning::record(), Box::new(EngulfingLightning::new(idx))),
+    (EverlastingMoonglow::record(), Box::new(EverlastingMoonglow::new(idx))),
     (LuxuriousSeaLord::record(), Box::new(LuxuriousSeaLord::new(idx, icd_timer))),
     (TheCatch::record(), Box::new(TheCatch(idx))),
     ]

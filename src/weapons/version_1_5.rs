@@ -35,22 +35,14 @@ impl SpecialAbility for SongOfBrokenPines {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.timer.ping, self.timer.n) {
-            (true, 4) => for data in modifiable_data.iter_mut() {
+        if self.timer.n == 5 {
+            for data in modifiable_data.iter_mut() {
                 if data.state.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
                     data.state.atk += 20.0;
                     data.state.atk_spd += 12.0;
                     data.state.stacked_buff.turn_on(&MILLENNIAL_MOVEMENT_SERIES);
                 }
-            },
-            (true, 0) => for data in modifiable_data.iter_mut() {
-                if data.state.stacked_buff == MILLENNIAL_MOVEMENT_SERIES {
-                    data.state.atk -= 20.0;
-                    data.state.atk_spd -= 12.0;
-                    data.state.stacked_buff.turn_off(&MILLENNIAL_MOVEMENT_SERIES);
-                }
-            },
-            _ => (),
+            }
         }
     }
 

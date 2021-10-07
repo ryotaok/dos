@@ -43,22 +43,14 @@ impl SpecialAbility for ElegyForTheEnd {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.timer.ping, self.timer.n) {
-            (true, 4) => for data in modifiable_data.iter_mut() {
+        if self.timer.n == 5 {
+            for data in modifiable_data.iter_mut() {
                 if data.state.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
                     data.state.atk += 20.0;
                     data.state.em  += 100.0;
                     data.state.stacked_buff.turn_on(&MILLENNIAL_MOVEMENT_SERIES);
                 }
-            },
-            (true, 0) => for data in modifiable_data.iter_mut() {
-                if data.state.stacked_buff == MILLENNIAL_MOVEMENT_SERIES {
-                    data.state.atk -= 20.0;
-                    data.state.em  -= 100.0;
-                    data.state.stacked_buff.turn_off(&MILLENNIAL_MOVEMENT_SERIES);
-                }
-            },
-            _ => (),
+            }
         }
     }
 
@@ -109,12 +101,7 @@ impl SpecialAbility for AlleyHunter {
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n) {
-            (false, 0) => state.all_dmg += 40.0,
-            (true, 0) => (),
-            (true, _) => state.all_dmg -= 8.0,
-            _ => (),
-        }
+        state.all_dmg += 8.0 * (5 - self.timer.n) as f32;
     }
 
     fn reset(&mut self) -> () {
@@ -162,11 +149,9 @@ impl SpecialAbility for WindblumeOde {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => state.atk += 32.0,
-            (true, false) => state.atk -= 32.0,
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.atk += 32.0;
         }
     }
 

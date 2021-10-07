@@ -89,21 +89,15 @@ impl SpecialAbility for Chongyun {
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // a1
-        match (self.skill.timer.ping, self.skill.timer.n) {
-            (true, 1) => for data in modifiable_data.iter_mut() {
+        if self.skill.timer.n == 1 || self.skill.timer.n == 2 {
+            for data in modifiable_data.iter_mut() {
                 data.state.atk_spd += 8.0; // TODO only melee characters
-            },
-            (true, 3) => for data in modifiable_data.iter_mut() {
-                data.state.atk_spd -= 8.0; // TODO only melee characters
-            },
-            _ => (),
+            }
         }
         // TODO Chongyun infusion
-        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-        match (self.skill.timer.ping, self.skill.timer.n) {
-            (true, 1) => state.infusion = true,
-            (true, 2) => state.infusion = false,
-            _ => (),
+        if self.skill.timer.n == 1 {
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
+            state.infusion = true;
         }
         if self.a4_timer.ping {
             match self.a4_timer.n {

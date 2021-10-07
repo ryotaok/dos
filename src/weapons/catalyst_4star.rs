@@ -56,11 +56,9 @@ impl SpecialAbility for MappaMareR5 {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => state.elemental_dmg += 16.0,
-            (true, false) => state.elemental_dmg -= 16.0 * self.timer.previous_n as f32,
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.elemental_dmg += 16.0 * self.timer.n as f32;
         }
     }
 
@@ -101,21 +99,14 @@ impl SpecialAbility for SolarPearlR5 {
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         let state = &mut modifiable_data[self.idx.0].state;
-        match (self.skill_timer.ping, self.skill_timer.n > 0) {
-            (true, true) => state.na_dmg += 40.0,
-            (true, false) => state.na_dmg -= 40.0,
-            _ => (),
+        if self.skill_timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.na_dmg += 40.0;
         }
-        match (self.na_timer.ping, self.na_timer.n > 0) {
-            (true, true) => {
-                state.skill_dmg += 40.0;
-                state.burst_dmg += 40.0;
-            },
-            (true, false) => {
-                state.skill_dmg -= 40.0;
-                state.burst_dmg -= 40.0;
-            },
-            _ => (),
+        if self.na_timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.skill_dmg += 40.0;
+            state.burst_dmg += 40.0;
         }
     }
 
@@ -178,11 +169,9 @@ impl SpecialAbility for ThrillingTalesOfDragonSlayersR5 {
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         // always buff the first member
-        let state = &mut modifiable_data[0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => state.atk += 48.0,
-            (true, false) => state.atk -= 48.0,
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[0].state;
+            state.atk += 48.0;
         }
     }
 
@@ -279,20 +268,13 @@ impl SpecialAbility for TheWidsithR5 {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.timer.ping, self.timer.n) {
-            (true, 1) => match self.random_theme_song {
+        if self.timer.n == 1 {
+            match self.random_theme_song {
                 0 => modifiable_data[self.idx.0].state.atk += 120.0,
                 1 => modifiable_data[self.idx.0].state.all_dmg += 96.0,
                 2 => modifiable_data[self.idx.0].state.em += 480.0,
                 _ => (),
-            },
-            (true, 0) => match self.random_theme_song {
-                0 => modifiable_data[self.idx.0].state.atk -= 120.0,
-                1 => modifiable_data[self.idx.0].state.all_dmg -= 96.0,
-                2 => modifiable_data[self.idx.0].state.em -= 480.0,
-                _ => (),
-            },
-            _ => (),
+            }
         }
     }
 

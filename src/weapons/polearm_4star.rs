@@ -42,17 +42,10 @@ impl SpecialAbility for PrototypeStarglitterR5 {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => {
-                state.na_dmg += 16.0;
-                state.ca_dmg += 16.0;
-            },
-            (true, false) => {
-                state.na_dmg -= 16.0 * self.timer.previous_n as f32;
-                state.ca_dmg -= 16.0 * self.timer.previous_n as f32;
-            },
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.na_dmg += 16.0 * self.timer.n as f32;
+            state.ca_dmg += 16.0 * self.timer.n as f32;
         }
     }
 
@@ -189,20 +182,9 @@ impl DragonsBaneR5 {
 
 impl SpecialAbility for DragonsBaneR5 {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (&enemy.aura.aura, state.stacked_buff != DRAGONSBANE) {
-            (Vision::Hydro, true) |
-            (Vision::Pyro, true) => {
-                state.all_dmg += 36.0;
-                state.stacked_buff.turn_on(&DRAGONSBANE);
-            },
-            (Vision::Hydro, false) |
-            (Vision::Pyro, false) => (),
-            (_, false) => {
-                state.all_dmg -= 36.0;
-                state.stacked_buff.turn_off(&DRAGONSBANE);
-            },
-            _ => (),
+        if enemy.aura.aura == Vision::Pyro || enemy.aura.aura == Vision::Hydro {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.all_dmg += 36.0;
         }
     }
 }

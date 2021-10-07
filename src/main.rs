@@ -121,7 +121,7 @@ fn main_loop(members: &mut [CharacterData], abilities: &mut [FieldAbility], args
     let mut enemy = Enemy::hilichurl();
     let mut atk_queue: Vec<*const Attack> = Vec::new();
     let mut field_energy: Vec<FieldEnergy> = Vec::new();
-    // setup for Emulator
+    // setup for Simulator
     let mut head: Vec<&str> = Vec::new();
     for m in members.iter() {
         head.push(m.character.name);
@@ -132,16 +132,18 @@ fn main_loop(members: &mut [CharacterData], abilities: &mut [FieldAbility], args
     let mut current_time = 0.0;
     let mut total_dmg = 0.0;
 
-    // setup for artifacts and supporters
-    for data in members.iter_mut() {
-        data.state.flat_atk += 311.0;
-        if data.idx.0 > 0 {
-            // data.state.na_dmg -= 100.0;
-            // data.state.ca_dmg -= 100.0;
-            data.state.atk_spd -= 90.0;
-        }
-    }
     while current_time < args.simulation_time {
+        // setup for artifacts and supporters
+        for data in members.iter_mut() {
+            data.state.clear();
+            data.init();
+            data.state.flat_atk += 311.0;
+            if data.idx.0 > 0 {
+                // data.state.na_dmg -= 100.0;
+                // data.state.ca_dmg -= 100.0;
+                data.state.atk_spd -= 90.0;
+            }
+        }
         if current_time == 0.0 {
             if args.start_energy < 0 {
                 for m in members.iter_mut() {

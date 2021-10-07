@@ -37,24 +37,15 @@ impl SpecialAbility for FreedomSworn {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.timer.ping, self.timer.n) {
-            (true, 2) => for data in modifiable_data.iter_mut() {
+        if self.timer.n == 3 {
+            for data in modifiable_data.iter_mut() {
                 if data.state.stacked_buff != MILLENNIAL_MOVEMENT_SERIES {
                     data.state.atk += 20.0;
                     data.state.na_dmg += 16.0;
                     data.state.ca_dmg += 16.0;
                     data.state.stacked_buff.turn_on(&MILLENNIAL_MOVEMENT_SERIES);
                 }
-            },
-            (true, 0) => for data in modifiable_data.iter_mut() {
-                if data.state.stacked_buff == MILLENNIAL_MOVEMENT_SERIES {
-                    data.state.atk -= 20.0;
-                    data.state.na_dmg -= 16.0;
-                    data.state.ca_dmg -= 16.0;
-                    data.state.stacked_buff.turn_off(&MILLENNIAL_MOVEMENT_SERIES);
-                }
-            },
-            _ => (),
+            }
         }
     }
 
@@ -94,16 +85,13 @@ impl SpecialAbility for MitternachtsWaltz {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.na_timer.ping, self.na_timer.n) {
-            (true, 1) => state.skill_dmg += 40.0,
-            (true, 0) => state.skill_dmg -= 40.0,
-            _ => (),
+        if self.na_timer.n == 1 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.skill_dmg += 40.0;
         }
-        match (self.skill_timer.ping, self.skill_timer.n) {
-            (true, 1) => state.na_dmg += 40.0,
-            (true, 0) => state.na_dmg -= 40.0,
-            _ => (),
+        if self.skill_timer.n == 1 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.na_dmg += 40.0;
         }
     }
 
@@ -144,16 +132,13 @@ impl SpecialAbility for DodocoTales {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.na_timer.ping, self.na_timer.n) {
-            (true, 1) => state.ca_dmg += 32.0,
-            (true, 0) => state.ca_dmg -= 32.0,
-            _ => (),
+        if self.na_timer.n == 1 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.ca_dmg += 32.0;
         }
-        match (self.ca_timer.ping, self.ca_timer.n) {
-            (true, 1) => state.atk += 16.0,
-            (true, 0) => state.atk -= 16.0,
-            _ => (),
+        if self.ca_timer.n == 1 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.atk += 16.0;
         }
     }
 

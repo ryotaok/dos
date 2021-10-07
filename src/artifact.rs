@@ -318,20 +318,13 @@ impl SpecialAbility for ArchaicPetra {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.timer.ping, self.timer.n) {
-            (true, 1) => for data in modifiable_data.iter_mut() {
+        if self.timer.n == 1 {
+            for data in modifiable_data.iter_mut() {
                 data.state.pyro_dmg += 35.0;
                 data.state.hydro_dmg += 35.0;
                 data.state.electro_dmg += 35.0;
                 data.state.cryo_dmg += 35.0;
-            },
-            (true, 0) => for data in modifiable_data.iter_mut() {
-                data.state.pyro_dmg -= 35.0;
-                data.state.hydro_dmg -= 35.0;
-                data.state.electro_dmg -= 35.0;
-                data.state.cryo_dmg -= 35.0;
-            },
-            _ => (),
+            }
         }
     }
 
@@ -373,10 +366,8 @@ impl SpecialAbility for CrimsonWitchOfFlames {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => modifiable_data[self.idx.0].state.pyro_dmg += 7.5,
-            (true, false) => modifiable_data[self.idx.0].state.pyro_dmg -= 7.5 * self.timer.previous_n as f32,
-            _ => (),
+        if self.timer.n > 0 {
+            modifiable_data[self.idx.0].state.pyro_dmg += 7.5 * self.timer.n as f32;
         }
     }
 
@@ -448,18 +439,13 @@ impl SpecialAbility for NoblesseOblige {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.timer.ping, self.timer.n) {
-            (true, 1) => for data in modifiable_data.iter_mut() {
+        if self.timer.n == 1 {
+            for data in modifiable_data.iter_mut() {
                 if data.state.stacked_buff != NOBLESSE_OBLIGE {
                     data.state.atk += 20.0;
                     data.state.stacked_buff.turn_on(&NOBLESSE_OBLIGE);
                 }
-            },
-            (true, 0) => for data in modifiable_data.iter_mut() {
-                data.state.atk -= 20.0;
-                data.state.stacked_buff.turn_off(&NOBLESSE_OBLIGE);
-            },
-            _ => (),
+            }
         }
     }
 
@@ -617,18 +603,9 @@ impl Thundersoother {
 
 impl SpecialAbility for Thundersoother {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (&enemy.aura.aura, state.stacked_buff != THUNDERSOOTHER) {
-            (Vision::Electro, true) => {
-                state.all_dmg += 35.0;
-                state.stacked_buff.turn_on(&THUNDERSOOTHER);
-            },
-            (Vision::Electro, false) => (),
-            (_, false) => {
-                state.all_dmg -= 35.0;
-                state.stacked_buff.turn_off(&THUNDERSOOTHER);
-            },
-            _ => (),
+        if enemy.aura.aura == Vision::Electro {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.all_dmg += 35.0;
         }
     }
 }
@@ -659,18 +636,9 @@ impl Lavawalker {
 
 impl SpecialAbility for Lavawalker {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (&enemy.aura.aura, state.stacked_buff != LAVAWALKER) {
-            (Vision::Pyro, true) => {
-                state.all_dmg += 35.0;
-                state.stacked_buff.turn_on(&LAVAWALKER);
-            },
-            (Vision::Pyro, false) => (),
-            (_, false) => {
-                state.all_dmg -= 35.0;
-                state.stacked_buff.turn_off(&LAVAWALKER);
-            },
-            _ => (),
+        if enemy.aura.aura == Vision::Pyro {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.all_dmg += 35.0;
         }
     }
 }
@@ -701,18 +669,9 @@ impl LavawalkerHp {
 
 impl SpecialAbility for LavawalkerHp {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (&enemy.aura.aura, state.stacked_buff != LAVAWALKER) {
-            (Vision::Pyro, true) => {
-                state.all_dmg += 35.0;
-                state.stacked_buff.turn_on(&LAVAWALKER);
-            },
-            (Vision::Pyro, false) => (),
-            (_, false) => {
-                state.all_dmg -= 35.0;
-                state.stacked_buff.turn_off(&LAVAWALKER);
-            },
-            _ => (),
+        if enemy.aura.aura == Vision::Pyro {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.all_dmg += 35.0;
         }
     }
 }
@@ -818,37 +777,9 @@ impl BlizzardStrayer {
 impl SpecialAbility for BlizzardStrayer {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
         let state = &mut modifiable_data[self.idx.0].state;
-        match (enemy.isfrozen, &enemy.aura.aura, state.stacked_buff != BLIZZARDSTRAYER1, state.stacked_buff != BLIZZARDSTRAYER2) {
-            // instantly frozen
-            (true, Vision::Cryo, true, true) => {
-                state.cr += 40.0;
-                state.stacked_buff.turn_on(&BLIZZARDSTRAYER1).turn_on(&BLIZZARDSTRAYER2);
-            },
-            // apply cryo, then hydro
-            (true, Vision::Cryo, false, true) => {
-                state.cr += 20.0;
-                state.stacked_buff.turn_on(&BLIZZARDSTRAYER2);
-            },
-            // apply cryo
-            (false, Vision::Cryo, true, false) => {
-                state.cr += 20.0;
-                state.stacked_buff.turn_on(&BLIZZARDSTRAYER1);
-            },
-            // frozen state ended
-            (false, Vision::Cryo, false, false) => {
-                state.cr -= 20.0;
-                state.stacked_buff.turn_off(&BLIZZARDSTRAYER2);
-            },
-            // frozen state ended
-            (false, _, false, false) => {
-                state.cr -= 40.0;
-                state.stacked_buff.turn_off(&BLIZZARDSTRAYER1).turn_off(&BLIZZARDSTRAYER2);
-            },
-            // cryo state ended
-            (false, _, false, true) => {
-                state.cr -= 20.0;
-                state.stacked_buff.turn_off(&BLIZZARDSTRAYER1);
-            },
+        match (enemy.isfrozen, &enemy.aura.aura) {
+            (true, Vision::Cryo) => state.cr += 40.0,
+            (false, Vision::Cryo) => state.cr += 20.0,
             _ => (),
         }
     }
@@ -886,17 +817,10 @@ impl SpecialAbility for HeartOfDepth {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n) {
-            (true, 1) => {
-                state.na_dmg += 30.0;
-                state.ca_dmg += 30.0;
-            },
-            (true, 0) => {
-                state.na_dmg -= 30.0;
-                state.ca_dmg -= 30.0;
-            },
-            _ => (),
+        if self.timer.n == 1 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.na_dmg += 30.0;
+            state.ca_dmg += 30.0;
         }
     }
 
@@ -937,15 +861,9 @@ impl SpecialAbility for GlacierAndSnowfield {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n) {
-            (true, 1) => {
-                state.cryo_dmg += 30.0;
-            },
-            (true, 0) => {
-                state.cryo_dmg -= 30.0;
-            },
-            _ => (),
+        if self.timer.n == 1 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.cryo_dmg += 30.0;
         }
     }
 
@@ -986,18 +904,15 @@ impl SpecialAbility for PaleFlame {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n) {
-            (true, 2) => {
-                state.atk += 9.0;
+        match (self.timer.n) {
+            2 => {
+                let state = &mut modifiable_data[self.idx.0].state;
+                state.atk += 18.0;
                 state.physical_dmg += 25.0;
             },
-            (true, 1) => {
+            1 => {
+                let state = &mut modifiable_data[self.idx.0].state;
                 state.atk += 9.0;
-            },
-            (true, 0) => {
-                state.atk -= 9.0 * self.timer.previous_n as f32;
-                state.physical_dmg -= 25.0 * (self.timer.previous_n - 1) as f32;
             },
             _ => (),
         }
@@ -1046,18 +961,13 @@ impl SpecialAbility for TenacityOfTheMillelith {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        match (self.timer.ping, self.timer.n) {
-            (true, 1) => for data in modifiable_data.iter_mut() {
+        if self.timer.n == 1 {
+            for data in modifiable_data.iter_mut() {
                 if data.state.stacked_buff != TENACITY_OF_THE_MILLELITH {
                     data.state.atk += 20.0;
                     data.state.stacked_buff.turn_on(&TENACITY_OF_THE_MILLELITH);
                 }
-            },
-            (true, 0) => for data in modifiable_data.iter_mut() {
-                data.state.atk -= 20.0;
-                data.state.stacked_buff.turn_off(&TENACITY_OF_THE_MILLELITH);
-            },
-            _ => (),
+            }
         }
     }
 
@@ -1102,16 +1012,17 @@ impl SpecialAbility for ShimenawasReminiscence {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
         match (self.timer.ping, self.timer.n) {
             (true, 1) => {
+                let state = &mut modifiable_data[self.idx.0].state;
                 state.energy -= 15.0;
                 state.na_dmg += 50.0;
                 state.ca_dmg += 50.0;
             },
-            (true, 0) => {
-                state.na_dmg -= 50.0;
-                state.ca_dmg -= 50.0;
+            (_, 1) => {
+                let state = &mut modifiable_data[self.idx.0].state;
+                state.na_dmg += 50.0;
+                state.ca_dmg += 50.0;
             },
             _ => (),
         }
@@ -1181,15 +1092,10 @@ fn emblem_of_severed_fate(data: &mut CharacterData) -> () {
 
 impl SpecialAbility for EmblemOfSeveredFate {
     fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.once {
-            self.once = false;
-        }
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.once {
-            emblem_of_severed_fate(&mut modifiable_data[self.idx.0]);
-        }
+        emblem_of_severed_fate(&mut modifiable_data[self.idx.0]);
     }
 }
 
@@ -1222,15 +1128,10 @@ impl EmblemOfSeveredFateER {
 
 impl SpecialAbility for EmblemOfSeveredFateER {
     fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.once {
-            self.once = false;
-        }
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.once {
-            emblem_of_severed_fate(&mut modifiable_data[self.idx.0]);
-        }
+        emblem_of_severed_fate(&mut modifiable_data[self.idx.0]);
     }
 }
 
@@ -1264,15 +1165,10 @@ impl EmblemOfSeveredFateER2 {
 
 impl SpecialAbility for EmblemOfSeveredFateER2 {
     fn update(&mut self, _time: f32, _event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        if self.once {
-            self.once = false;
-        }
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.once {
-            emblem_of_severed_fate(&mut modifiable_data[self.idx.0]);
-        }
+        emblem_of_severed_fate(&mut modifiable_data[self.idx.0]);
     }
 }
 
@@ -1316,6 +1212,10 @@ mod tests {
         let mut total_dmg = 0.0;
         members[0].state.energy = members[0].character.energy_cost;
         for _ in 0..10 {
+            for data in members.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
@@ -1347,6 +1247,10 @@ mod tests {
         let mut total_dmg = 0.0;
         members[0].state.energy = members[0].character.energy_cost;
         for _ in 0..10 {
+            for data in members.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
@@ -1381,6 +1285,10 @@ mod tests {
         members[0].state.energy = members[0].character.energy_cost;
         members[1].state.energy = members[1].character.energy_cost;
         for _ in 0..10 {
+            for data in members.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
@@ -1473,6 +1381,10 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         for _ in 0..40 {
+            for data in members.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
 
@@ -1502,6 +1414,10 @@ mod tests {
         members[0].state.energy += 10.0;
         let mut total_dmg = 0.0;
         for _ in 0..20 {
+            for data in members.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(1.0, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
         }
         let expect = 4.0 * 200.0       // skill

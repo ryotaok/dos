@@ -97,20 +97,15 @@ impl SpecialAbility for Tartaglia {
     }
 
     fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        match (self.riptide_timer.ping, self.riptide_timer.n) {
-            (true, 1) => atk_queue.push(&self.riptide_slash),
-            _ => (),
+        if self.riptide_timer.ping && self.riptide_timer.n == 1 {
+            atk_queue.push(&self.riptide_slash);
         }
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.skill.timer.ping {
+        if self.skill.timer.n == 1 {
             let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            match self.skill.timer.n {
-                1 => state.infusion = true,
-                2 => state.infusion = false,
-                _ => (),
-            }
+            state.infusion = true;
         }
         if self.once {
             // Master of Weaponry
@@ -343,13 +338,9 @@ impl CharacterAbility for Xinyan {
 
 impl SpecialAbility for Xinyan {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.skill.timer.ping && self.skill.timer.n == 1 {
+        if self.skill.timer.ping && 1 <= self.skill.timer.n && self.skill.timer.n < 7 {
             for data in modifiable_data.iter_mut() {
                 data.state.physical_dmg += 15.0;
-            }
-        } else if self.skill.timer.ping && self.skill.timer.n == 7 {
-            for data in modifiable_data.iter_mut() {
-                data.state.physical_dmg -= 15.0;
             }
         }
     }

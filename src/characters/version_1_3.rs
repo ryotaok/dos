@@ -177,23 +177,17 @@ impl SpecialAbility for Xiao {
 
     // TODO a4 is disabled for now
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.burst.timer.ping {
+        if 1 <= self.burst.timer.n && self.burst.timer.n <= 5 {
             let state = &mut modifiable_data[self.burst.attack.idx.0].state;
+            state.infusion = true;
+            state.na_dmg += 95.2;
+            state.ca_dmg += 95.2;
             match (self.burst.timer.n) {
-                1 => {
-                    state.infusion = true;
-                    state.na_dmg += 95.2;
-                    state.ca_dmg += 95.2;
-                    state.all_dmg += 5.0;
-                },
-                // a1
-                2 | 3 | 4 | 5 => state.all_dmg += 5.0,
-                6 => {
-                    state.infusion = false;
-                    state.na_dmg -= 95.2;
-                    state.ca_dmg -= 95.2;
-                    state.all_dmg -= 25.0;
-                },
+                1 => state.all_dmg += 5.0,
+                2 => state.all_dmg += 10.0,
+                3 => state.all_dmg += 15.0,
+                4 => state.all_dmg += 20.0,
+                5 => state.all_dmg += 25.0,
                 _ => (),
             }
         }
@@ -305,33 +299,21 @@ impl SpecialAbility for HuTao {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.skill.timer.ping {
-            match self.skill.timer.n {
-                1 => {
-                    let state = &mut modifiable_data[self.burst.attack.idx.0].state;
-                    state.infusion = true;
-                    state.flat_atk += state.HP() * 0.0626;
-                },
-                2 => {
-                    // a1
-                    for (i, data) in modifiable_data.iter_mut().enumerate() {
-                        if i != self.burst.attack.idx.0 {
-                            data.state.cr += 12.0;
-                        }
+        match self.skill.timer.n {
+            1 => {
+                let state = &mut modifiable_data[self.burst.attack.idx.0].state;
+                state.infusion = true;
+                state.flat_atk += state.HP() * 0.0626;
+            },
+            2 => {
+                // a1
+                for (i, data) in modifiable_data.iter_mut().enumerate() {
+                    if i != self.burst.attack.idx.0 {
+                        data.state.cr += 12.0;
                     }
-                    let state = &mut modifiable_data[self.burst.attack.idx.0].state;
-                    state.infusion = false;
-                    state.flat_atk -= state.HP() * 0.0626;
-                },
-                0 => {
-                    for (i, data) in modifiable_data.iter_mut().enumerate() {
-                        if i != self.burst.attack.idx.0 {
-                            data.state.cr -= 12.0;
-                        }
-                    }
-                },
-                _ => (),
-            }
+                }
+            },
+            _ => (),
         }
     }
 }

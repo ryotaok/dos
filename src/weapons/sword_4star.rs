@@ -39,17 +39,10 @@ impl SpecialAbility for PrototypeRancourR5 {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (self.timer.ping, self.timer.n > 0) {
-            (true, true) => {
-                state.atk += 8.0;
-                state.def += 8.0;
-            },
-            (true, false) => {
-                state.atk -= 8.0 * self.timer.previous_n as f32;
-                state.def -= 8.0 * self.timer.previous_n as f32;
-            },
-            _ => (),
+        if self.timer.n > 0 {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.atk += 8.0 * self.timer.n as f32;
+            state.def += 8.0 * self.timer.n as f32;
         }
     }
 
@@ -183,20 +176,9 @@ impl LionsRoarR5 {
 
 impl SpecialAbility for LionsRoarR5 {
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        let state = &mut modifiable_data[self.idx.0].state;
-        match (&enemy.aura.aura, state.stacked_buff != LIONSROAR) {
-            (Vision::Electro, true) |
-            (Vision::Pyro, true) => {
-                state.all_dmg += 36.0;
-                state.stacked_buff.turn_on(&LIONSROAR);
-            },
-            (Vision::Electro, false) |
-            (Vision::Pyro, false) => (),
-            (_, false) => {
-                state.all_dmg -= 36.0;
-                state.stacked_buff.turn_off(&LIONSROAR);
-            },
-            _ => (),
+        if enemy.aura.aura == Vision::Electro || enemy.aura.aura == Vision::Pyro {
+            let state = &mut modifiable_data[self.idx.0].state;
+            state.all_dmg += 36.0;
         }
     }
 }

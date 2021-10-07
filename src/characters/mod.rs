@@ -90,6 +90,7 @@ pub fn all(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Vec<(CharacterRec
     (RaidenShogun::record(), Box::new(RaidenShogun::new(idx, icd_timer))),
     (KujouSara::record(), Box::new(KujouSara::new(idx, icd_timer))),
     (Aloy::record(), Box::new(Aloy::new(idx, icd_timer))),
+    (SangonomiyaKokomi::record(), Box::new(SangonomiyaKokomi::new(idx, icd_timer))),
     ]
 }
 

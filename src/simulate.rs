@@ -131,6 +131,10 @@ mod tests {
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -168,6 +172,10 @@ mod tests {
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -185,6 +193,10 @@ mod tests {
 
         let mut _total_dmg = 0.0;
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             _total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -203,6 +215,10 @@ mod tests {
         let mut total_dmg = 0.0;
         env.data[0].state.energy = env.data[0].character.energy_cost;
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -220,6 +236,10 @@ mod tests {
         let mut _total_dmg = 0.0;
         env.data[0].state.energy = env.data[0].character.energy_cost;
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             _total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -237,6 +257,10 @@ mod tests {
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -254,6 +278,10 @@ mod tests {
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -272,6 +300,10 @@ mod tests {
 
         let mut _total_dmg = 0.0;
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             _total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -294,6 +326,10 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -318,6 +354,10 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -341,6 +381,10 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         for _ in 0..4 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(3.0, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -367,6 +411,10 @@ mod tests {
             decay: ElementalGaugeDecay::A,
         };
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -391,6 +439,10 @@ mod tests {
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -409,6 +461,10 @@ mod tests {
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
+            for data in env.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env.data, &mut env.ability, &mut env.atk_queue, &mut env.field_energy, &mut env.enemy);
         }
 
@@ -434,6 +490,10 @@ mod tests {
 
         let mut total_dmg = 0.0;
         for _ in 0..10 {
+            for data in env0.data.iter_mut() {
+                data.state.clear();
+                data.init();
+            }
             total_dmg += simulate(0.2, &mut env0.data, &mut env0.ability, &mut env0.atk_queue, &mut env0.field_energy, &mut env0.enemy);
         }
 

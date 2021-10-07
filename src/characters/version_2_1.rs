@@ -106,9 +106,6 @@ impl SpecialAbility for RaidenShogun {
         let speedup_time = time * (1.0 + data.state.atk_spd / 100.0);
         self.na.update(speedup_time, event, data, attack, particles, enemy);
         self.na_burst.update(speedup_time, event, data, attack, particles, enemy);
-        if self.once {
-            self.once = false;
-        }
         self.a1_timer.update(time, particles.has_particles());
         if self.a1_timer.ping && self.a1_timer.n > 0 {
             self.resolve_stack += 2.0;
@@ -149,31 +146,20 @@ impl SpecialAbility for RaidenShogun {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.once {
-            // TODO Eye of Stormy Judgment
-            let er = modifiable_data[self.skill.attack.idx.0].state.er;
-            for data in modifiable_data.iter_mut() {
-                data.state.burst_dmg += 0.3 * er;
-            }
-            // a4
-            modifiable_data[self.skill.attack.idx.0].state.elemental_dmg += 0.4 * er;
+        // TODO Eye of Stormy Judgment
+        for data in modifiable_data.iter_mut() {
+            data.state.burst_dmg += 0.3 * data.character.energy_cost;
         }
-        if self.burst.timer.ping {
-            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            match self.burst.timer.n {
-                1 => {
-                    state.infusion = true;
-                },
-                2 => {
-                    state.infusion = false;
-                },
-                _ => (),
-            }
+        // a4
+        let er = modifiable_data[self.skill.attack.idx.0].state.er;
+        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
+        state.electro_dmg += 0.4 * er;
+        if self.burst.timer.n == 1 {
+            state.infusion = true;
         }
     }
 
     fn reset(&mut self) -> () {
-        self.once = true;
         self.resolve_stack = 40.0;
         self.musou_isshin_energy.reset();
         self.a1_timer.reset();
@@ -278,16 +264,10 @@ impl SpecialAbility for KujouSara {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.bonus_timer.ping {
+        if self.bonus_timer.n == 1 {
             let base_atk = modifiable_data[self.burst.attack.idx.0].state.base_atk;
-            match self.bonus_timer.n {
-                1 => for data in modifiable_data.iter_mut() {
-                    data.state.flat_atk += base_atk * 0.7733;
-                },
-                0 => for data in modifiable_data.iter_mut() {
-                    data.state.flat_atk -= base_atk * 0.7733;
-                },
-                _ => (),
+            for data in modifiable_data.iter_mut() {
+                data.state.flat_atk += base_atk * 0.7733;
             }
         }
     }
@@ -372,45 +352,116 @@ impl SpecialAbility for Aloy {
     }
 
     fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
-        if self.skill_a4.ping {
+        if 0 < self.skill_a4.n && self.skill_a4.n <= 10 {
             let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            if 0 < self.skill_a4.n && self.skill_a4.n <= 10 {
-                state.cryo_dmg += 3.5;
-            } else {
-                state.cryo_dmg -= 35.0;
-            }
+            state.cryo_dmg += 3.5 * self.skill_a4.n as f32;
         }
-        if self.skill.timer.ping {
+        if 1 <= self.skill.timer.n && self.skill.timer.n <= 5 {
             let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            match self.skill.timer.n {
-                1 | 2 | 3 | 4 => state.na_dmg += 9.52,
-                5 => {
-                    state.infusion = true;
-                    for (i, data) in modifiable_data.iter_mut().enumerate() {
-                        if i == self.burst.attack.idx.0 {
-                            data.state.atk += 16.0;
-                        } else {
-                            data.state.atk += 8.0;
-                        }
+            state.na_dmg += 9.52 * self.skill.timer.n as f32;
+            if self.skill.timer.n == 5 {
+                state.infusion = true;
+                for (i, data) in modifiable_data.iter_mut().enumerate() {
+                    if i == self.burst.attack.idx.0 {
+                        data.state.atk += 16.0;
+                    } else {
+                        data.state.atk += 8.0;
                     }
-                },
-                6 => {
-                    state.infusion = false;
-                    state.na_dmg -= 38.08;
-                    for (i, data) in modifiable_data.iter_mut().enumerate() {
-                        if i == self.burst.attack.idx.0 {
-                            data.state.atk -= 16.0;
-                        } else {
-                            data.state.atk -= 8.0;
-                        }
-                    }
-                },
-                _ => (),
+                }
             }
         }
     }
 
     fn reset(&mut self) -> () {
         self.skill_a4.reset();
+    }
+}
+
+pub struct SangonomiyaKokomi {
+    once: bool,
+    na: NaLoop,
+    ca: NoopAbility,
+    skill: SimpleSkillDot,
+    burst: SimpleBurst,
+}
+
+impl SangonomiyaKokomi {
+    pub fn record() -> CharacterRecord {
+        CharacterRecord::default()
+            .name("Sangonomiya Kokomi").vision(Hydro).weapon(Catalyst).release_date("2021-08-10").version(2.1)
+            .base_hp(12262.0).base_atk(226.0).base_def(628.0)
+            // passive 2?
+            .cr(-100.0)
+            .hydro_dmg(28.8)
+            .energy_cost(70.0)
+    }
+
+    pub fn new(idx: FieldCharacterIndex, icd_timer: &ICDTimers) -> Self {
+        Self {
+            once: true,
+            na: NaLoop::new(
+                // 3 attacks in 1.5 seconds
+                &[0.5,0.5,0.5],
+                vec![
+                    Attack::na(123.08, 1, idx, &icd_timer),
+                    Attack::na(110.77, 1, idx, &icd_timer),
+                    Attack::na(169.75, 1, idx, &icd_timer),
+                ]
+            ),
+            ca: NoopAbility,
+            skill: SimpleSkillDot::new(&[2.0,2.0,2.0,2.0,2.0,2.0, 8.0], Particle::new(Hydro, 0.75), Attack {
+                kind: AttackType::SkillDot,
+                element: &HYDRO_GAUGE1A,
+                multiplier: 196.54,
+                hits: 1,
+                icd_timer: Rc::clone(&icd_timer.skill),
+                idx,
+            }),
+            burst: SimpleBurst::new(&[10.0, 8.0], Attack {
+                kind: AttackType::Burst,
+                element: &HYDRO_GAUGE1A,
+                multiplier: 0.0,
+                hits: 1,
+                icd_timer: Rc::clone(&icd_timer.burst),
+                idx,
+            }),
+        }
+    }
+}
+
+impl CharacterAbility for SangonomiyaKokomi {
+    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
+    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
+    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
+    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
+    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
+    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
+    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
+    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
+}
+
+impl SpecialAbility for SangonomiyaKokomi {
+    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
+        if self.once {
+            self.once = false;
+            // TODO multiplier?
+            self.burst.attack.multiplier = 0.01875 * data.state.HP();
+        }
+        if self.burst.timer.ping && self.burst.timer.n == 1 {
+            self.skill.reset();
+        }
+    }
+
+    fn modify(&self, modifiable_data: &mut [CharacterData], enemy: &mut Enemy) -> () {
+        if self.burst.timer.n == 1 {
+            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
+            let hp = state.HP();
+            // passive 2
+            state.flat_atk += hp * 0.0871 + 0.15 * 25.0;
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.once = true;
     }
 }
