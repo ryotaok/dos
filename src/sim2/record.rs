@@ -217,6 +217,8 @@ pub struct Artifact {
     pub anemo_dmg: f32,
     pub geo_dmg: f32,
     pub dendro_dmg: f32,
+    pub amplifying_bonus: f32,
+    pub transformative_bonus: f32,
 }
 
 impl Default for Artifact {
@@ -247,6 +249,8 @@ impl Default for Artifact {
             anemo_dmg: 0.0,
             geo_dmg: 0.0,
             dendro_dmg: 0.0,
+            amplifying_bonus: 0.0,
+            transformative_bonus: 0.0,
         }
     }
 }
@@ -281,6 +285,33 @@ impl Artifact {
     pub fn anemo_dmg(mut self, anemo_dmg: f32) -> Self { self.anemo_dmg = anemo_dmg; self }
     pub fn geo_dmg(mut self, geo_dmg: f32) -> Self { self.geo_dmg = geo_dmg; self }
     pub fn dendro_dmg(mut self, dendro_dmg: f32) -> Self { self.dendro_dmg = dendro_dmg; self }
+    pub fn amplifying_bonus(mut self, amplifying_bonus: f32) -> Self { self.amplifying_bonus = amplifying_bonus; self }
+    pub fn transformative_bonus(mut self, transformative_bonus: f32) -> Self { self.transformative_bonus = transformative_bonus; self }
+
+    pub fn infuse_goblet(&mut self, vision: &Vision) -> &mut Self {
+        match &vision {
+            Vision::Pyro => self.pyro_dmg = 46.6,
+            Vision::Cryo => self.cryo_dmg = 46.6,
+            Vision::Hydro => self.hydro_dmg = 46.6,
+            Vision::Electro => self.electro_dmg = 46.6,
+            Vision::Anemo => self.anemo_dmg = 46.6,
+            Vision::Geo => self.geo_dmg = 46.6,
+            Vision::Dendro => self.dendro_dmg = 46.6,
+            Vision::Physical => self.physical_dmg = 58.3,
+        };
+        self
+    }
+
+    pub fn dry_goblet(&mut self) -> () {
+        self.pyro_dmg = 0.0;
+        self.cryo_dmg = 0.0;
+        self.hydro_dmg = 0.0;
+        self.electro_dmg = 0.0;
+        self.anemo_dmg = 0.0;
+        self.geo_dmg = 0.0;
+        self.dendro_dmg = 0.0;
+        self.physical_dmg = 0.0;
+    }
 }
 
 

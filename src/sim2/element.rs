@@ -64,46 +64,46 @@ impl ElementalGauge {
     }
 
     pub fn trigger2(&mut self, time: f32, last_time: &mut f32, attack: &Attack) -> () {
-        // decay by time
+        // decay over time
         if self.aura != Physical {
             self.unit -= (time - *last_time) / self.decay.decay_rate_conversion();
+            *last_time = time;
             if self.unit < 0.0 {
                 self.aura = Physical;
                 self.unit = 0.0
             }
         }
+
         // reaction
         let other = &attack.element;
         let er = ElementalReaction::new(self.aura, other.aura);
-        let before_negative = self.unit <= 0.0;
-        let unit = er.gauge_modifier() * other.unit;
-        if unit > 0.0 {
-            // unit can be up to 4GU.
-            if self.unit < unit {
-                self.unit = unit;
-                self.decay = other.decay;
+        match (&er, &other.aura) {
+            // + incoming attack adds the aura
+            (Equalize(_), Pyro) |
+            (Equalize(_), Hydro) |
+            (Equalize(_), Electro) |
+            (Equalize(_), Cryo) => {
+                self.aura = other.aura;
+                self.unit = other.unit;
+                // self.decay = other.decay;
                 *last_time = time;
-            }
-        } else {
-            self.unit += unit;
+            },
+            // = incoming attack does not change the aura
+            (Neutralize(_), _) => (),
+            // - incoming attack reduce the aura
+            _ => {
+                // TODO test this
+                match &er {
+                    Freeze(_) => self.aura = Cryo,
+                    ElectorCharged(_) => self.aura = Hydro,
+                    _ => (),
+                };
+                self.unit += other.unit * er.gauge_modifier();
+                if self.unit < 0.0 {
+                    self.aura = Physical;
+                }
+            },
         }
-        let after_negative = self.unit <= 0.0;
-
-        if after_negative {
-            self.aura = Physical;
-        } else if before_negative && !after_negative {
-            // no aura was applied on the enemy
-            self.aura = other.aura;
-            self.unit = other.unit;
-            self.decay = other.decay;
-            *last_time = time;
-        }
-        // TODO test this
-        match er {
-            Freeze(_) => self.aura = Cryo,
-            ElectorCharged(_) => self.aura = Hydro,
-            _ => (),
-        };
     }
 }
 

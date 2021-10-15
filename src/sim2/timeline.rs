@@ -1,4 +1,5 @@
 use crate::sim2::types::{CharacterAction, FieldEnergy};
+use crate::sim2::record::CharacterData;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ActionColumn<T> {
@@ -129,16 +130,46 @@ impl ActionState {
         self.er = other.er;
     }
 
+    pub fn init(&mut self, data: &CharacterData) -> () {
+        self.atk_spd = data.weapon.atk_spd + data.artifact.atk_spd;
+        self.reduce_skill = 0.0;
+        self.er = data.character.er + data.weapon.er + data.artifact.er;
+    }
+
     pub fn er(&self) -> f32 {
         1.0 + self.er / 100.0
+    }
+
+    pub fn did_burst(&self) -> bool {
+        self.abs_time.burst == self.current_time
+    }
+
+    pub fn did_press(&self) -> bool {
+        self.abs_time.press == self.current_time
+    }
+
+    pub fn did_hold(&self) -> bool {
+        self.abs_time.hold == self.current_time
+    }
+
+    pub fn did_skill(&self) -> bool {
+        self.abs_time.press == self.current_time || self.abs_time.hold == self.current_time
+    }
+
+    pub fn did_na(&self) -> bool {
+        self.abs_time.na == self.current_time
+    }
+
+    pub fn did_ca(&self) -> bool {
+        self.abs_time.ca == self.current_time
     }
 }
 
 // can be used to implement characters, weapons and artifacts
 pub trait Timeline {
     // perform an action
-    fn decide_action(&mut self, state: &ActionState) -> CharacterAction { CharacterAction::StandStill }
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction { CharacterAction::StandStill }
 
     // generate energy and modify acceleration states according to the event
-    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState) -> () {}
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {}
 }
