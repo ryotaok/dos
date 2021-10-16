@@ -65,7 +65,7 @@ pub struct ActionState {
 // 4. update
 impl ActionState {
     pub fn new() -> Self {
-        Self {
+        let mut x = Self {
             current_time: 0.0,
             abs_time: ActionColumn::<f32>::default(),
             rel_time: ActionColumn::<f32>::default(),
@@ -73,50 +73,66 @@ impl ActionState {
             reduce_skill: 0.0,
             energy: 0.0,
             er: 0.0,
+        };
+        x.abs_time.add(-1.);
+        x.rel_time.add(100.);
+        x
+    }
+
+    // see also `ActionState::new` for the default value
+    pub fn carryover(&self, cooldown: f32) -> f32 {
+        if self.rel_time.na >= 100. {
+            0.
+        } else {
+            self.rel_time.na - cooldown
         }
     }
 
+    // any action other than NA resets rel_time.na
     pub fn update(&mut self, event: &CharacterAction, current_time: f32, elapsed_time: f32, energy: f32) -> () {
         self.current_time = current_time;
         match event {
             CharacterAction::StandStill => (),
             CharacterAction::Burst => {
                 self.abs_time.burst = current_time;
-                self.rel_time.burst = 0.0;
-                self.energy = 0.0;
+                self.rel_time.burst = 0.;
+                self.energy = 0.;
+                self.rel_time.na = 100.;
             },
             CharacterAction::PressSkill => {
                 self.abs_time.press = current_time;
-                self.rel_time.press = 0.0;
+                self.rel_time.press = 0.;
+                self.rel_time.na = 100.;
             },
             CharacterAction::HoldSkill => {
                 self.abs_time.hold = current_time;
-                self.rel_time.hold = 0.0;
+                self.rel_time.hold = 0.;
+                self.rel_time.na = 100.;
             },
-            CharacterAction::Na1 |
-            CharacterAction::Na2 |
-            CharacterAction::Na3 |
-            CharacterAction::Na4 |
-            CharacterAction::Na5 |
-            CharacterAction::Na6 => {
+            CharacterAction::Na1(carryover) |
+            CharacterAction::Na2(carryover) |
+            CharacterAction::Na3(carryover) |
+            CharacterAction::Na4(carryover) |
+            CharacterAction::Na5(carryover) |
+            CharacterAction::Na6(carryover) => {
                 self.abs_time.na = current_time;
-                self.rel_time.na = 0.0;
+                self.rel_time.na = *carryover;
             },
             CharacterAction::Ca => {
                 self.abs_time.ca = current_time;
-                self.rel_time.ca = 0.0;
+                self.rel_time.ca = 0.;
+                self.rel_time.na = 100.;
             },
         }
         self.rel_time.add(elapsed_time);
         self.energy += energy;
-        if self.reduce_skill > 0.0 {
+        if self.reduce_skill > 0. {
             self.rel_time.press += self.reduce_skill;
             self.rel_time.hold += self.reduce_skill;
         }
-        if self.atk_spd > 0.0 {
-            let t = elapsed_time * self.atk_spd / 100.0;
+        if self.atk_spd > 0. {
+            let t = elapsed_time * self.atk_spd / 100.;
             self.rel_time.na += t;
-            self.rel_time.ca += t;
         }
     }
 
@@ -172,4 +188,6 @@ pub trait Timeline {
 
     // generate energy and modify acceleration states according to the event
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {}
+
+    fn reset(&mut self) -> () {}
 }

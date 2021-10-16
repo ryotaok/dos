@@ -77,7 +77,7 @@ impl Attack {
 }
 
 pub trait CharacterAttack {
-    fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {
+    fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         use CharacterAction::*;
         match event {
             StandStill => (),
@@ -85,16 +85,14 @@ pub trait CharacterAttack {
             PressSkill => self.press(time, event, data, atk_queue, state),
             HoldSkill => self.hold(time, event, data, atk_queue, state),
             Ca => self.ca(time, event, data, atk_queue, state),
-            Na1 => self.na1(time, event, data, atk_queue, state),
-            Na2 => self.na2(time, event, data, atk_queue, state),
-            Na3 => self.na3(time, event, data, atk_queue, state),
-            Na4 => self.na4(time, event, data, atk_queue, state),
-            Na5 => self.na5(time, event, data, atk_queue, state),
-            Na6 => self.na6(time, event, data, atk_queue, state),
+            Na1(_) => self.na1(time, event, data, atk_queue, state),
+            Na2(_) => self.na2(time, event, data, atk_queue, state),
+            Na3(_) => self.na3(time, event, data, atk_queue, state),
+            Na4(_) => self.na4(time, event, data, atk_queue, state),
+            Na5(_) => self.na5(time, event, data, atk_queue, state),
+            Na6(_) => self.na6(time, event, data, atk_queue, state),
         };
     }
-
-    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {}
 
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
@@ -106,10 +104,16 @@ pub trait CharacterAttack {
     fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
     fn na6(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
     fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
+
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {}
+
+    fn reset(&mut self) -> () {}
 }
 
 pub trait WeaponAttack {
-    fn attack(&mut self, time: f32, event: &CharacterAction, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
+    fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {}
+
+    fn reset(&mut self) -> () {}
 }

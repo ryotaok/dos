@@ -179,12 +179,12 @@ impl State {
                 _count_hit(time, &mut self.icd_time.skill, &mut self.icd_count.skill);
                 b
             },
-            Na1 |
-            Na2 |
-            Na3 |
-            Na4 |
-            Na5 |
-            Na6 => {
+            Na1(_) |
+            Na2(_) |
+            Na3(_) |
+            Na4(_) |
+            Na5(_) |
+            Na6(_) => {
                 let b = _can_apply_aura(time, self.icd_time.na, self.icd_count.na);
                 _count_hit(time, &mut self.icd_time.na, &mut self.icd_count.na);
                 b

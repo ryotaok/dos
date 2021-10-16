@@ -491,6 +491,16 @@ impl<'a> CharacterData<'a> {
             artifact,
         }
     }
+
+    pub fn reset_na(&mut self, event: &CharacterAction) -> () {
+        match event {
+            CharacterAction::Burst |
+            CharacterAction::PressSkill |
+            CharacterAction::HoldSkill |
+            CharacterAction::Ca => self.na_idx = 1,
+            _ => (),
+        };
+    }
 }
 
 /*

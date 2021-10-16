@@ -7,3 +7,4 @@ pub mod state;
 pub mod testutil;
 pub mod timeline;
 pub mod types;
+pub mod weapons;

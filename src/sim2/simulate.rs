@@ -27,18 +27,17 @@ impl<const N: usize> History<N> {
 
     pub fn state_index(&self, time: f32) -> usize {
         // TODO
-        1 + (time / self.unit_time).floor() as usize
+        (time / self.unit_time).floor() as usize
     }
 }
 
 pub fn decide_action<const N: usize>(history: &mut History<N>, members: &mut [TimelineMember; N], states: &mut [ActionState; N], data: &mut [CharacterData; N]) -> () {
     let mut field_energy: Vec<FieldEnergy> = Vec::new();
-    let mut current_time: f32 = 0.0;
+    let mut current_time: f32 = 0.;
     let mut idx = 0;
     while current_time <= history.end_time {
         let mut actions = [CharacterAction::StandStill; N];
         for (i, member) in members.iter_mut().enumerate() {
-            history.state[idx][i].copy(&states[i]);
             let action = member.character.decide_action(&states[i], &mut data[i]);
             let state = &mut states[i];
             let d = &data[i];
@@ -49,7 +48,7 @@ pub fn decide_action<const N: usize>(history: &mut History<N>, members: &mut [Ti
             actions[i] = action;
         }
         for (i, member) in members.iter_mut().enumerate() {
-            let mut energy: f32 = 0.0;
+            let mut energy: f32 = 0.;
             for fe in field_energy.iter() {
                 match fe {
                     FieldEnergy::Particle(ref p) => energy += if i == 0 {
@@ -61,6 +60,8 @@ pub fn decide_action<const N: usize>(history: &mut History<N>, members: &mut [Ti
                 }
             }
             states[i].update(&actions[i], current_time, history.unit_time, energy);
+            data[i].reset_na(&actions[i]);
+            history.state[idx][i].copy(&states[i]);
         }
         history.action.push(actions);
         field_energy.clear();
@@ -75,8 +76,8 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
     for i in 0..N {
         let member = &mut members[i];
         for (state, event) in history.state.iter().zip(history.action.iter()) {
-            member.character.attack(state[i].current_time, &event[i], &data[i], &mut atk_queue, &mut states[i]);
-            member.weapon.attack(state[i].current_time, &event[i], &mut atk_queue, &mut states[i]);
+            member.character.attack(state[i].current_time, &event[i], &data[i], &mut atk_queue, &mut states[i], enemy);
+            member.weapon.attack(state[i].current_time, &event[i], &data[i], &mut atk_queue, &mut states[i], enemy);
         }
     }
     atk_queue.sort_unstable_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
@@ -92,9 +93,11 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
             member.character.modify(action_state, d, attack, state, enemy);
             member.weapon.modify(action_state, d, attack, state, enemy);
             member.artifact.modify(action_state, d, attack, state, enemy);
+            // println!("{:?}", action_state);
         }
         // then change enemy state (within fn elemental_reaction)
         let dmg = attack.outgoing_damage(&states[attack.idx.0], &data[attack.idx.0]);
+        println!("{:?} {:?} {:?}", attack.time, attack.kind, dmg / 2.);
         total_dmg += attack.incoming_damage(dmg, &states[attack.idx.0], &data[attack.idx.0], enemy);
     }
     total_dmg
@@ -132,7 +135,6 @@ mod tests {
         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
 
         states[0].energy += 40.0;
-        states[0].rel_time.add(99.0);
         decide_action(&mut history, &mut members, &mut states, &mut data);
 
         assert_eq!(history.action, target.action);
@@ -302,13 +304,12 @@ mod tests {
         let ar = Artifact::default();
         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
 
-        states[0].rel_time.add(99.0);
         decide_action(&mut history, &mut members, &mut states, &mut data);
 
         use CharacterAction::*;
-        let expect = vec![[PressSkill], [Na1], [Na2], [Na3], [Na4], [Na1],
-        [Na2], [Na3], [Na4], [Na1], [Na2], [Na3], [Na4], [Na1], [Na2], [Na3],
-        [Na4], [Na1], [Na2], [Na3]];
+        let expect = vec![[PressSkill], [Na1(0.)], [Na2(0.)], [Na3(0.)], [Na4(0.)], [Na1(0.)],
+        [Na2(0.)], [Na3(0.)], [Na4(0.)], [Na1(0.)], [Na2(0.)], [Na3(0.)], [Na4(0.)], [Na1(0.)], [Na2(0.)], [Na3(0.)],
+        [Na4(0.)], [Na1(0.)], [Na2(0.)], [Na3(0.)]];
         assert_eq!(history.action, expect);
     }
 
@@ -338,8 +339,6 @@ mod tests {
             artifact: &mut artifact2,
         }];
 
-        states[0].rel_time.add(99.);
-        states[1].rel_time.add(99.);
         states[0].energy = 40.;
         states[1].energy = 40.;
         decide_action(&mut history, &mut members, &mut states, &mut data);

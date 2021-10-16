@@ -7,6 +7,11 @@ use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReact
 use self::Vision::*;
 use self::ElementalReactionType::*;
 
+pub fn near_eq(a: f32, b: f32) -> bool {
+    let diff = (a - b).abs();
+    diff <= 0.001
+}
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct FieldCharacterIndex(pub usize);
 
@@ -28,9 +33,15 @@ pub enum DamageType {
     AdditionalAttack,
 }
 
+// Each NA action may have a `carryover` time, which is obtained by
+// 
+//      rel_time.na - CD
+// 
+// where CD is the cooldown of NA animation. This value reduces the cooldown of
+// succeeding NAs.
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum CharacterAction {
-    Na1, Na2, Na3, Na4, Na5, Na6,
+    Na1(f32), Na2(f32), Na3(f32), Na4(f32), Na5(f32), Na6(f32),
     Ca,
     // Plunge,
     PressSkill,
@@ -39,19 +50,45 @@ pub enum CharacterAction {
     StandStill,
 }
 
+impl CharacterAction {
+    pub fn is_na(&self) -> bool {
+        match self {
+            CharacterAction::Na1(_) |
+            CharacterAction::Na2(_) |
+            CharacterAction::Na3(_) |
+            CharacterAction::Na4(_) |
+            CharacterAction::Na5(_) |
+            CharacterAction::Na6(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_ca(&self) -> bool {
+        *self == CharacterAction::Ca
+    }
+
+    pub fn is_skill(&self) -> bool {
+        *self == CharacterAction::PressSkill || *self == CharacterAction::HoldSkill
+    }
+
+    pub fn is_burst(&self) -> bool {
+        *self == CharacterAction::Burst
+    }
+}
+
 pub trait ToNaAction {
-    fn to_na(&mut self, n: usize) -> CharacterAction;
+    fn to_na(&mut self, n: usize, carryover: f32) -> CharacterAction;
 }
 
 impl ToNaAction for usize {
-    fn to_na(&mut self, n: usize) -> CharacterAction {
+    fn to_na(&mut self, n: usize, carryover: f32) -> CharacterAction {
         let result = match self {
-            1 => CharacterAction::Na1,
-            2 => CharacterAction::Na2,
-            3 => CharacterAction::Na3,
-            4 => CharacterAction::Na4,
-            5 => CharacterAction::Na5,
-            6 => CharacterAction::Na6,
+            1 => CharacterAction::Na1(carryover),
+            2 => CharacterAction::Na2(carryover),
+            3 => CharacterAction::Na3(carryover),
+            4 => CharacterAction::Na4(carryover),
+            5 => CharacterAction::Na5(carryover),
+            6 => CharacterAction::Na6(carryover),
             _ => unimplemented!(),
         };
         *self += 1;
