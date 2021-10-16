@@ -1143,7 +1143,7 @@ mod tests {
         assert_eq!(dmg, expect);
     }
 
-    #[test] #[ignore]
+    #[test]
     fn shimenawa_1() {
         let mut target = testutil::history_12at02enrgy15();
         let mut history = History::<1>::new(12., 0.2);

@@ -461,9 +461,6 @@ mod tests {
             simulate::decide_action(&mut history, &mut members, &mut states, &mut data);
         }
         weapon.reset();
-        // println!("{:?}", &weapon);
-        println!("{:?}", history.action);
-        println!("{:?}", history.state);
         let mut members = [FieldMember {
             character: &mut character,
             weapon: &mut weapon,
@@ -472,9 +469,9 @@ mod tests {
         let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
         let expect = (
             // na
-            10.*100. +
+            3.*100. + 15.*120. +
             // skill
-            500.
+            200. + 240.
         );
         assert_eq!(dmg, expect);
     }

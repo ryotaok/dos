@@ -41,6 +41,10 @@ pub fn decide_action<const N: usize>(history: &mut History<N>, members: &mut [Ti
             let action = member.character.decide_action(&states[i], &mut data[i]);
             let state = &mut states[i];
             let d = &data[i];
+            state.update1(&action, current_time, history.unit_time);
+            history.state[idx][i].copy(&state);
+            // state.current_time += history.unit_time;
+            state.rel_time.add(history.unit_time);
             state.init(d);
             member.character.accelerate(&mut field_energy, &action, state, d);
             member.weapon.accelerate(&mut field_energy, &action, state, d);
@@ -59,9 +63,8 @@ pub fn decide_action<const N: usize>(history: &mut History<N>, members: &mut [Ti
                     FieldEnergy::Energy(e) => energy += e,
                 }
             }
-            states[i].update(&actions[i], current_time, history.unit_time, energy);
+            states[i].update2(&actions[i], current_time + history.unit_time, history.unit_time, energy);
             data[i].reset_na(&actions[i]);
-            history.state[idx][i].copy(&states[i]);
         }
         history.action.push(actions);
         field_energy.clear();
@@ -93,7 +96,6 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
             member.character.modify(action_state, d, attack, state, enemy);
             member.weapon.modify(action_state, d, attack, state, enemy);
             member.artifact.modify(action_state, d, attack, state, enemy);
-            // println!("{:?}", action_state);
         }
         // then change enemy state (within fn elemental_reaction)
         let dmg = attack.outgoing_damage(&states[attack.idx.0], &data[attack.idx.0]);
@@ -136,7 +138,6 @@ mod tests {
 
         states[0].energy += 40.0;
         decide_action(&mut history, &mut members, &mut states, &mut data);
-
         assert_eq!(history.action, target.action);
         assert_eq!(states[0].energy, 12.0);
     }

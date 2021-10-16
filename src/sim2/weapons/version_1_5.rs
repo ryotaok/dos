@@ -47,7 +47,6 @@ impl Timeline for SongOfBrokenPines {
                 self.sigil = 0;
                 self.time = state.current_time;
                 self.did_activate.push(state.current_time);
-                println!("sobp {:?} {:?}", event, state);
             }
         }
         if state.current_time - self.time <= 12. {

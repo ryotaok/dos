@@ -89,7 +89,7 @@ impl ActionState {
     }
 
     // any action other than NA resets rel_time.na
-    pub fn update(&mut self, event: &CharacterAction, current_time: f32, elapsed_time: f32, energy: f32) -> () {
+    pub fn update1(&mut self, event: &CharacterAction, current_time: f32, elapsed_time: f32) -> () {
         self.current_time = current_time;
         match event {
             CharacterAction::StandStill => (),
@@ -124,7 +124,10 @@ impl ActionState {
                 self.rel_time.na = 100.;
             },
         }
-        self.rel_time.add(elapsed_time);
+        // self.rel_time.add(elapsed_time);
+    }
+
+    pub fn update2(&mut self, event: &CharacterAction, current_time: f32, elapsed_time: f32, energy: f32) -> () {
         self.energy += energy;
         if self.reduce_skill > 0. {
             self.rel_time.press += self.reduce_skill;
