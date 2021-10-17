@@ -15,6 +15,8 @@ use WeaponType::*;
 // 36~72% for 10s.
 pub struct PrototypeCrescentR5;
 
+impl Timeline for PrototypeCrescentR5 {}
+
 impl WeaponAttack for PrototypeCrescentR5 {}
 
 impl PrototypeCrescentR5 {
@@ -111,6 +113,8 @@ impl TheViridescentHuntR5 {
     }
 }
 
+impl Timeline for TheViridescentHuntR5 {}
+
 impl WeaponAttack for TheViridescentHuntR5 {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         if time - self.time > 10. &&
@@ -147,6 +151,8 @@ impl WeaponAttack for TheViridescentHuntR5 {
 // the others.
 pub struct BlackcliffWarbowR5;
 
+impl Timeline for BlackcliffWarbowR5 {}
+
 impl WeaponAttack for BlackcliffWarbowR5 {}
 
 impl BlackcliffWarbowR5 {
@@ -159,6 +165,8 @@ impl BlackcliffWarbowR5 {
 }
 
 pub struct RoyalBowR5;
+
+impl Timeline for RoyalBowR5 {}
 
 impl WeaponAttack for RoyalBowR5 {}
 
@@ -174,6 +182,8 @@ impl RoyalBowR5 {
 // If a Normal or Charged Attack hits a target within 0.3s of being fired,
 // increases DMG by 36~60%. Otherwise, decreases DMG by 10%.
 pub struct SlingshotR5;
+
+impl Timeline for SlingshotR5 {}
 
 impl WeaponAttack for SlingshotR5 {}
 
@@ -191,6 +201,8 @@ impl SlingshotR5 {
 // 10%.
 pub struct RustR5;
 
+impl Timeline for RustR5 {}
+
 impl WeaponAttack for RustR5 {}
 
 impl RustR5 {
@@ -205,6 +217,8 @@ impl RustR5 {
 
 // Increases Elemental Skill and Elemental Burst DMG by 48%.
 pub struct TheStringlessR5;
+
+impl Timeline for TheStringlessR5 {}
 
 impl WeaponAttack for TheStringlessR5 {}
 

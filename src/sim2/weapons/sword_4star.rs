@@ -31,6 +31,8 @@ impl PrototypeRancourR5 {
     }
 }
 
+impl Timeline for PrototypeRancourR5 {}
+
 impl WeaponAttack for PrototypeRancourR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.did_na() || action_state.did_ca() {
@@ -56,6 +58,8 @@ impl WeaponAttack for PrototypeRancourR5 {
 
 pub struct TheBlackSwordR5;
 
+impl Timeline for TheBlackSwordR5 {}
+
 impl WeaponAttack for TheBlackSwordR5 {}
 impl TheBlackSwordR5 {
     pub fn record() -> WeaponRecord {
@@ -70,6 +74,8 @@ impl TheBlackSwordR5 {
 // one stack is always active
 pub struct BlackcliffLongswordR5;
 
+impl Timeline for BlackcliffLongswordR5 {}
+
 impl WeaponAttack for BlackcliffLongswordR5 {}
 impl BlackcliffLongswordR5 {
     pub fn record() -> WeaponRecord {
@@ -81,6 +87,8 @@ impl BlackcliffLongswordR5 {
 }
 
 pub struct RoyalLongswordR5;
+
+impl Timeline for RoyalLongswordR5 {}
 
 impl WeaponAttack for RoyalLongswordR5 {}
 impl RoyalLongswordR5 {
@@ -94,6 +102,8 @@ impl RoyalLongswordR5 {
 
 // the passive is always active
 pub struct HarbingerOfDawnR5;
+
+impl Timeline for HarbingerOfDawnR5 {}
 
 impl WeaponAttack for HarbingerOfDawnR5 {}
 impl HarbingerOfDawnR5 {
@@ -125,6 +135,8 @@ impl TheFluteR5 {
         }
     }
 }
+
+impl Timeline for TheFluteR5 {}
 
 impl WeaponAttack for TheFluteR5 {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
@@ -168,6 +180,8 @@ impl LionsRoarR5 {
         }
     }
 }
+
+impl Timeline for LionsRoarR5 {}
 
 impl WeaponAttack for LionsRoarR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

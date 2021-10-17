@@ -69,7 +69,7 @@ impl State {
         self.hp = data.character.hp + data.weapon.hp + data.artifact.hp;
         self.def = data.character.def + data.weapon.def + data.artifact.def;
         self.atk = data.character.atk + data.weapon.atk + data.artifact.atk;
-        // self.flat_atk = data.character.flat_atk + data.weapon.flat_atk + data.artifact.flat_atk;
+        self.flat_atk = data.artifact.flat_atk;
         self.cr = data.character.cr + data.weapon.cr + data.artifact.cr;
         self.cd = data.character.cd + data.weapon.cd + data.artifact.cd;
         self.em = data.character.em + data.weapon.em + data.artifact.em;

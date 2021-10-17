@@ -86,6 +86,10 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
     atk_queue.sort_unstable_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
     let mut total_dmg = 0.0;
     for attack in atk_queue.iter_mut() {
+        // No states can be used to simulate attacks exceeding `end_time`.
+        if attack.time > history.end_time {
+            break;
+        }
         let state = &mut states[attack.idx.0];
         state.init(&data[attack.idx.0]);
         for i in 0..N {
@@ -99,7 +103,7 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
         }
         // then change enemy state (within fn elemental_reaction)
         let dmg = attack.outgoing_damage(&states[attack.idx.0], &data[attack.idx.0]);
-        println!("{:?} {:?} {:?}", attack.time, attack.kind, dmg / 2.);
+        // println!("{:?} {:?} {:?}", attack.time, attack.kind, dmg / 2.);
         total_dmg += attack.incoming_damage(dmg, &states[attack.idx.0], &data[attack.idx.0], enemy);
     }
     total_dmg

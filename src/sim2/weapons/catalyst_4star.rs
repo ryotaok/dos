@@ -13,6 +13,8 @@ use WeaponType::*;
 
 pub struct PrototypeAmberR5;
 
+impl Timeline for PrototypeAmberR5 {}
+
 impl WeaponAttack for PrototypeAmberR5 {}
 
 impl PrototypeAmberR5 {
@@ -44,6 +46,8 @@ impl MappaMareR5 {
         }
     }
 }
+
+impl Timeline for MappaMareR5 {}
 
 impl WeaponAttack for MappaMareR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -86,6 +90,8 @@ impl SolarPearlR5 {
     }
 }
 
+impl Timeline for SolarPearlR5 {}
+
 impl WeaponAttack for SolarPearlR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         let oneself = attack.idx == data.idx;
@@ -113,6 +119,8 @@ impl WeaponAttack for SolarPearlR5 {
 // one stack is always active
 pub struct BlackcliffAgateR5;
 
+impl Timeline for BlackcliffAgateR5 {}
+
 impl WeaponAttack for BlackcliffAgateR5 {}
 
 impl BlackcliffAgateR5 {
@@ -125,6 +133,8 @@ impl BlackcliffAgateR5 {
 }
 
 pub struct RoyalGrimoireR5;
+
+impl Timeline for RoyalGrimoireR5 {}
 
 impl WeaponAttack for RoyalGrimoireR5 {}
 
@@ -155,6 +165,8 @@ impl ThrillingTalesOfDragonSlayersR5 {
         }
     }
 }
+
+impl Timeline for ThrillingTalesOfDragonSlayersR5 {}
 
 impl WeaponAttack for ThrillingTalesOfDragonSlayersR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -190,6 +202,8 @@ impl EyeOfPerceptionR5 {
         }
     }
 }
+
+impl Timeline for EyeOfPerceptionR5 {}
 
 impl WeaponAttack for EyeOfPerceptionR5 {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
@@ -233,6 +247,8 @@ impl TheWidsithR5 {
         }
     }
 }
+
+impl Timeline for TheWidsithR5 {}
 
 impl WeaponAttack for TheWidsithR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

@@ -198,6 +198,7 @@ pub struct Artifact {
     pub hp: f32,
     pub atk: f32,
     pub def: f32,
+    pub flat_atk: f32,
     pub cr: f32,
     pub cd: f32,
     pub er: f32,
@@ -230,6 +231,7 @@ impl Default for Artifact {
             hp: 0.0,
             atk: 0.0,
             def: 0.0,
+            flat_atk: 0.0,
             cr: 0.0,
             cd: 0.0,
             er: 0.0,
@@ -266,6 +268,7 @@ impl Artifact {
     pub fn hp(mut self, hp: f32) -> Self { self.hp = hp; self }
     pub fn atk(mut self, atk: f32) -> Self { self.atk = atk; self }
     pub fn def(mut self, def: f32) -> Self { self.def = def; self }
+    pub fn flat_atk(mut self, flat_atk: f32) -> Self { self.flat_atk = flat_atk; self }
     pub fn cr(mut self, cr: f32) -> Self { self.cr = cr; self }
     pub fn cd(mut self, cd: f32) -> Self { self.cd = cd; self }
     pub fn er(mut self, er: f32) -> Self { self.er = er; self }

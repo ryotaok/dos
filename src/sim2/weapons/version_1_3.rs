@@ -18,6 +18,8 @@ impl ProtectorsVirtue {
     }
 }
 
+impl Timeline for ProtectorsVirtue {}
+
 impl WeaponAttack for ProtectorsVirtue {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx {
@@ -36,6 +38,8 @@ impl RecklessCinnabar {
         }
     }
 }
+
+impl Timeline for RecklessCinnabar {}
 
 impl WeaponAttack for RecklessCinnabar {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -63,6 +67,8 @@ impl PrimordialJadeCutter {
     }
 }
 
+impl Timeline for PrimordialJadeCutter {}
+
 impl WeaponAttack for PrimordialJadeCutter {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
@@ -85,6 +91,8 @@ impl PrimordialJadeGS {
             .hp(20.0).cr(44.1)
     }
 }
+
+impl Timeline for PrimordialJadeGS {}
 
 impl WeaponAttack for PrimordialJadeGS {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -109,6 +117,8 @@ impl PrimordialJadeVista {
     }
 }
 
+impl Timeline for PrimordialJadeVista {}
+
 impl WeaponAttack for PrimordialJadeVista {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
@@ -132,6 +142,8 @@ impl StaffOfHoma {
     }
 }
 
+impl Timeline for StaffOfHoma {}
+
 impl WeaponAttack for StaffOfHoma {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
@@ -149,6 +161,8 @@ impl LithicSpear {
     }
 }
 
+impl Timeline for LithicSpear {}
+
 impl WeaponAttack for LithicSpear {}
 
 pub struct LithicBlade;
@@ -161,5 +175,7 @@ impl LithicBlade {
             .atk(41.3 + 11.0).cr(0.0 + 7.0)
     }
 }
+
+impl Timeline for LithicBlade {}
 
 impl WeaponAttack for LithicBlade {}

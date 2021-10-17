@@ -30,6 +30,8 @@ impl PrototypeArchaicR5 {
     }
 }
 
+impl Timeline for PrototypeArchaicR5 {}
+
 impl WeaponAttack for PrototypeArchaicR5 {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         if time - self.time > 15. &&
@@ -73,6 +75,8 @@ impl WhiteblindR5 {
     }
 }
 
+impl Timeline for WhiteblindR5 {}
+
 impl WeaponAttack for WhiteblindR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.did_na() || action_state.did_ca() {
@@ -115,6 +119,8 @@ impl SerpentSpineR5 {
     }
 }
 
+impl Timeline for SerpentSpineR5 {}
+
 impl WeaponAttack for SerpentSpineR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.current_time - self.time >= 4. {
@@ -138,6 +144,8 @@ impl WeaponAttack for SerpentSpineR5 {
 // one stack is always active
 pub struct BlackcliffSlasherR5;
 
+impl Timeline for BlackcliffSlasherR5 {}
+
 impl WeaponAttack for BlackcliffSlasherR5 {}
 
 impl BlackcliffSlasherR5 {
@@ -150,6 +158,8 @@ impl BlackcliffSlasherR5 {
 }
 
 pub struct RoyalGreatswordR5;
+
+impl Timeline for RoyalGreatswordR5 {}
 
 impl WeaponAttack for RoyalGreatswordR5 {}
 
@@ -178,6 +188,8 @@ impl RainslasherR5 {
         }
     }
 }
+
+impl Timeline for RainslasherR5 {}
 
 impl WeaponAttack for RainslasherR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

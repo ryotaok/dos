@@ -29,6 +29,8 @@ impl GoldenMajesty {
     }
 }
 
+impl Timeline for GoldenMajesty {}
+
 impl WeaponAttack for GoldenMajesty {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.current_time - self.time >= 0.3 &&
@@ -62,12 +64,14 @@ impl TheUnforged {
     }
 }
 
+impl Timeline for TheUnforged {}
+
 impl WeaponAttack for TheUnforged {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
     }
 
-    fn reset(&mut self) -> () { self.0.reset() }
+    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
 }
 
 pub struct SummitShaper(GoldenMajesty);
@@ -82,12 +86,14 @@ impl SummitShaper {
     }
 }
 
+impl Timeline for SummitShaper {}
+
 impl WeaponAttack for SummitShaper {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
     }
 
-    fn reset(&mut self) -> () { self.0.reset() }
+    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
 }
 
 pub struct VortexVanquisher(GoldenMajesty);
@@ -102,12 +108,14 @@ impl VortexVanquisher {
     }
 }
 
+impl Timeline for VortexVanquisher {}
+
 impl WeaponAttack for VortexVanquisher {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
     }
 
-    fn reset(&mut self) -> () { self.0.reset() }
+    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
 }
 
 pub struct MemoryOfDust(GoldenMajesty);
@@ -122,10 +130,12 @@ impl MemoryOfDust {
     }
 }
 
+impl Timeline for MemoryOfDust {}
+
 impl WeaponAttack for MemoryOfDust {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
     }
 
-    fn reset(&mut self) -> () { self.0.reset() }
+    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
 }

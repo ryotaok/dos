@@ -24,6 +24,8 @@ impl FesteringDesire {
     }
 }
 
+impl Timeline for FesteringDesire {}
+
 impl WeaponAttack for FesteringDesire {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx && attack.kind == DamageType::Skill {
@@ -48,6 +50,8 @@ impl FrostBurial {
         }
     }
 }
+
+impl Timeline for FrostBurial {}
 
 impl WeaponAttack for FrostBurial {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
@@ -91,12 +95,14 @@ impl SnowTombedStarsilver {
     }
 }
 
+impl Timeline for SnowTombedStarsilver {}
+
 impl WeaponAttack for SnowTombedStarsilver {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.attack(time, event, data, atk_queue, state, enemy);
     }
 
-    fn reset(&mut self) -> () { self.0.reset() }
+    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
 }
 
 pub struct DragonspineSpear(FrostBurial);
@@ -116,12 +122,14 @@ impl DragonspineSpear {
     }
 }
 
+impl Timeline for DragonspineSpear {}
+
 impl WeaponAttack for DragonspineSpear {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.attack(time, event, data, atk_queue, state, enemy);
     }
 
-    fn reset(&mut self) -> () { self.0.reset() }
+    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
 }
 
 pub struct Frostbearer(FrostBurial);
@@ -141,10 +149,12 @@ impl Frostbearer {
     }
 }
 
+impl Timeline for Frostbearer {}
+
 impl WeaponAttack for Frostbearer {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.attack(time, event, data, atk_queue, state, enemy);
     }
 
-    fn reset(&mut self) -> () { self.0.reset() }
+    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
 }

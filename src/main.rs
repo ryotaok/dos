@@ -2,8 +2,9 @@
 // #![feature(unsized_tuple_coercion)]
 #![allow(dead_code, unused)]
 
-// mod sim1;
+mod sim1;
 mod sim2;
 
 fn main() {
+    sim2::main2();
 }

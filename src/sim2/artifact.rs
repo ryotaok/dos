@@ -9,45 +9,157 @@ use DamageType::*;
 
 const SCORE: GearScore = GearScore { score: 140.0 };
 
-// pub fn all(idx: FieldCharacterIndex) -> Vec<(Artifact, Box<dyn SpecialAbility>)> {
-//     vec![
-//     (BloodstainedChivalry::record(), Box::new(BloodstainedChivalry)),
-//     (Bcpf::record(), Box::new(Bcpf)),
-//     (ThunderingFury::record(), Box::new(ThunderingFury::new())),
-//     (ViridescentVenerer::record(), Box::new(ViridescentVenerer::new())),
-//     (VVem::record(), Box::new(VVem::new())),
-//     (ArchaicPetra::record(), Box::new(ArchaicPetra::new())),
-//     (CrimsonWitchOfFlames::record(), Box::new(CrimsonWitchOfFlames::new(idx))),
-//     (CrimsonWitchOfFlamesHp::record(), Box::new(CrimsonWitchOfFlamesHp::new(idx))),
-//     (NoblesseOblige::record(), Box::new(NoblesseOblige::new())),
-//     (Gfno::record(), Box::new(Gfno)),
-//     (GladiatorsFinale::record(), Box::new(GladiatorsFinale::new())),
-//     (GladiatorsFinaleDef::record(), Box::new(GladiatorsFinaleDef::new())),
-//     (WanderersTroupe::record(), Box::new(WanderersTroupe)),
-//     (RetracingBolide::record(), Box::new(RetracingBolide)),
-//     (RetracingBolideDef::record(), Box::new(RetracingBolideDef)),
-//     (Thundersoother::record(), Box::new(Thundersoother::new(idx))),
-//     (Lavawalker::record(), Box::new(Lavawalker::new(idx))),
-//     (LavawalkerHp::record(), Box::new(LavawalkerHp::new(idx))),
-//     (Gfelm::record(), Box::new(Gfelm)),
-//     (GfelmEr::record(), Box::new(GfelmEr)),
-//     (GfelmEr2::record(), Box::new(GfelmEr2)),
-//     (GfelmHpCr::record(), Box::new(GfelmHpCr)),
-//     (BlizzardStrayer::record(), Box::new(BlizzardStrayer::new(idx))),
-//     (HeartOfDepth::record(), Box::new(HeartOfDepth::new(idx))),
-//     (GlacierAndSnowfield::record(), Box::new(GlacierAndSnowfield::new(idx))),
-//     (PaleFlame::record(), Box::new(PaleFlame::new(idx))),
-//     (TenacityOfTheMillelith::record(), Box::new(TenacityOfTheMillelith::new())),
-//     (ShimenawasReminiscence::record(), Box::new(ShimenawasReminiscence::new(idx))),
-//     (GfShimenawa::record(), Box::new(GfShimenawa)),
-//     (EmblemOfSeveredFate::record(), Box::new(EmblemOfSeveredFate::new(idx))),
-//     (EmblemOfSeveredFateER::record(), Box::new(EmblemOfSeveredFateER::new(idx))),
-//     (EmblemOfSeveredFateER2::record(), Box::new(EmblemOfSeveredFateER2::new(idx))),
-//     ]
-// }
+#[derive(Debug)]
+pub enum ArtifactUnion {
+    Bcpf(Bcpf),
+    ThunderingFury(ThunderingFury),
+    ViridescentVenerer(ViridescentVenerer),
+    VVem(VVem),
+    ArchaicPetra(ArchaicPetra),
+    CrimsonWitchOfFlames(CrimsonWitchOfFlames),
+    CrimsonWitchOfFlamesHp(CrimsonWitchOfFlamesHp),
+    NoblesseOblige(NoblesseOblige),
+    Gfno(Gfno),
+    GladiatorsFinale(GladiatorsFinale),
+    GladiatorsFinaleDef(GladiatorsFinaleDef),
+    WanderersTroupe(WanderersTroupe),
+    RetracingBolide(RetracingBolide),
+    RetracingBolideDef(RetracingBolideDef),
+    Thundersoother(Thundersoother),
+    Lavawalker(Lavawalker),
+    LavawalkerHp(LavawalkerHp),
+    Gfelm(Gfelm),
+    GfelmEr(GfelmEr),
+    GfelmEr2(GfelmEr2),
+    GfelmHpCr(GfelmHpCr),
+    BlizzardStrayer(BlizzardStrayer),
+    HeartOfDepth(HeartOfDepth),
+    GlacierAndSnowfield(GlacierAndSnowfield),
+    PaleFlame(PaleFlame),
+    TenacityOfTheMillelith(TenacityOfTheMillelith),
+    ShimenawasReminiscence(ShimenawasReminiscence),
+    GfShimenawa(GfShimenawa),
+    EmblemOfSeveredFate(EmblemOfSeveredFate),
+    EmblemOfSeveredFateER(EmblemOfSeveredFateER),
+    EmblemOfSeveredFateER2(EmblemOfSeveredFateER2),
+}
+
+impl ArtifactUnion {
+    pub fn timeline(&mut self) -> &mut dyn Timeline {
+        use ArtifactUnion::*;
+        match self {
+            Bcpf(x) => x,
+            ThunderingFury(x) => x,
+            ViridescentVenerer(x) => x,
+            VVem(x) => x,
+            ArchaicPetra(x) => x,
+            CrimsonWitchOfFlames(x) => x,
+            CrimsonWitchOfFlamesHp(x) => x,
+            NoblesseOblige(x) => x,
+            Gfno(x) => x,
+            GladiatorsFinale(x) => x,
+            GladiatorsFinaleDef(x) => x,
+            WanderersTroupe(x) => x,
+            RetracingBolide(x) => x,
+            RetracingBolideDef(x) => x,
+            Thundersoother(x) => x,
+            Lavawalker(x) => x,
+            LavawalkerHp(x) => x,
+            Gfelm(x) => x,
+            GfelmEr(x) => x,
+            GfelmEr2(x) => x,
+            GfelmHpCr(x) => x,
+            BlizzardStrayer(x) => x,
+            HeartOfDepth(x) => x,
+            GlacierAndSnowfield(x) => x,
+            PaleFlame(x) => x,
+            TenacityOfTheMillelith(x) => x,
+            ShimenawasReminiscence(x) => x,
+            GfShimenawa(x) => x,
+            EmblemOfSeveredFate(x) => x,
+            EmblemOfSeveredFateER(x) => x,
+            EmblemOfSeveredFateER2(x) => x,
+        }
+    }
+
+    pub fn field(&mut self) -> &mut dyn WeaponAttack {
+        use ArtifactUnion::*;
+        match self {
+            Bcpf(x) => x,
+            ThunderingFury(x) => x,
+            ViridescentVenerer(x) => x,
+            VVem(x) => x,
+            ArchaicPetra(x) => x,
+            CrimsonWitchOfFlames(x) => x,
+            CrimsonWitchOfFlamesHp(x) => x,
+            NoblesseOblige(x) => x,
+            Gfno(x) => x,
+            GladiatorsFinale(x) => x,
+            GladiatorsFinaleDef(x) => x,
+            WanderersTroupe(x) => x,
+            RetracingBolide(x) => x,
+            RetracingBolideDef(x) => x,
+            Thundersoother(x) => x,
+            Lavawalker(x) => x,
+            LavawalkerHp(x) => x,
+            Gfelm(x) => x,
+            GfelmEr(x) => x,
+            GfelmEr2(x) => x,
+            GfelmHpCr(x) => x,
+            BlizzardStrayer(x) => x,
+            HeartOfDepth(x) => x,
+            GlacierAndSnowfield(x) => x,
+            PaleFlame(x) => x,
+            TenacityOfTheMillelith(x) => x,
+            ShimenawasReminiscence(x) => x,
+            GfShimenawa(x) => x,
+            EmblemOfSeveredFate(x) => x,
+            EmblemOfSeveredFateER(x) => x,
+            EmblemOfSeveredFateER2(x) => x,
+        }
+    }
+}
+
+pub fn all() -> Vec<(Artifact, ArtifactUnion)> {
+    vec![
+    (Bcpf::record(), ArtifactUnion::Bcpf(Bcpf)),
+    (ThunderingFury::record(), ArtifactUnion::ThunderingFury(ThunderingFury::new())),
+    (ViridescentVenerer::record(), ArtifactUnion::ViridescentVenerer(ViridescentVenerer::new())),
+    (VVem::record(), ArtifactUnion::VVem(VVem::new())),
+    (ArchaicPetra::record(), ArtifactUnion::ArchaicPetra(ArchaicPetra::new())),
+    (CrimsonWitchOfFlames::record(), ArtifactUnion::CrimsonWitchOfFlames(CrimsonWitchOfFlames::new())),
+    (CrimsonWitchOfFlamesHp::record(), ArtifactUnion::CrimsonWitchOfFlamesHp(CrimsonWitchOfFlamesHp::new())),
+    (NoblesseOblige::record(), ArtifactUnion::NoblesseOblige(NoblesseOblige::new())),
+    (Gfno::record(), ArtifactUnion::Gfno(Gfno)),
+    (GladiatorsFinale::record(), ArtifactUnion::GladiatorsFinale(GladiatorsFinale::new())),
+    (GladiatorsFinaleDef::record(), ArtifactUnion::GladiatorsFinaleDef(GladiatorsFinaleDef::new())),
+    (WanderersTroupe::record(), ArtifactUnion::WanderersTroupe(WanderersTroupe)),
+    (RetracingBolide::record(), ArtifactUnion::RetracingBolide(RetracingBolide)),
+    (RetracingBolideDef::record(), ArtifactUnion::RetracingBolideDef(RetracingBolideDef)),
+    (Thundersoother::record(), ArtifactUnion::Thundersoother(Thundersoother::new())),
+    (Lavawalker::record(), ArtifactUnion::Lavawalker(Lavawalker::new())),
+    (LavawalkerHp::record(), ArtifactUnion::LavawalkerHp(LavawalkerHp::new())),
+    (Gfelm::record(), ArtifactUnion::Gfelm(Gfelm)),
+    (GfelmEr::record(), ArtifactUnion::GfelmEr(GfelmEr)),
+    (GfelmEr2::record(), ArtifactUnion::GfelmEr2(GfelmEr2)),
+    (GfelmHpCr::record(), ArtifactUnion::GfelmHpCr(GfelmHpCr)),
+    (BlizzardStrayer::record(), ArtifactUnion::BlizzardStrayer(BlizzardStrayer::new())),
+    (HeartOfDepth::record(), ArtifactUnion::HeartOfDepth(HeartOfDepth::new())),
+    (GlacierAndSnowfield::record(), ArtifactUnion::GlacierAndSnowfield(GlacierAndSnowfield::new())),
+    (PaleFlame::record(), ArtifactUnion::PaleFlame(PaleFlame::new())),
+    (TenacityOfTheMillelith::record(), ArtifactUnion::TenacityOfTheMillelith(TenacityOfTheMillelith::new())),
+    (ShimenawasReminiscence::record(), ArtifactUnion::ShimenawasReminiscence(ShimenawasReminiscence::new())),
+    (GfShimenawa::record(), ArtifactUnion::GfShimenawa(GfShimenawa)),
+    (EmblemOfSeveredFate::record(), ArtifactUnion::EmblemOfSeveredFate(EmblemOfSeveredFate::new())),
+    (EmblemOfSeveredFateER::record(), ArtifactUnion::EmblemOfSeveredFateER(EmblemOfSeveredFateER::new())),
+    (EmblemOfSeveredFateER2::record(), ArtifactUnion::EmblemOfSeveredFateER2(EmblemOfSeveredFateER2::new())),
+    ]
+}
 
 #[derive(Debug)]
 pub struct Bcpf;
+
+impl Timeline for Bcpf {}
 
 impl WeaponAttack for Bcpf {}
 
@@ -83,6 +195,8 @@ impl ThunderingFury {
     }
 }
 
+impl Timeline for ThunderingFury {}
+
 impl WeaponAttack for ThunderingFury {}
 
 #[derive(Debug)]
@@ -113,6 +227,8 @@ impl ViridescentVenerer {
             .atk(SCORE.atk(40.)).cr(SCORE.cr(60.))
     }
 }
+
+impl Timeline for ViridescentVenerer {}
 
 impl WeaponAttack for ViridescentVenerer {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -176,6 +292,8 @@ impl VVem {
     }
 }
 
+impl Timeline for VVem {}
+
 impl WeaponAttack for VVem {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
@@ -209,6 +327,8 @@ impl ArchaicPetra {
             .atk(SCORE.atk(40.0)).cr(SCORE.cr(60.0))
     }
 }
+
+impl Timeline for ArchaicPetra {}
 
 impl WeaponAttack for ArchaicPetra {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -261,6 +381,8 @@ impl CrimsonWitchOfFlames {
     }
 }
 
+impl Timeline for CrimsonWitchOfFlames {}
+
 impl WeaponAttack for CrimsonWitchOfFlames {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.did_skill() {
@@ -300,6 +422,8 @@ impl CrimsonWitchOfFlamesHp {
     }
 }
 
+impl Timeline for CrimsonWitchOfFlamesHp {}
+
 impl WeaponAttack for CrimsonWitchOfFlamesHp {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
@@ -326,6 +450,8 @@ impl NoblesseOblige {
     }
 }
 
+impl Timeline for NoblesseOblige {}
+
 impl WeaponAttack for NoblesseOblige {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.did_burst() {
@@ -341,6 +467,8 @@ impl WeaponAttack for NoblesseOblige {
 
 #[derive(Debug)]
 pub struct Gfno;
+
+impl Timeline for Gfno {}
 
 impl WeaponAttack for Gfno {}
 
@@ -376,6 +504,8 @@ impl GladiatorsFinale {
     }
 }
 
+impl Timeline for GladiatorsFinale {}
+
 impl WeaponAttack for GladiatorsFinale {}
 
 #[derive(Debug)]
@@ -397,10 +527,14 @@ impl GladiatorsFinaleDef {
     }
 }
 
+impl Timeline for GladiatorsFinaleDef {}
+
 impl WeaponAttack for GladiatorsFinaleDef {}
 
 #[derive(Debug)]
 pub struct WanderersTroupe;
+
+impl Timeline for WanderersTroupe {}
 
 impl WeaponAttack for WanderersTroupe {}
 
@@ -419,6 +553,8 @@ impl WanderersTroupe {
 #[derive(Debug)]
 pub struct RetracingBolide;
 
+impl Timeline for RetracingBolide {}
+
 impl WeaponAttack for RetracingBolide {}
 
 impl RetracingBolide {
@@ -434,6 +570,8 @@ impl RetracingBolide {
 
 #[derive(Debug)]
 pub struct RetracingBolideDef;
+
+impl Timeline for RetracingBolideDef {}
 
 impl WeaponAttack for RetracingBolideDef {}
 
@@ -467,6 +605,8 @@ impl Thundersoother {
     }
 }
 
+impl Timeline for Thundersoother {}
+
 impl WeaponAttack for Thundersoother {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx && enemy.aura.aura == Vision::Electro {
@@ -492,6 +632,8 @@ impl Lavawalker {
         }
     }
 }
+
+impl Timeline for Lavawalker {}
 
 impl WeaponAttack for Lavawalker {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -521,6 +663,8 @@ impl LavawalkerHp {
     }
 }
 
+impl Timeline for LavawalkerHp {}
+
 impl WeaponAttack for LavawalkerHp {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx && enemy.aura.aura == Vision::Pyro {
@@ -531,6 +675,8 @@ impl WeaponAttack for LavawalkerHp {
 
 #[derive(Debug)]
 pub struct Gfelm;
+
+impl Timeline for Gfelm {}
 
 impl WeaponAttack for Gfelm {}
 
@@ -548,6 +694,8 @@ impl Gfelm {
 #[derive(Debug)]
 pub struct GfelmEr;
 
+impl Timeline for GfelmEr {}
+
 impl WeaponAttack for GfelmEr {}
 
 impl GfelmEr {
@@ -564,6 +712,8 @@ impl GfelmEr {
 #[derive(Debug)]
 pub struct GfelmEr2;
 
+impl Timeline for GfelmEr2 {}
+
 impl WeaponAttack for GfelmEr2 {}
 
 impl GfelmEr2 {
@@ -579,6 +729,8 @@ impl GfelmEr2 {
 
 #[derive(Debug)]
 pub struct GfelmHpCr;
+
+impl Timeline for GfelmHpCr {}
 
 impl WeaponAttack for GfelmHpCr {}
 
@@ -613,6 +765,8 @@ impl BlizzardStrayer {
     }
 }
 
+impl Timeline for BlizzardStrayer {}
+
 impl WeaponAttack for BlizzardStrayer {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx && enemy.aura.aura == Vision::Cryo {
@@ -646,6 +800,8 @@ impl HeartOfDepth {
             .atk(SCORE.atk(40.0)).cr(SCORE.cr(60.0))
     }
 }
+
+impl Timeline for HeartOfDepth {}
 
 impl WeaponAttack for HeartOfDepth {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -682,6 +838,8 @@ impl GlacierAndSnowfield {
     }
 }
 
+impl Timeline for GlacierAndSnowfield {}
+
 impl WeaponAttack for GlacierAndSnowfield {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.did_burst() {
@@ -716,6 +874,8 @@ impl PaleFlame {
             .atk(SCORE.atk(40.0)).cr(SCORE.cr(60.0))
     }
 }
+
+impl Timeline for PaleFlame {}
 
 impl WeaponAttack for PaleFlame {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -759,6 +919,8 @@ impl TenacityOfTheMillelith {
             .atk(SCORE.atk(40.0)).cr(SCORE.cr(60.0))
     }
 }
+
+impl Timeline for TenacityOfTheMillelith {}
 
 impl WeaponAttack for TenacityOfTheMillelith {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -826,6 +988,8 @@ impl WeaponAttack for ShimenawasReminiscence {
 #[derive(Debug)]
 pub struct GfShimenawa;
 
+impl Timeline for GfShimenawa {}
+
 impl WeaponAttack for GfShimenawa {}
 
 impl GfShimenawa {
@@ -871,6 +1035,8 @@ fn emblem_of_severed_fate(action_state: &ActionState, state: &mut State) -> () {
     };
 }
 
+impl Timeline for EmblemOfSeveredFate {}
+
 impl WeaponAttack for EmblemOfSeveredFate {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx && attack.kind == Burst {
@@ -898,6 +1064,8 @@ impl EmblemOfSeveredFateER {
         }
     }
 }
+
+impl Timeline for EmblemOfSeveredFateER {}
 
 impl WeaponAttack for EmblemOfSeveredFateER {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -927,6 +1095,8 @@ impl EmblemOfSeveredFateER2 {
         }
     }
 }
+
+impl Timeline for EmblemOfSeveredFateER2 {}
 
 impl WeaponAttack for EmblemOfSeveredFateER2 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

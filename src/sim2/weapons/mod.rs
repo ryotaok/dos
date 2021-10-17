@@ -15,7 +15,10 @@ pub mod version_1_6;
 pub mod version_2_0;
 pub mod version_2_1;
 
+use crate::sim2::timeline::Timeline;
+use crate::sim2::attack::WeaponAttack;
 use crate::sim2::record::{WeaponRecord};
+
 use sword_4star::*;
 use claymore_4star::*;
 use polearm_4star::*;
@@ -139,6 +142,230 @@ pub enum WeaponUnion {
     EverlastingMoonglow(EverlastingMoonglow),
     LuxuriousSeaLord(LuxuriousSeaLord),
     TheCatch(TheCatch),
+}
+
+impl WeaponUnion {
+    pub fn timeline(&mut self) -> &mut dyn Timeline {
+        use WeaponUnion::*;
+        match self {
+            // sword_4star
+            PrototypeRancourR5(x) => x,
+            TheBlackSwordR5(x) => x,
+            BlackcliffLongswordR5(x) => x,
+            RoyalLongswordR5(x) => x,
+            HarbingerOfDawnR5(x) => x,
+            TheFluteR5(x) => x,
+            LionsRoarR5(x) => x,
+            // claymore_4star
+            PrototypeArchaicR5(x) => x,
+            WhiteblindR5(x) => x,
+            SerpentSpineR5(x) => x,
+            BlackcliffSlasherR5(x) => x,
+            RoyalGreatswordR5(x) => x,
+            RainslasherR5(x) => x,
+            // polearm_4star
+            PrototypeStarglitterR5(x) => x,
+            CrescentPikeR5(x) => x,
+            DeathmatchR5(x) => x,
+            BlackcliffPoleR5(x) => x,
+            RoyalSpearR5(x) => x,
+            WhiteTasselR5(x) => x,
+            DragonsBaneR5(x) => x,
+            // bow_4star
+            PrototypeCrescentR5(x) => x,
+            CompoundBowR5(x) => x,
+            TheViridescentHuntR5(x) => x,
+            BlackcliffWarbowR5(x) => x,
+            RoyalBowR5(x) => x,
+            SlingshotR5(x) => x,
+            RustR5(x) => x,
+            TheStringlessR5(x) => x,
+            // catalyst_4star
+            PrototypeAmberR5(x) => x,
+            MappaMareR5(x) => x,
+            SolarPearlR5(x) => x,
+            BlackcliffAgateR5(x) => x,
+            RoyalGrimoireR5(x) => x,
+            ThrillingTalesOfDragonSlayersR5(x) => x,
+            EyeOfPerceptionR5(x) => x,
+            TheWidsithR5(x) => x,
+            // favonius_series
+            FavoniusGreatswordR5(x) => x,
+            FavoniusSwordR5(x) => x,
+            FavoniusLanceR5(x) => x,
+            FavoniusWarbowR5(x) => x,
+            FavoniusCodexR5(x) => x,
+            // sacrificial_series
+            SacrificialSwordR5(x) => x,
+            SacrificialGreatswordR5(x) => x,
+            SacrificialBowR5(x) => x,
+            SacrificialFragmentsR5(x) => x,
+            // version_1_5star
+            SkywardBlade(x) => x,
+            AquilaFavonia(x) => x,
+            SkywardPride(x) => x,
+            WolfsGravestone(x) => x,
+            SkywardSpine(x) => x,
+            PrimordialJadeWingedSpear(x) => x,
+            SkywardHarp(x) => x,
+            AmosBow(x) => x,
+            SkywardAtlas(x) => x,
+            LostPrayerToTheSacredWinds(x) => x,
+            // version_1_1
+            TheUnforged(x) => x,
+            SummitShaper(x) => x,
+            VortexVanquisher(x) => x,
+            MemoryOfDust(x) => x,
+            // version_1_2
+            FesteringDesire(x) => x,
+            SnowTombedStarsilver(x) => x,
+            DragonspineSpear(x) => x,
+            Frostbearer(x) => x,
+            // version_1_3
+            PrimordialJadeCutter(x) => x,
+            PrimordialJadeGS(x) => x,
+            PrimordialJadeVista(x) => x,
+            StaffOfHoma(x) => x,
+            LithicSpear(x) => x,
+            LithicBlade(x) => x,
+            // version_1_4
+            ElegyForTheEnd(x) => x,
+            TheAlleyFlash(x) => x,
+            AlleyHunter(x) => x,
+            WineAndSong(x) => x,
+            WindblumeOde(x) => x,
+            // version_1_5
+            SongOfBrokenPines(x) => x,
+            // version_1_6
+            FreedomSworn(x) => x,
+            MitternachtsWaltz(x) => x,
+            DodocoTales(x) => x,
+            // version_2_0
+            MistsplitterReforged(x) => x,
+            ThunderingPulse(x) => x,
+            AmenomaKageuchi(x) => x,
+            KatsuragikiriNagamasa(x) => x,
+            KitainCrossSpear(x) => x,
+            Hamayumi(x) => x,
+            HakushinRing(x) => x,
+            // version_2_1
+            EngulfingLightning(x) => x,
+            EverlastingMoonglow(x) => x,
+            LuxuriousSeaLord(x) => x,
+            TheCatch(x) => x,
+        }
+    }
+
+    pub fn field(&mut self) -> &mut dyn WeaponAttack {
+        use WeaponUnion::*;
+        match self {
+            // sword_4star
+            PrototypeRancourR5(x) => x,
+            TheBlackSwordR5(x) => x,
+            BlackcliffLongswordR5(x) => x,
+            RoyalLongswordR5(x) => x,
+            HarbingerOfDawnR5(x) => x,
+            TheFluteR5(x) => x,
+            LionsRoarR5(x) => x,
+            // claymore_4star
+            PrototypeArchaicR5(x) => x,
+            WhiteblindR5(x) => x,
+            SerpentSpineR5(x) => x,
+            BlackcliffSlasherR5(x) => x,
+            RoyalGreatswordR5(x) => x,
+            RainslasherR5(x) => x,
+            // polearm_4star
+            PrototypeStarglitterR5(x) => x,
+            CrescentPikeR5(x) => x,
+            DeathmatchR5(x) => x,
+            BlackcliffPoleR5(x) => x,
+            RoyalSpearR5(x) => x,
+            WhiteTasselR5(x) => x,
+            DragonsBaneR5(x) => x,
+            // bow_4star
+            PrototypeCrescentR5(x) => x,
+            CompoundBowR5(x) => x,
+            TheViridescentHuntR5(x) => x,
+            BlackcliffWarbowR5(x) => x,
+            RoyalBowR5(x) => x,
+            SlingshotR5(x) => x,
+            RustR5(x) => x,
+            TheStringlessR5(x) => x,
+            // catalyst_4star
+            PrototypeAmberR5(x) => x,
+            MappaMareR5(x) => x,
+            SolarPearlR5(x) => x,
+            BlackcliffAgateR5(x) => x,
+            RoyalGrimoireR5(x) => x,
+            ThrillingTalesOfDragonSlayersR5(x) => x,
+            EyeOfPerceptionR5(x) => x,
+            TheWidsithR5(x) => x,
+            // favonius_series
+            FavoniusGreatswordR5(x) => x,
+            FavoniusSwordR5(x) => x,
+            FavoniusLanceR5(x) => x,
+            FavoniusWarbowR5(x) => x,
+            FavoniusCodexR5(x) => x,
+            // sacrificial_series
+            SacrificialSwordR5(x) => x,
+            SacrificialGreatswordR5(x) => x,
+            SacrificialBowR5(x) => x,
+            SacrificialFragmentsR5(x) => x,
+            // version_1_5star
+            SkywardBlade(x) => x,
+            AquilaFavonia(x) => x,
+            SkywardPride(x) => x,
+            WolfsGravestone(x) => x,
+            SkywardSpine(x) => x,
+            PrimordialJadeWingedSpear(x) => x,
+            SkywardHarp(x) => x,
+            AmosBow(x) => x,
+            SkywardAtlas(x) => x,
+            LostPrayerToTheSacredWinds(x) => x,
+            // version_1_1
+            TheUnforged(x) => x,
+            SummitShaper(x) => x,
+            VortexVanquisher(x) => x,
+            MemoryOfDust(x) => x,
+            // version_1_2
+            FesteringDesire(x) => x,
+            SnowTombedStarsilver(x) => x,
+            DragonspineSpear(x) => x,
+            Frostbearer(x) => x,
+            // version_1_3
+            PrimordialJadeCutter(x) => x,
+            PrimordialJadeGS(x) => x,
+            PrimordialJadeVista(x) => x,
+            StaffOfHoma(x) => x,
+            LithicSpear(x) => x,
+            LithicBlade(x) => x,
+            // version_1_4
+            ElegyForTheEnd(x) => x,
+            TheAlleyFlash(x) => x,
+            AlleyHunter(x) => x,
+            WineAndSong(x) => x,
+            WindblumeOde(x) => x,
+            // version_1_5
+            SongOfBrokenPines(x) => x,
+            // version_1_6
+            FreedomSworn(x) => x,
+            MitternachtsWaltz(x) => x,
+            DodocoTales(x) => x,
+            // version_2_0
+            MistsplitterReforged(x) => x,
+            ThunderingPulse(x) => x,
+            AmenomaKageuchi(x) => x,
+            KatsuragikiriNagamasa(x) => x,
+            KitainCrossSpear(x) => x,
+            Hamayumi(x) => x,
+            HakushinRing(x) => x,
+            // version_2_1
+            EngulfingLightning(x) => x,
+            EverlastingMoonglow(x) => x,
+            LuxuriousSeaLord(x) => x,
+            TheCatch(x) => x,
+        }
+    }
 }
 
 pub fn all() -> Vec<(WeaponRecord, WeaponUnion)> {

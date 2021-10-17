@@ -29,6 +29,8 @@ impl ElegyForTheEnd {
     }
 }
 
+impl Timeline for ElegyForTheEnd {}
+
 impl WeaponAttack for ElegyForTheEnd {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx &&
@@ -65,6 +67,8 @@ impl TheAlleyFlash {
     }
 }
 
+impl Timeline for TheAlleyFlash {}
+
 impl WeaponAttack for TheAlleyFlash {}
 
 pub struct AlleyHunter {
@@ -87,6 +91,8 @@ impl AlleyHunter {
         }
     }
 }
+
+impl Timeline for AlleyHunter {}
 
 impl WeaponAttack for AlleyHunter {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
@@ -119,6 +125,8 @@ impl WineAndSong {
     }
 }
 
+impl Timeline for WineAndSong {}
+
 impl WeaponAttack for WineAndSong {}
 
 pub struct WindblumeOde {
@@ -139,6 +147,8 @@ impl WindblumeOde {
         }
     }
 }
+
+impl Timeline for WindblumeOde {}
 
 impl WeaponAttack for WindblumeOde {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

@@ -117,3 +117,56 @@ pub trait WeaponAttack {
 
     fn reset(&mut self) -> () {}
 }
+
+pub trait AtkQueue {
+    fn add_burst(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
+    fn add_skill(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
+    fn add_na(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
+    fn add_ca(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
+}
+
+impl AtkQueue for Vec<Attack> {
+    fn add_burst(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> () {
+        self.push(Attack {
+            kind: DamageType::Burst,
+            multiplier,
+            element,
+            aura_application: state.apply_aura(time, event),
+            time,
+            idx: data.idx,
+        });
+    }
+
+    fn add_skill(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> () {
+        self.push(Attack {
+            kind: DamageType::Skill,
+            multiplier,
+            element,
+            aura_application: state.apply_aura(time, event),
+            time,
+            idx: data.idx,
+        });
+    }
+
+    fn add_na(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> () {
+        self.push(Attack {
+            kind: DamageType::Na,
+            multiplier,
+            element,
+            aura_application: state.apply_aura(time, event),
+            time,
+            idx: data.idx,
+        });
+    }
+
+    fn add_ca(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> () {
+        self.push(Attack {
+            kind: DamageType::Ca,
+            multiplier,
+            element,
+            aura_application: state.apply_aura(time, event),
+            time,
+            idx: data.idx,
+        });
+    }
+}

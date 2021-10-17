@@ -84,6 +84,8 @@ impl AquilaFavonia {
     }
 
  }
+impl Timeline for AquilaFavonia {}
+
 impl WeaponAttack for AquilaFavonia {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         if time - self.time > 15. &&
@@ -125,6 +127,8 @@ impl SkywardPride {
     }
  }
 
+impl Timeline for SkywardPride {}
+
 impl WeaponAttack for SkywardPride {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         if event.is_burst() {
@@ -160,6 +164,8 @@ impl WolfsGravestone {
     }
 }
 
+impl Timeline for WolfsGravestone {}
+
 impl WeaponAttack for WolfsGravestone {}
 
 pub struct SkywardSpine {
@@ -180,6 +186,8 @@ impl SkywardSpine {
         }
     }
  }
+
+impl Timeline for SkywardSpine {}
 
 impl WeaponAttack for SkywardSpine {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
@@ -224,6 +232,8 @@ impl PrimordialJadeWingedSpear {
     }
  }
 
+impl Timeline for PrimordialJadeWingedSpear {}
+
 impl WeaponAttack for PrimordialJadeWingedSpear {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.current_time - self.time >= 0.3 &&
@@ -267,6 +277,8 @@ impl SkywardHarp {
     }
  }
 
+impl Timeline for SkywardHarp {}
+
 impl WeaponAttack for SkywardHarp {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         if time - self.time > 4. &&
@@ -301,6 +313,8 @@ impl AmosBow {
     }
 }
 
+impl Timeline for AmosBow {}
+
 impl WeaponAttack for AmosBow {}
 
 pub struct SkywardAtlas {
@@ -326,6 +340,8 @@ impl SkywardAtlas {
         }
     }
  }
+
+impl Timeline for SkywardAtlas {}
 
 impl WeaponAttack for SkywardAtlas {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
@@ -375,6 +391,8 @@ impl LostPrayerToTheSacredWinds {
         }
     }
  }
+
+impl Timeline for LostPrayerToTheSacredWinds {}
 
 impl WeaponAttack for LostPrayerToTheSacredWinds {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

@@ -29,6 +29,8 @@ impl FreedomSworn {
     }
 }
 
+impl Timeline for FreedomSworn {}
+
 impl WeaponAttack for FreedomSworn {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx &&
@@ -75,6 +77,8 @@ impl MitternachtsWaltz {
     }
 }
 
+impl Timeline for MitternachtsWaltz {}
+
 impl WeaponAttack for MitternachtsWaltz {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         let oneself = attack.idx == data.idx;
@@ -118,6 +122,8 @@ impl DodocoTales {
         }
     }
 }
+
+impl Timeline for DodocoTales {}
 
 impl WeaponAttack for DodocoTales {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

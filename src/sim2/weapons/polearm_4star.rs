@@ -32,6 +32,8 @@ impl PrototypeStarglitterR5 {
     }
 }
 
+impl Timeline for PrototypeStarglitterR5 {}
+
 impl WeaponAttack for PrototypeStarglitterR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.did_skill() {
@@ -72,6 +74,8 @@ impl CrescentPikeR5 {
     }
 }
 
+impl Timeline for CrescentPikeR5 {}
+
 impl WeaponAttack for CrescentPikeR5 {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         if event.is_na() || event.is_ca() {
@@ -89,6 +93,8 @@ impl WeaponAttack for CrescentPikeR5 {
 
 pub struct DeathmatchR5;
 
+impl Timeline for DeathmatchR5 {}
+
 impl WeaponAttack for DeathmatchR5 {}
 
 impl DeathmatchR5 {
@@ -103,6 +109,8 @@ impl DeathmatchR5 {
 // one stack is always active
 pub struct BlackcliffPoleR5;
 
+impl Timeline for BlackcliffPoleR5 {}
+
 impl WeaponAttack for BlackcliffPoleR5 {}
 
 impl BlackcliffPoleR5 {
@@ -116,6 +124,8 @@ impl BlackcliffPoleR5 {
 
 pub struct RoyalSpearR5;
 
+impl Timeline for RoyalSpearR5 {}
+
 impl WeaponAttack for RoyalSpearR5 {}
 
 impl RoyalSpearR5 {
@@ -128,6 +138,8 @@ impl RoyalSpearR5 {
 }
 
 pub struct WhiteTasselR5;
+
+impl Timeline for WhiteTasselR5 {}
 
 impl WeaponAttack for WhiteTasselR5 {}
 
@@ -157,6 +169,8 @@ impl DragonsBaneR5 {
         }
     }
 }
+
+impl Timeline for DragonsBaneR5 {}
 
 impl WeaponAttack for DragonsBaneR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

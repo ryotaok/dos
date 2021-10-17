@@ -105,6 +105,8 @@ impl LuxuriousSeaLord {
     }
 }
 
+impl Timeline for LuxuriousSeaLord {}
+
 impl WeaponAttack for LuxuriousSeaLord {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         if event.is_burst() {
@@ -135,6 +137,8 @@ impl TheCatch {
         Self {}
     }
 }
+
+impl Timeline for TheCatch {}
 
 impl WeaponAttack for TheCatch {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

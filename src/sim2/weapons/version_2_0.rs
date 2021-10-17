@@ -40,6 +40,8 @@ impl MistsplitterReforged {
     }
 }
 
+impl Timeline for MistsplitterReforged {}
+
 impl WeaponAttack for MistsplitterReforged {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx {
@@ -101,6 +103,8 @@ impl ThunderingPulse {
     }
 }
 
+impl Timeline for ThunderingPulse {}
+
 impl WeaponAttack for ThunderingPulse {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx {
@@ -160,6 +164,8 @@ impl AmenomaKageuchi {
         }
     }
 }
+
+impl WeaponAttack for AmenomaKageuchi {}
 
 impl Timeline for AmenomaKageuchi {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
@@ -290,6 +296,8 @@ impl Hamayumi {
     }
 }
 
+impl Timeline for Hamayumi {}
+
 impl WeaponAttack for Hamayumi {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx && action_state.energy / data.character.energy_cost >= 1. {
@@ -321,6 +329,8 @@ impl HakushinRing {
         }
     }
 }
+
+impl Timeline for HakushinRing {}
 
 impl WeaponAttack for HakushinRing {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

@@ -20,6 +20,8 @@ impl Composed {
     }
 }
 
+impl WeaponAttack for Composed {}
+
 impl Timeline for Composed {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         if state.current_time - self.time > 16. && event.is_skill() {
@@ -48,13 +50,15 @@ impl SacrificialSwordR5 {
     }
 }
 
+impl WeaponAttack for SacrificialSwordR5 {}
+
 impl Timeline for SacrificialSwordR5 {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         self.0.accelerate(field_energy, event, state, data);
     }
 
     fn reset(&mut self) -> () {
-        self.0.reset();
+        WeaponAttack::reset(&mut self.0);
     }
 }
 
@@ -73,13 +77,15 @@ impl SacrificialGreatswordR5 {
     }
 }
 
+impl WeaponAttack for SacrificialGreatswordR5 {}
+
 impl Timeline for SacrificialGreatswordR5 {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         self.0.accelerate(field_energy, event, state, data);
     }
 
     fn reset(&mut self) -> () {
-        self.0.reset();
+        WeaponAttack::reset(&mut self.0);
     }
 }
 
@@ -100,13 +106,15 @@ impl SacrificialBowR5 {
     }
 }
 
+impl WeaponAttack for SacrificialBowR5 {}
+
 impl Timeline for SacrificialBowR5 {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         self.0.accelerate(field_energy, event, state, data);
     }
 
     fn reset(&mut self) -> () {
-        self.0.reset();
+        WeaponAttack::reset(&mut self.0);
     }
 }
 
@@ -125,12 +133,14 @@ impl SacrificialFragmentsR5 {
     }
 }
 
+impl WeaponAttack for SacrificialFragmentsR5 {}
+
 impl Timeline for SacrificialFragmentsR5 {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         self.0.accelerate(field_energy, event, state, data);
     }
 
     fn reset(&mut self) -> () {
-        self.0.reset();
+        WeaponAttack::reset(&mut self.0);
     }
 }
