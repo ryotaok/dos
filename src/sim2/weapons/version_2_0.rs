@@ -165,7 +165,12 @@ impl AmenomaKageuchi {
     }
 }
 
-impl WeaponAttack for AmenomaKageuchi {}
+impl WeaponAttack for AmenomaKageuchi {
+    fn reset(&mut self) -> () {
+        self.seed = 0.;
+        self.time = -99.;
+    }
+}
 
 impl Timeline for AmenomaKageuchi {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
@@ -180,11 +185,6 @@ impl Timeline for AmenomaKageuchi {
             state.energy += 12. * self.seed;
             self.seed = 0.;
         }
-    }
-
-    fn reset(&mut self) -> () {
-        self.seed = 0.;
-        self.time = -99.;
     }
 }
 
@@ -224,13 +224,13 @@ impl Timeline for KatsuragikiriNagamasa {
             state.energy += 5.;
         }
     }
+}
 
+impl WeaponAttack for KatsuragikiriNagamasa {
     fn reset(&mut self) -> () {
         self.time = -99.;
     }
 }
-
-impl WeaponAttack for KatsuragikiriNagamasa {}
 
 // Increases Elemental Skill DMG by 6%. After Elemental Skill hits an opponent,
 // the character loses 3 Energy but regenerates 3 Energy every 2s for the next
@@ -268,13 +268,13 @@ impl Timeline for KitainCrossSpear {
             state.energy += 5.;
         }
     }
+}
 
+impl WeaponAttack for KitainCrossSpear {
     fn reset(&mut self) -> () {
         self.time = -99.;
     }
 }
-
-impl WeaponAttack for KitainCrossSpear {}
 
 // Increases Normal Attack DMG by 16% and Charged Attack DMG by 12%. When the
 // equipping character's Energy reaches 100%, this effect is increased by 100%.

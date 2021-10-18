@@ -9,6 +9,7 @@ use DamageType::*;
 use WeaponType::*;
 use Vision::*;
 
+#[derive(Debug)]
 pub struct Rosaria {
     na: NaLoop,
     ca: NoopAbility,
@@ -19,7 +20,7 @@ pub struct Rosaria {
 impl Rosaria {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Rosaria").vision(Cryo).weapon(Polearm).release_date("2020-12-23").version(1.4)
+            .name("Rosaria").vision(Cryo).weapon(Polearm).version(1.4)
             .base_hp(12289.0).base_atk(240.0).base_def(710.0)
             .atk(24.0)
             .energy_cost(60.)

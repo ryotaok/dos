@@ -191,4 +191,6 @@ pub trait Timeline {
 
     // generate energy and modify acceleration states according to the event
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {}
+
+    fn reset(&mut self) -> () {}
 }

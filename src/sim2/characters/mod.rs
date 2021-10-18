@@ -3,11 +3,11 @@ use crate::sim2::attack::CharacterAttack;
 use crate::sim2::record::{CharacterRecord};
 
 pub mod pyro;
-// pub mod hydro;
-// pub mod electro;
-// pub mod cryo;
-// pub mod anemo;
-// pub mod geo;
+pub mod hydro;
+pub mod electro;
+pub mod cryo;
+pub mod anemo;
+pub mod geo;
 // pub mod version_1_1;
 // pub mod version_1_2;
 // pub mod version_1_3;
@@ -18,11 +18,11 @@ pub mod pyro;
 // pub mod version_2_1;
 
 use pyro::*;
-// use hydro::*;
-// use electro::*;
-// use cryo::*;
-// use anemo::*;
-// use geo::*;
+use hydro::*;
+use electro::*;
+use cryo::*;
+use anemo::*;
+use geo::*;
 // use version_1_1::*;
 // use version_1_2::*;
 // use version_1_3::*;
@@ -40,29 +40,30 @@ pub enum CharacterUnion {
     Xiangling(Xiangling),
     Diluc(Diluc),
     Klee(Klee),
-    // // hydro
-    // Barbara(Barbara),
-    // Xingqiu(Xingqiu),
-    // Mona(Mona),
-    // // electro
-    // Beidou(Beidou),
-    // Fischl(Fischl),
-    // Lisa(Lisa),
-    // Razor(Razor),
-    // Keqing(Keqing),
-    // // cryo
-    // Chongyun(Chongyun),
-    // Kaeya(Kaeya),
-    // Qiqi(Qiqi),
-    // // anemo
-    // Sucrose(Sucrose),
-    // TravelerAnemo(TravelerAnemo),
-    // Jean(Jean),
-    // Venti(Venti),
-    // // geo
-    // Ningguang(Ningguang),
-    // Noelle(Noelle),
-    // TravelerGeo(TravelerGeo),
+    Tartaglia(Tartaglia),
+    // hydro
+    Barbara(Barbara),
+    Xingqiu(Xingqiu),
+    Mona(Mona),
+    // electro
+    Beidou(Beidou),
+    Fischl(Fischl),
+    Lisa(Lisa),
+    Razor(Razor),
+    Keqing(Keqing),
+    // cryo
+    Chongyun(Chongyun),
+    Kaeya(Kaeya),
+    Qiqi(Qiqi),
+    // anemo
+    Sucrose(Sucrose),
+    TravelerAnemo(TravelerAnemo),
+    Jean(Jean),
+    Venti(Venti),
+    // geo
+    Ningguang(Ningguang),
+    Noelle(Noelle),
+    TravelerGeo(TravelerGeo),
     // // version_1_1
     // Tartaglia(Tartaglia),
     // Diona(Diona),
@@ -102,29 +103,30 @@ impl CharacterUnion {
             Xiangling(x) => x,
             Diluc(x) => x,
             Klee(x) => x,
-            // // hydro
-            // Barbara(x) => x,
-            // Xingqiu(x) => x,
-            // Mona(x) => x,
-            // // electro
-            // Beidou(x) => x,
-            // Fischl(x) => x,
-            // Lisa(x) => x,
-            // Razor(x) => x,
-            // Keqing(x) => x,
-            // // cryo
-            // Chongyun(x) => x,
-            // Kaeya(x) => x,
-            // Qiqi(x) => x,
-            // // anemo
-            // Sucrose(x) => x,
-            // TravelerAnemo(x) => x,
-            // Jean(x) => x,
-            // Venti(x) => x,
-            // // geo
-            // Ningguang(x) => x,
-            // Noelle(x) => x,
-            // TravelerGeo(x) => x,
+            Tartaglia(x) => x,
+            // hydro
+            Barbara(x) => x,
+            Xingqiu(x) => x,
+            Mona(x) => x,
+            // electro
+            Beidou(x) => x,
+            Fischl(x) => x,
+            Lisa(x) => x,
+            Razor(x) => x,
+            Keqing(x) => x,
+            // cryo
+            Chongyun(x) => x,
+            Kaeya(x) => x,
+            Qiqi(x) => x,
+            // anemo
+            Sucrose(x) => x,
+            TravelerAnemo(x) => x,
+            Jean(x) => x,
+            Venti(x) => x,
+            // geo
+            Ningguang(x) => x,
+            Noelle(x) => x,
+            TravelerGeo(x) => x,
             // // version_1_1
             // Tartaglia(x) => x,
             // Diona(x) => x,
@@ -164,29 +166,30 @@ impl CharacterUnion {
             Xiangling(x) => x,
             Diluc(x) => x,
             Klee(x) => x,
-            // // hydro
-            // Barbara(x) => x,
-            // Xingqiu(x) => x,
-            // Mona(x) => x,
-            // // electro
-            // Beidou(x) => x,
-            // Fischl(x) => x,
-            // Lisa(x) => x,
-            // Razor(x) => x,
-            // Keqing(x) => x,
-            // // cryo
-            // Chongyun(x) => x,
-            // Kaeya(x) => x,
-            // Qiqi(x) => x,
-            // // anemo
-            // Sucrose(x) => x,
-            // TravelerAnemo(x) => x,
-            // Jean(x) => x,
-            // Venti(x) => x,
-            // // geo
-            // Ningguang(x) => x,
-            // Noelle(x) => x,
-            // TravelerGeo(x) => x,
+            Tartaglia(x) => x,
+            // hydro
+            Barbara(x) => x,
+            Xingqiu(x) => x,
+            Mona(x) => x,
+            // electro
+            Beidou(x) => x,
+            Fischl(x) => x,
+            Lisa(x) => x,
+            Razor(x) => x,
+            Keqing(x) => x,
+            // cryo
+            Chongyun(x) => x,
+            Kaeya(x) => x,
+            Qiqi(x) => x,
+            // anemo
+            Sucrose(x) => x,
+            TravelerAnemo(x) => x,
+            Jean(x) => x,
+            Venti(x) => x,
+            // geo
+            Ningguang(x) => x,
+            Noelle(x) => x,
+            TravelerGeo(x) => x,
             // // version_1_1
             // Tartaglia(x) => x,
             // Diona(x) => x,
@@ -219,7 +222,7 @@ impl CharacterUnion {
 }
 
 // pub const N_CHARACTERS: usize = 42;
-pub const N_CHARACTERS: usize = 5;
+pub const N_CHARACTERS: usize = 24;
 
 pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     vec![
@@ -229,29 +232,30 @@ pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     (Xiangling::record(), CharacterUnion::Xiangling(Xiangling::new())),
     (Diluc::record(), CharacterUnion::Diluc(Diluc::new())),
     (Klee::record(), CharacterUnion::Klee(Klee::new())),
-    // // hydro
-    // (Barbara::record(), CharacterUnion::Barbara(Barbara::new())),
-    // (Xingqiu::record(), CharacterUnion::Xingqiu(Xingqiu::new())),
-    // (Mona::record(), CharacterUnion::Mona(Mona::new())),
-    // // electro
-    // (Beidou::record(), CharacterUnion::Beidou(Beidou::new())),
-    // (Fischl::record(), CharacterUnion::Fischl(Fischl::new())),
-    // (Lisa::record(), CharacterUnion::Lisa(Lisa::new())),
-    // (Razor::record(), CharacterUnion::Razor(Razor::new())),
-    // (Keqing::record(), CharacterUnion::Keqing(Keqing::new())),
-    // // cryo
-    // (Chongyun::record(), CharacterUnion::Chongyun(Chongyun::new())),
-    // (Kaeya::record(), CharacterUnion::Kaeya(Kaeya::new())),
-    // (Qiqi::record(), CharacterUnion::Qiqi(Qiqi::new())),
-    // // anemo
-    // (Sucrose::record(), CharacterUnion::Sucrose(Sucrose::new())),
-    // (TravelerAnemo::record(), CharacterUnion::TravelerAnemo(TravelerAnemo::new())),
-    // (Jean::record(), CharacterUnion::Jean(Jean::new())),
-    // (Venti::record(), CharacterUnion::Venti(Venti::new())),
-    // // geo
-    // (Ningguang::record(), CharacterUnion::Ningguang(Ningguang::new())),
-    // (Noelle::record(), CharacterUnion::Noelle(Noelle::new())),
-    // (TravelerGeo::record(), CharacterUnion::TravelerGeo(TravelerGeo::new())),
+    (Tartaglia::record(), CharacterUnion::Tartaglia(Tartaglia::new())),
+    // hydro
+    (Barbara::record(), CharacterUnion::Barbara(Barbara::new())),
+    (Xingqiu::record(), CharacterUnion::Xingqiu(Xingqiu::new())),
+    (Mona::record(), CharacterUnion::Mona(Mona::new())),
+    // electro
+    (Beidou::record(), CharacterUnion::Beidou(Beidou::new())),
+    (Fischl::record(), CharacterUnion::Fischl(Fischl::new())),
+    (Lisa::record(), CharacterUnion::Lisa(Lisa::new())),
+    (Razor::record(), CharacterUnion::Razor(Razor::new())),
+    (Keqing::record(), CharacterUnion::Keqing(Keqing::new())),
+    // cryo
+    (Chongyun::record(), CharacterUnion::Chongyun(Chongyun::new())),
+    (Kaeya::record(), CharacterUnion::Kaeya(Kaeya::new())),
+    (Qiqi::record(), CharacterUnion::Qiqi(Qiqi::new())),
+    // anemo
+    (Sucrose::record(), CharacterUnion::Sucrose(Sucrose::new())),
+    (TravelerAnemo::record(), CharacterUnion::TravelerAnemo(TravelerAnemo::new())),
+    (Jean::record(), CharacterUnion::Jean(Jean::new())),
+    (Venti::record(), CharacterUnion::Venti(Venti::new())),
+    // geo
+    (Ningguang::record(), CharacterUnion::Ningguang(Ningguang::new())),
+    (Noelle::record(), CharacterUnion::Noelle(Noelle::new())),
+    (TravelerGeo::record(), CharacterUnion::TravelerGeo(TravelerGeo::new())),
     // // version_1_1
     // (Tartaglia::record(), CharacterUnion::Tartaglia(Tartaglia::new())),
     // (Diona::record(), CharacterUnion::Diona(Diona::new())),
@@ -389,3 +393,58 @@ mod tests {
     }
 }
 */
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::sim2::testutil;
+//     use crate::sim2::simulate;
+//     use crate::sim2::timeline::ActionState;
+//     use crate::sim2::record::{CharacterData, TimelineMember, FieldMember, Enemy};
+//     #[test]
+//     fn debug_character() {
+//         let mut history = simulate::History::<1>::new(7.0, 0.2);
+//         let mut enemy     = Enemy::simple();
+//         // let mut character = Tartaglia::new();
+//         // let cr            = Tartaglia::record();
+//         // // let wr            = crate::sim2::weapons::version_2_1::PolarStar::record();
+//         // let mut weapon    = crate::sim2::weapons::bow_4star::PrototypeCrescentR5 {};
+//         // let wr            = crate::sim2::weapons::bow_4star::PrototypeCrescentR5::record();
+//         // let mut character = TravelerAnemo::new();
+//         // let cr            = TravelerAnemo::record();
+//         // let mut weapon    = crate::sim2::weapons::version_1_3::PrimordialJadeCutter::new();
+//         // let wr            = crate::sim2::weapons::version_1_3::PrimordialJadeCutter::record();
+//         let mut character = Ningguang::new();
+//         let cr            = Ningguang::record();
+//         let mut weapon    = crate::sim2::weapons::version_1_5star::LostPrayerToTheSacredWinds::new();
+//         let wr            = crate::sim2::weapons::version_1_5star::LostPrayerToTheSacredWinds::record();
+//         // (some space)
+//         let mut artifact  = crate::sim2::artifact::Gfelm;
+//         let mut ar        = crate::sim2::artifact::Gfelm::record();
+//         ar.flat_atk = 311.;
+//         ar.infuse_goblet(&cr.vision);
+//         let mut states = [ActionState::new(); 1];
+//         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
+//         let dmg: f32;
+//         {
+//             let mut members = [TimelineMember {
+//                 character: &mut character,
+//                 weapon: &mut weapon,
+//                 artifact: &mut artifact,
+//             }; 1];
+//             states[0].energy += cr.energy_cost;
+//             simulate::decide_action(&mut history, &mut members, &mut states, &mut data);
+//         }
+//         {
+//             let mut members = [FieldMember {
+//                 character: &mut character,
+//                 weapon: &mut weapon,
+//                 artifact: &mut artifact,
+//             }; 1];
+//             dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+//         }
+//         println!("{:?}", history.action);
+//         println!("{:?}", dmg);
+//         assert!(false);
+//     }
+// }

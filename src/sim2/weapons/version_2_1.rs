@@ -75,10 +75,6 @@ impl Timeline for EverlastingMoonglow {
             state.energy += 0.6;
         }
     }
-
-    fn reset(&mut self) -> () {
-        self.time = -99.;
-    }
 }
 
 impl WeaponAttack for EverlastingMoonglow {
@@ -86,6 +82,10 @@ impl WeaponAttack for EverlastingMoonglow {
         if attack.idx == data.idx && attack.kind == DamageType::Na {
             state.flat_atk += 0.01 * state.HP();
         }
+    }
+
+    fn reset(&mut self) -> () {
+        self.time = -99.;
     }
 }
 
@@ -145,5 +145,81 @@ impl WeaponAttack for TheCatch {
         if attack.idx == data.idx && attack.kind == DamageType::Burst {
             state.cr += 12.;
         }
+    }
+}
+
+// Elemental Skill and Elemental Burst DMG increased by 12%. After a Normal
+// Attack, Charged Attack, Elemental Skill or Elemental Burst hits an opponent,
+// 1 stack of Ashen Nightstar will be gained for 12s. When 1/2/3/4 stacks of
+// Ashen Nightstar are present, ATK is increased by 10/20/30/48%. The stack of
+// Ashen Nightstar created by the Normal Attack, Charged Attack, Elemental Skill
+// or Elemental Burst will be counted independently of the others.
+pub struct PolarStar {
+    na: f32,
+    ca: f32,
+    skill: f32,
+    burst: f32,
+}
+
+impl PolarStar {
+    pub fn record() -> WeaponRecord {
+        WeaponRecord::default()
+            .name("Polar Star").type_(Bow).version(2.2)
+            .base_atk(608.0)
+            .cr(33.1)
+            .skill_dmg(12.0).burst_dmg(12.0)
+    }
+
+    pub fn new() -> Self {
+        Self {
+            na: -99.,
+            ca: -99.,
+            skill: -99.,
+            burst: -99.,
+        }
+    }
+}
+
+impl Timeline for PolarStar {}
+
+impl WeaponAttack for PolarStar {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        if attack.idx == data.idx {
+            match &attack.kind {
+                DamageType::Burst => self.burst = attack.time,
+                DamageType::Skill => self.skill = attack.time,
+                DamageType::Na => self.na = attack.time,
+                DamageType::Ca => self.ca = attack.time,
+                _ => (),
+            }
+            let mut stack = 0;
+            if attack.time - self.burst <= 12. {
+                stack += 1;
+            }
+            if attack.time - self.skill <= 12. {
+                stack += 1;
+            }
+            if attack.time - self.na <= 12. {
+                stack += 1;
+            }
+            // if attack.time - self.ca <= 12. {
+            //     stack += 1;
+            // }
+            stack += 1;
+            match stack {
+                4 => state.atk += 48.0,
+                3 => state.atk += 30.0,
+                2 => state.atk += 20.0,
+                1 => state.atk += 10.0,
+                _ => (),
+            }
+        }
+    }
+
+    fn reset(&mut self) -> () {
+        self.na = -99.;
+        self.ca = -99.;
+        self.skill = -99.;
+        self.burst = -99.;
     }
 }

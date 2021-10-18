@@ -9,6 +9,7 @@ use DamageType::*;
 use WeaponType::*;
 use Vision::*;
 
+#[derive(Debug)]
 pub struct Kazuha {
     swirl_a4: DurationTimer,
     na: NaLoop,
@@ -23,7 +24,7 @@ pub struct Kazuha {
 impl Kazuha {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Kazuha").vision(Anemo).weapon(Sword).release_date("2021-06-29").version(1.6)
+            .name("Kazuha").vision(Anemo).weapon(Sword).version(1.6)
             .base_hp(13348.0).base_atk(297.0).base_def(807.0)
             .em(115.2)
             .energy_cost(60.)

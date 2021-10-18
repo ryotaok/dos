@@ -11,6 +11,7 @@ use Vision::*;
 
 // version 1.2
 
+#[derive(Debug)]
 pub struct Albedo {
     na: NaLoop,
     ca: NoopAbility,
@@ -21,7 +22,7 @@ pub struct Albedo {
 impl Albedo {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Albedo").vision(Geo).weapon(Sword).release_date("2020-12-23").version(1.2)
+            .name("Albedo").vision(Geo).weapon(Sword).version(1.2)
             .base_hp(13226.0).base_atk(251.0).base_def(876.0)
             .geo_dmg(28.8)
             .energy_cost(40.)
@@ -97,6 +98,7 @@ impl CharacterAttack for Albedo {
     }
 }
 
+#[derive(Debug)]
 pub struct Ganyu {
     na: NoopAbility,
     ca: SimpleCa,
@@ -107,7 +109,7 @@ pub struct Ganyu {
 impl Ganyu {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Ganyu").vision(Cryo).weapon(Bow).release_date("2021-01-12").version(1.2)
+            .name("Ganyu").vision(Cryo).weapon(Bow).version(1.2)
             .base_hp(9797.0).base_atk(335.0).base_def(630.0)
             .cd(88.4)
             .energy_cost(60.)

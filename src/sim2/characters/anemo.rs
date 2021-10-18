@@ -1,99 +1,34 @@
-
 use crate::sim2::state::State;
-use crate::sim2::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::sim2::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
-use crate::sim2::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
-use crate::sim2::testutil;
+use crate::sim2::timeline::{ActionState, Timeline};
+use crate::sim2::attack::{Attack, CharacterAttack, AtkQueue};
+use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, WeaponType, FieldEnergy, Particle, VecFieldEnergy, ToNaAction};
+use crate::sim2::element::{ElementalGauge, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, ELECTRO_GAUGE4C, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
+use crate::sim2::record::{CharacterRecord, CharacterData, Enemy};
 
-use DamageType::*;
 use WeaponType::*;
 use Vision::*;
 
 // version 1.0
 
+// When Sucrose triggers a Swirl effect, all characters in the party with the
+// matching element (excluding Sucrose) have their Elemental Mastery increased
+// by 50 for 8s.
+
+// When Astable Anemohypostasis Creation - 6308 or Forbidden Creation - Isomer
+// 75 / Type II hits an opponent, increases all party members' (excluding
+// Sucrose) Elemental Mastery based on 20% of Sucrose's Elemental Mastery for
+// 8s.
 #[derive(Debug)]
-pub struct SucroseSkill {
-    pub timer1: NTimer,
-    pub timer2: NTimer,
-    pub attack1: Attack,
-    pub attack2: Attack,
-    pub particle: Particle,
-}
-
-impl SucroseSkill {
-    pub fn new() -> Self {
-        Self {
-            timer1: NTimer::new(&[15.0]),
-            timer2: NTimer::new(&[15.0]),
-            attack1: Attack {
-                kind: DamageType::PressSkill,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 380.16,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            },
-            attack2: Attack {
-                kind: DamageType::PressSkill,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 380.16,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            },
-            particle: Particle::new(Anemo, 4.0),
-        }
-    }
-}
-
-impl SkillAbility for SucroseSkill {
-    fn accelerate(&mut self, f: fn(&mut NTimer)) -> () {
-        f(&mut self.timer1);
-        f(&mut self.timer2);
-    }
-}
-
-impl CharacterAttack for SucroseSkill {
-    fn maybe_attack(&self, _data: &CharacterData) -> Option<AttackEvent> {
-        self.attack1.to_event(&self.timer1)
-            .or(self.attack2.to_event(&self.timer2))
-    }
-
-    fn update(&mut self, time: f32, event: &AttackEvent, _data: &CharacterData, _attack: &[*const Attack], _particles: &[FieldEnergy], _enemy: &Enemy) -> () {
-        let guard = event == &self.attack1;
-        self.timer1.update(time, guard);
-        self.timer2.update(time, guard);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, _data: &CharacterData) -> () {
-        match (self.timer1.ping, self.timer1.n, self.timer2.ping, self.timer2.n) {
-            (true, 1, _, _) => {
-                atk_queue.push(&self.attack1);
-                particles.push_p(self.particle);
-            },
-            (_, _, true, 1) => {
-                atk_queue.push(&self.attack2);
-                particles.push_p(self.particle);
-            },
-            _ => (),
-        }
-    }
-}
-
 pub struct Sucrose {
-    skill_a1: DurationTimer,
-    skill_a4: DurationTimer,
-    na: NaLoop,
-    ca: NoopAbility,
-    skill: SucroseSkill,
-    burst: SimpleBurstDot,
-    burst_ea: ElementalAbsorption,
+    a1_time: f32,
+    a4_time: f32,
+    em: f32,
 }
 
 impl Sucrose {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Sucrose").vision(Anemo).weapon(Catalyst).release_date("2020-09-28").version(1.0)
+            .name("Sucrose").vision(Anemo).weapon(Catalyst).version(1.0)
             .base_hp(9244.0).base_atk(170.0).base_def(703.0)
             .anemo_dmg(24.0)
             .energy_cost(80.)
@@ -101,338 +36,390 @@ impl Sucrose {
 
     pub fn new() -> Self {
         Self {
-            skill_a1: DurationTimer::new(8.0, &[0.0]),
-            skill_a4: DurationTimer::new(8.0, &[0.0]),
-            na: NaLoop::new(
-                // 4 attacks in 1.5 seconds
-                &[0.375,0.375,0.375,0.375],
-                vec![
-                    Attack::na(60.24, 1, idx, &icd_timer),
-                    Attack::na(55.11, 1, idx, &icd_timer),
-                    Attack::na(69.21, 1, idx, &icd_timer),
-                    Attack::na(86.25, 1, idx, &icd_timer),
-                ]
-            ),
-            ca: NoopAbility,
-            skill: SucroseSkill::new(idx, icd_timer),
-            burst: SimpleBurstDot::new(&[2.0,2.0,2.0, 14.0], Attack {
-                kind: DamageType::BurstDot,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 266.4,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }),
-            burst_ea: ElementalAbsorption::new(idx, BurstDot, 79.2, NTimer::new(&[6.0, 14.0]), icd_timer),
+            a1_time: -99.,
+            a4_time: -99.,
+            em: 0.,
         }
     }
 }
 
-impl CharacterAbility for Sucrose {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
-    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
-    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
-    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
-    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
-}
-
-impl CharacterAttack for Sucrose {
-    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        let check_idx = event.idx == self.burst.attack.idx;
-        let is_swirl = unsafe {
-            attack.iter().any(|&a| {
-                let atk = & *a;
-                atk.idx == data.idx && enemy.trigger_er(&atk.element.aura).is_swirl()
-            })
-        };
-        self.skill_a1.update(time, is_swirl);
-        self.skill_a4.update(time, check_idx && (event.kind == Burst || event.kind == PressSkill));
-        self.burst_ea.absorb(time, check_idx && event.kind == Burst, enemy);
+impl Timeline for Sucrose {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
+        // check if skill can be used
+        } else if state.rel_time.press >= 15. {
+            CharacterAction::PressSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.375 {
+            // 4 attacks in 1.5 seconds
+            data.na_idx.to_na(4, state.carryover(0.375))
+        } else {
+            CharacterAction::StandStill
+        }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        match (self.burst.timer.ping, 0 < self.burst.timer.n && self.burst.timer.n <= 3) {
-            (true, true) => if let Some(a) = self.burst_ea.attack() {
-                atk_queue.push(a);
-            },
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 4.)),
             _ => (),
         }
     }
+}
+
+impl CharacterAttack for Sucrose {
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        let absorbed = enemy.absorb_element();
+        for i in 0..3 {
+            let t = time + (2 * i) as f32;
+            if absorbed.aura != Physical {
+                atk_queue.apply_burst(79.2, absorbed, t, event, data, state);
+            }
+            atk_queue.apply_burst(266.4, &ANEMO_GAUGE1A, t, event, data, state);
+        }
+    }
+
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_skill(380.16, &ANEMO_GAUGE1A, time, event, data, state);
+    }
+
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(60.24, &ANEMO_GAUGE1A, time, event, data, state);
+    }
+
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(55.11, &ANEMO_GAUGE1A, time, event, data, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(69.21, &ANEMO_GAUGE1A, time, event, data, state);
+    }
+
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(86.25, &ANEMO_GAUGE1A, time, event, data, state);
+    }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        if self.skill_a1.n == 1 {
-            for (i, data) in modifiable_data.iter_mut().enumerate() {
-                if i != self.burst.attack.idx.0 {
-                    data.state.em += 50.0;
-                }
+        if attack.idx == data.idx {
+            if enemy.trigger_er(&attack.element.aura).is_swirl() {
+                self.a1_time = attack.time;
+            }
+            match &attack.kind {
+                DamageType::Skill |
+                DamageType::Burst => {
+                    self.em = state.em;
+                    self.a4_time = attack.time;
+                },
+                _ => (),
             }
         }
-        if self.skill_a4.n == 1 {
-            let em = modifiable_data[self.burst.attack.idx.0].state.em;
-            for (i, data) in modifiable_data.iter_mut().enumerate() {
-                if i != self.burst.attack.idx.0 {
-                    data.state.em += em * 0.2;
-                }
+        if attack.idx != data.idx {
+            if attack.time - self.a1_time <= 8. {
+                state.em += 50.;
+            }
+            if attack.time - self.a4_time <= 8. {
+                state.em += 0.2 * self.em;
             }
         }
     }
 
     fn reset(&mut self) -> () {
-        self.skill_a1.reset();
-        self.skill_a4.reset();
+        self.a1_time = -99.;
+        self.a4_time = -99.;
+        self.em = 0.;
     }
 }
 
-pub struct TravelerAnemo {
-    na: NaLoop,
-    na_last: Attack,
-    ca: NoopAbility,
-    skill: SkillDamage2Dot,
-    // TODO what is multiplier?
-    // press_ea: ElementalAbsorption,
-    burst: SimpleBurstDot,
-    burst_ea: ElementalAbsorption,
-}
+// The last hit of a Normal Attack combo unleashes a wind blade, dealing 60% of
+// ATK as Anemo DMG to all opponents in its path.
+
+// Palm Vortex kills regenerate 2% HP for 5s. This effect can only occur once
+// every 5s.
+#[derive(Debug)]
+pub struct TravelerAnemo {}
 
 impl TravelerAnemo {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Traveler (Anemo)").vision(Anemo).weapon(Sword).release_date("2020-09-28").version(1.0)
+            .name("Traveler (Anemo)").vision(Anemo).weapon(Sword).version(1.0)
             .base_hp(10875.0).base_atk(212.0).base_def(683.0)
             .atk(24.0)
             .energy_cost(60.)
     }
 
     pub fn new() -> Self {
-        Self {
-            na: NaLoop::new(
-                // 5 attacks in 2.55 seconds
-                &[0.51,0.51,0.51,0.51,0.51],
-                vec![
-                    Attack::na(87.89, 1, idx, &icd_timer),
-                    Attack::na(85.85, 1, idx, &icd_timer),
-                    Attack::na(104.72, 1, idx, &icd_timer),
-                    Attack::na(115.26, 1, idx, &icd_timer),
-                    Attack::na(139.91, 1, idx, &icd_timer),
-                ]
-            ),
-            na_last: Attack {
-                kind: DamageType::Na,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 60.0,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.na),
-                idx,
-            },
-            ca: NoopAbility,
-            skill: SkillDamage2Dot::new(&[0.5,0.5,0.5,0.5,0.5,0.5,0.5, 4.5], Particle::new(Anemo, 4.0), Attack {
-                kind: DamageType::PressSkill,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 345.6,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }, Attack {
-                kind: DamageType::SkillDot,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 30.24,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }),
-            burst: SimpleBurstDot::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 5.0], Attack {
-                kind: DamageType::BurstDot,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 145.44,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }),
-            burst_ea: ElementalAbsorption::new(idx, BurstDot, 44.64, NTimer::new(&[10.0, 5.0]), icd_timer),
-        }
+        Self {}
     }
 }
 
-impl CharacterAbility for TravelerAnemo {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
-    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
-    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
-    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
-    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
+impl Timeline for TravelerAnemo {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
+        // check if skill can be used
+        } else if state.rel_time.hold >= 8. {
+            CharacterAction::HoldSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.51 {
+            // 5 attacks in 2.555 seconds
+            data.na_idx.to_na(5, state.carryover(0.51))
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            CharacterAction::HoldSkill => {
+                field_energy.push_p(Particle::new(data.character.vision, 4.));
+                state.rel_time.na -= 2.;
+            },
+            _ => (),
+        }
+    }
 }
 
 impl CharacterAttack for TravelerAnemo {
-    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.burst_ea.absorb(time, event.idx == self.burst.attack.idx && event.kind == Burst, enemy);
-    }
-
-    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        match (self.burst.timer.ping, 0 < self.burst.timer.n && self.burst.timer.n <= 10) {
-            (true, true) => if let Some(a) = self.burst_ea.attack() {
-                atk_queue.push(a);
-            },
-            _ => (),
-        }
-        match (self.na.timer.ping, self.na.timer.n) {
-            (true, 5) => atk_queue.push(&self.na_last),
-            _ => (),
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        let absorbed = enemy.absorb_element();
+        for i in 0..10 {
+            let t = time + i as f32;
+            if absorbed.aura != Physical {
+                atk_queue.apply_burst(44.64, absorbed, t, event, data, state);
+            }
+            atk_queue.apply_burst(145.44, &ANEMO_GAUGE1A, t, event, data, state);
         }
     }
+
+    fn hold(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        let absorbed = enemy.absorb_element();
+        for i in 0..6 {
+            let t = time + 0.35 * i as f32;
+            if absorbed.aura != Physical {
+                atk_queue.apply_skill(31.92, absorbed, t, event, data, state);
+            }
+            atk_queue.apply_skill(31.92, &ANEMO_GAUGE1A, t, event, data, state);
+        }
+        atk_queue.apply_skill(364.8, &ANEMO_GAUGE1A, time + 2.5, event, data, state);
+    }
+
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(87.89, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(85.85, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(104.72, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(115.26, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(139.91, &PHYSICAL_GAUGE, time, event, data, state);
+        atk_queue.add_na(60., &ANEMO_GAUGE1A, time, event, data, state);
+    }
+
+   // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+   // }
+
+    // fn reset(&mut self) -> () {
+    // }
 }
 
-pub struct Jean {
-    na: NaLoop,
-    ca: NoopAbility,
-    skill: SimpleSkill,
-    burst: BurstDamage2Dot,
-}
+// Hits by Jean's Normal Attacks have a 50% chance to regenerate HP equal to 15%
+// of Jean's ATK for all party members.
+
+// Using Dandelion Breeze will regenerate 20% of its Energy.
+#[derive(Debug)]
+pub struct Jean {}
 
 impl Jean {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Jean").vision(Anemo).weapon(Sword).release_date("2020-09-28").version(1.0)
+            .name("Jean").vision(Anemo).weapon(Sword).version(1.0)
             .base_hp(14695.0).base_atk(239.0).base_def(769.0)
-            // a4
-            .energy_cost(80.0 * 0.8)
+            .energy_cost(80.)
     }
 
     pub fn new() -> Self {
-        Self {
-            na: NaLoop::new(
-                // 5 attacks in 2.55 seconds
-                &[0.51,0.51,0.51,0.51,0.51],
-                vec![
-                    Attack::na(95.54, 1, idx, &icd_timer),
-                    Attack::na(90.1, 1, idx, &icd_timer),
-                    Attack::na(119.17, 1, idx, &icd_timer),
-                    Attack::na(130.22, 1, idx, &icd_timer),
-                    Attack::na(156.57, 1, idx, &icd_timer),
-                ]
-            ),
-            ca: NoopAbility,
-            skill: SimpleSkill::new(&[6.0], Particle::new(Anemo, 3.0), Attack {
-                kind: DamageType::PressSkill,
-                element: &ANEMO_GAUGE2B,
-                multiplier: 525.6,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }),
-            burst: BurstDamage2Dot::new(&[1.0,1.0,1.0, 17.0], Attack {
-                kind: DamageType::Burst,
-                element: &ANEMO_GAUGE2B,
-                multiplier: 764.64,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }, Attack {
-                kind: DamageType::BurstDot,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 141.12,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }),
+        Self {}
+    }
+}
+
+impl Timeline for Jean {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
+        // check if skill can be used
+        } else if state.rel_time.press >= 6. {
+            CharacterAction::PressSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.51 {
+            // 5 attacks in 2.55 seconds
+            data.na_idx.to_na(5, state.carryover(0.51))
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            // a4
+            CharacterAction::Burst => state.energy += 16.,
+            CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 3.)),
+            _ => (),
         }
     }
 }
 
-impl CharacterAbility for Jean {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
-    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
-    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
-    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
-    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
+impl CharacterAttack for Jean {
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.apply_burst(764.64, &ANEMO_GAUGE2B, time, event, data, state);
+        for i in 1..4 {
+            atk_queue.apply_burst(141.12, &ANEMO_GAUGE1A, time + (2 * i) as f32, event, data, state);
+        }
+    }
+
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_skill(525.6, &ANEMO_GAUGE2B, time, event, data, state);
+    }
+
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(95.54, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(90.1, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(119.17, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(130.22, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(156.57, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+   // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+   // }
+
+    // fn reset(&mut self) -> () {
+    // }
 }
 
-impl CharacterAttack for Jean {}
+// Holding Skyward Sonnet creates an upcurrent that lasts for 20s.
 
-pub struct Venti {
-    na: NaLoop,
-    ca: NoopAbility,
-    skill: SimpleSkill,
-    burst: SimpleBurstDot,
-    burst_ea: ElementalAbsorption,
-}
+// Regenerates 15 Energy for Venti after the effects of Wind's Grand Ode end. If
+// an Elemental Absorption occurred, this also restores 15 Energy to all
+// characters of that corresponding element.
+#[derive(Debug)]
+pub struct Venti {}
 
 impl Venti {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Venti").vision(Anemo).weapon(Bow).release_date("2020-09-28").version(1.0)
+            .name("Venti").vision(Anemo).weapon(Bow).version(1.0)
             .base_hp(10531.0).base_atk(263.0).base_def(669.0)
             .er(32.0)
-            // a4
-            .energy_cost(60.0 - 15.0)
+            .energy_cost(60.)
     }
 
     pub fn new() -> Self {
-        Self {
-            na: NaLoop::new(
-                // 6 attacks in 2.85 seconds
-                &[0.475,0.475,0.475,0.475,0.475,0.475],
-                vec![
-                    Attack::na(40.29, 2, idx, &icd_timer),
-                    Attack::na(87.72, 1, idx, &icd_timer),
-                    Attack::na(103.53, 1, idx, &icd_timer),
-                    Attack::na(51.51, 2, idx, &icd_timer),
-                    Attack::na(100.13, 1, idx, &icd_timer),
-                    Attack::na(140.25, 1, idx, &icd_timer),
-                ]
-            ),
-            ca: NoopAbility,
-            skill: SimpleSkill::new(&[6.0], Particle::new(Anemo, 3.0), Attack {
-                kind: DamageType::PressSkill,
-                element: &ANEMO_GAUGE2B,
-                multiplier: 496.8,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }),
-            burst: SimpleBurstDot::new(&[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0, 7.0], Attack {
-                kind: DamageType::BurstDot,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 67.68,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }),
-            burst_ea: ElementalAbsorption::new(idx, BurstDot, 33.84, NTimer::new(&[8.0, 7.0]), icd_timer),
-        }
+        Self {}
     }
 }
 
-impl CharacterAbility for Venti {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
-    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
-    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
-    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
-    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
+impl Timeline for Venti {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
+        // check if skill can be used
+        } else if state.rel_time.press >= 6. {
+            CharacterAction::PressSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.475 {
+            // 6 attacks in 2.85 seconds
+            data.na_idx.to_na(6, state.carryover(0.475))
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            CharacterAction::Burst => field_energy.push_e(15.),
+            CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 3.)),
+            _ => (),
+        }
+    }
 }
 
 impl CharacterAttack for Venti {
-    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        match (self.burst_ea.timer.ping, self.burst_ea.timer.n) {
-            // TODO should be limited to the corresponding vision
-            (true, 1) => particles.push_e(15.0),
-            _ => (),
-        }
-        match (self.burst.timer.ping, 0 < self.burst.timer.n && self.burst.timer.n <= 8) {
-            (true, true) => if let Some(a) = self.burst_ea.attack() {
-                atk_queue.push(a);
-            },
-            _ => (),
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        let absorbed = enemy.absorb_element();
+        for i in 0..20 {
+            let t = time + 0.25 * i as f32;
+            if absorbed.aura != Physical {
+                atk_queue.apply_burst(33.84, absorbed, t, event, data, state);
+            }
+            atk_queue.apply_burst(67.68, &ANEMO_GAUGE1A, t, event, data, state);
         }
     }
+
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_skill(496.8, &ANEMO_GAUGE2B, time, event, data, state);
+    }
+
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(40.29, &PHYSICAL_GAUGE, time, event, data, state);
+        atk_queue.add_na(40.29, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(87.72, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(103.53, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(51.51, &PHYSICAL_GAUGE, time, event, data, state);
+        atk_queue.add_na(51.51, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(100.13, &ANEMO_GAUGE1A, time, event, data, state);
+    }
+
+    fn na6(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(140.25, &ANEMO_GAUGE1A, time, event, data, state);
+    }
+
+   // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+   // }
+
+    // fn reset(&mut self) -> () {
+    // }
 }

@@ -258,12 +258,12 @@ fn permu3(tx: Sender<Recorder>, start: usize, end: usize, args: &Args) -> () {
         let mut history = History::<1>::new(args.simulation_time, args.unit_time);
         let dmg: f32;
 
-        if physical_infusion.contains(&cr1.name) {
-            ar1.infuse_goblet(&Vision::Physical);
-        } else {
-            ar1.infuse_goblet(&cr1.vision);
-        }
         ar1.flat_atk = 311.;
+        ar1.infuse_goblet(if physical_infusion.contains(&cr1.name) {
+            &Vision::Physical
+        } else {
+            &cr1.vision
+        });
 
         let mut data = [CharacterData::new(0, &cr1, &wr1, &ar1); 1];
         {

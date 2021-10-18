@@ -8,6 +8,7 @@ use DamageType::*;
 use WeaponType::*;
 use Vision::*;
 
+#[derive(Debug)]
 pub struct Yanfei {
     na_noop: NoopAbility,
     ca_noop: NoopAbility,
@@ -28,7 +29,7 @@ pub struct Yanfei {
 impl Yanfei {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Yanfei").vision(Pyro).weapon(Catalyst).release_date("2020-12-23").version(1.5)
+            .name("Yanfei").vision(Pyro).weapon(Catalyst).version(1.5)
             .base_hp(9352.0).base_atk(240.0).base_def(587.0)
             // a1
             .pyro_dmg(24.0 + 15.0)
@@ -321,6 +322,7 @@ impl CharacterAttack for EulaSkill {
     }
 }
 
+#[derive(Debug)]
 pub struct Eula {
     skill_debuff: DurationTimer,
     lightfall_sword_stack: usize,
@@ -335,7 +337,7 @@ pub struct Eula {
 impl Eula {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Eula").vision(Cryo).weapon(Claymore).release_date("2021-01-12").version(1.5)
+            .name("Eula").vision(Cryo).weapon(Claymore).version(1.5)
             .base_hp(13226.0).base_atk(342.0).base_def(751.0)
             .cd(88.4)
             .energy_cost(80.)

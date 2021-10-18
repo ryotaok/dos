@@ -8,6 +8,7 @@ use DamageType::*;
 use WeaponType::*;
 use Vision::*;
 
+#[derive(Debug)]
 pub struct Ayaka {
     once: bool,
     na: NaLoop,
@@ -19,7 +20,7 @@ pub struct Ayaka {
 impl Ayaka {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Ayaka").vision(Cryo).weapon(Sword).release_date("2021-07-20").version(2.0)
+            .name("Ayaka").vision(Cryo).weapon(Sword).version(2.0)
             .base_hp(12858.0).base_atk(342.0).base_def(784.0)
             .cd(88.4)
             .energy_cost(80.)
@@ -97,6 +98,7 @@ impl CharacterAttack for Ayaka {
     }
 }
 
+#[derive(Debug)]
 pub struct Yoimiya {
     skill_a1: DurationTimer,
     na: NaLoop,
@@ -108,7 +110,7 @@ pub struct Yoimiya {
 impl Yoimiya {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Yoimiya").vision(Pyro).weapon(Bow).release_date("2021-08-10").version(2.0)
+            .name("Yoimiya").vision(Pyro).weapon(Bow).version(2.0)
             .base_hp(10164.0).base_atk(323.0).base_def(615.0)
             .cr(24.2)
             .energy_cost(60.)
@@ -196,6 +198,7 @@ impl CharacterAttack for Yoimiya {
     }
 }
 
+#[derive(Debug)]
 pub struct Sayu {
     na: NaLoop,
     ca: NoopAbility,
@@ -207,7 +210,7 @@ pub struct Sayu {
 impl Sayu {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Sayu").vision(Anemo).weapon(Claymore).release_date("2021-08-10").version(2.0)
+            .name("Sayu").vision(Anemo).weapon(Claymore).version(2.0)
             .base_hp(11854.0).base_atk(244.0).base_def(745.0)
             .em(96.0)
             .energy_cost(80.)

@@ -10,6 +10,7 @@ use Vision::*;
 
 // version 1.1
 
+#[derive(Debug)]
 pub struct Tartaglia {
     once: bool,
     na: NaLoop,
@@ -23,7 +24,7 @@ pub struct Tartaglia {
 impl Tartaglia {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Tartaglia").vision(Hydro).weapon(Bow).release_date("2020-11-11").version(1.1)
+            .name("Tartaglia").vision(Hydro).weapon(Bow).version(1.1)
             .base_hp(13103.0).base_atk(301.0).base_def(815.0)
             .hydro_dmg(28.8)
             .energy_cost(60.)
@@ -119,6 +120,7 @@ impl CharacterAttack for Tartaglia {
     }
 }
 
+#[derive(Debug)]
 pub struct Diona {
     na: NaLoop,
     ca: NoopAbility,
@@ -129,7 +131,7 @@ pub struct Diona {
 impl Diona {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Diona").vision(Cryo).weapon(Bow).release_date("2020-11-11").version(1.1)
+            .name("Diona").vision(Cryo).weapon(Bow).version(1.1)
             .base_hp(9570.0).base_atk(212.0).base_def(601.0)
             .cryo_dmg(24.0)
             .energy_cost(80.)
@@ -189,6 +191,7 @@ impl CharacterAbility for Diona {
 
 impl CharacterAttack for Diona {}
 
+#[derive(Debug)]
 pub struct Zhongli {
     na: NaLoop,
     ca: NoopAbility,
@@ -199,7 +202,7 @@ pub struct Zhongli {
 impl Zhongli {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Zhongli").vision(Geo).weapon(Polearm).release_date("2020-12-01").version(1.1)
+            .name("Zhongli").vision(Geo).weapon(Polearm).version(1.1)
             .base_hp(14695.0).base_atk(251.0).base_def(738.0)
             .geo_dmg(28.8)
             .energy_cost(40.)
@@ -260,6 +263,7 @@ impl CharacterAbility for Zhongli {
 
 impl CharacterAttack for Zhongli {}
 
+#[derive(Debug)]
 pub struct Xinyan {
     na: NaLoop,
     ca: NoopAbility,
@@ -270,7 +274,7 @@ pub struct Xinyan {
 impl Xinyan {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Xinyan").vision(Pyro).weapon(Claymore).release_date("2020-12-01").version(1.1)
+            .name("Xinyan").vision(Pyro).weapon(Claymore).version(1.1)
             .base_hp(11201.0).base_atk(249.0).base_def(799.0)
             .atk(24.0)
             .energy_cost(60.)

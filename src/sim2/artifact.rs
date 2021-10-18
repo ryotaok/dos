@@ -271,6 +271,13 @@ impl WeaponAttack for ViridescentVenerer {
             self.cryo = -1.;
         }
     }
+
+    fn reset(&mut self) -> () {
+        self.pyro = -1.;
+        self.hydro = -1.;
+        self.electro = -1.;
+        self.cryo = -1.;
+    }
 }
 
 #[derive(Debug)]
@@ -297,6 +304,10 @@ impl Timeline for VVem {}
 impl WeaponAttack for VVem {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
+    }
+
+    fn reset(&mut self) -> () {
+        WeaponAttack::reset(&mut self.0);
     }
 }
 
@@ -354,6 +365,13 @@ impl WeaponAttack for ArchaicPetra {
             }
         }
     }
+
+    fn reset(&mut self) -> () {
+        self.pyro = -99.;
+        self.hydro = -99.;
+        self.electro = -99.;
+        self.cryo = -99.;
+    }
 }
 
 #[derive(Debug)]
@@ -401,6 +419,11 @@ impl WeaponAttack for CrimsonWitchOfFlames {
             state.pyro_dmg += 7.5 * self.stack;
         }
     }
+
+    fn reset(&mut self) -> () {
+        self.time = -1.;
+        self.stack = 0.;
+    }
 }
 
 #[derive(Debug)]
@@ -427,6 +450,10 @@ impl Timeline for CrimsonWitchOfFlamesHp {}
 impl WeaponAttack for CrimsonWitchOfFlamesHp {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
+    }
+
+    fn reset(&mut self) -> () {
+        WeaponAttack::reset(&mut self.0);
     }
 }
 
@@ -461,6 +488,10 @@ impl WeaponAttack for NoblesseOblige {
             state.atk += 20.0;
             state.stacked_buff.turn_on(&NOBLESSE_OBLIGE);
         }
+    }
+
+    fn reset(&mut self) -> () {
+        self.time = -99.;
     }
 }
 
@@ -813,6 +844,10 @@ impl WeaponAttack for HeartOfDepth {
             state.ca_dmg += 30.0;
         }
     }
+
+    fn reset(&mut self) -> () {
+        self.time = -99.;
+    }
 }
 
 #[derive(Debug)]
@@ -898,6 +933,11 @@ impl WeaponAttack for PaleFlame {
             }
         }
     }
+
+    fn reset(&mut self) -> () {
+        self.time = -99.;
+        self.stack = 0.;
+    }
 }
 
 #[derive(Debug)]
@@ -931,6 +971,10 @@ impl WeaponAttack for TenacityOfTheMillelith {
             state.atk += 20.0;
             state.stacked_buff.turn_on(&TENACITY_OF_THE_MILLELITH);
         }
+    }
+
+    fn reset(&mut self) -> () {
+        self.time = -99.;
     }
 }
 
@@ -982,6 +1026,11 @@ impl WeaponAttack for ShimenawasReminiscence {
             state.na_dmg += 50.0;
             state.ca_dmg += 50.0;
         }
+    }
+
+    fn reset(&mut self) -> () {
+        self.time = -99.;
+        self.did_activate.clear();
     }
 }
 

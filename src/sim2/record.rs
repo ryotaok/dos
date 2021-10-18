@@ -1,5 +1,5 @@
 use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, FieldEnergy, WeaponType, Preference};
-use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReaction};
+use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReaction, PYRO_GAUGE1A, HYDRO_GAUGE1A, ELECTRO_GAUGE1A, CRYO_GAUGE1A, PHYSICAL_GAUGE};
 use crate::sim2::state::State;
 use crate::sim2::timeline::Timeline;
 use crate::sim2::attack::{CharacterAttack, WeaponAttack};
@@ -9,7 +9,6 @@ pub struct CharacterRecord {
     pub name: &'static str,
     pub vision: Vision,
     pub weapon: WeaponType,
-    pub release_date: &'static str,
     pub version: f32,
     pub energy_cost: f32,
     pub base_hp: f32,
@@ -38,7 +37,6 @@ impl Default for CharacterRecord {
             name: "Amber",
             vision: Vision::Pyro,
             weapon: WeaponType::Bow,
-            release_date: "2020-09-28",
             version: 1.0,
             energy_cost: 40.0,
             base_hp: 200.0,
@@ -69,7 +67,6 @@ impl CharacterAttack for CharacterRecord {}
 #[allow(dead_code)]
 impl CharacterRecord {
     pub fn name(mut self, name: &'static str) -> Self { self.name = name ; self }
-    pub fn release_date(mut self, release_date: &'static str) -> Self { self.release_date = release_date ; self }
     pub fn version(mut self, version: f32) -> Self { self.version = version ; self }
     pub fn vision(mut self, vision: Vision) -> Self { self.vision = vision ; self }
     pub fn weapon(mut self, weapon: WeaponType) -> Self { self.weapon = weapon ; self }
@@ -405,13 +402,15 @@ impl Enemy {
         ElementalReaction::new(self.aura.aura, *e)
     }
 
-    // pub fn update(&mut self, time: f32) -> () {
-    //     self.aura.update(time);
-    //     self.superconduct.update(time, false);
-    //     if self.isfrozen && self.aura.aura == Vision::Physical {
-    //         self.isfrozen = false;
-    //     }
-    // }
+    pub fn absorb_element(&self) -> &'static ElementalGauge {
+        match &self.aura.aura {
+            Vision::Pyro => &PYRO_GAUGE1A,
+            Vision::Hydro => &HYDRO_GAUGE1A,
+            Vision::Electro => &ELECTRO_GAUGE1A,
+            Vision::Cryo => &CRYO_GAUGE1A,
+            _ => &PHYSICAL_GAUGE,
+        }
+    }
 
     pub fn resistance(&self, current_time: f32, element: &Vision) -> f32 {
         let resistance: f32;

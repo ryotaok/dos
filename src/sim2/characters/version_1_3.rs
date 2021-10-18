@@ -78,6 +78,7 @@ impl CharacterAttack for XiaoSkill {
 }
 
 // should not register `Builder.na()`
+#[derive(Debug)]
 pub struct Xiao {
     na_noop: NoopAbility,
     ca_noop: NoopAbility,
@@ -91,7 +92,7 @@ pub struct Xiao {
 impl Xiao {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Xiao").vision(Anemo).weapon(Polearm).release_date("2020-12-23").version(1.3)
+            .name("Xiao").vision(Anemo).weapon(Polearm).version(1.3)
             .base_hp(12736.0).base_atk(349.0).base_def(799.0)
             .cr(24.2)
             .energy_cost(70.)
@@ -192,6 +193,7 @@ impl CharacterAttack for Xiao {
     }
 }
 
+#[derive(Debug)]
 pub struct HuTao {
     na_noop: NoopAbility,
     ca_noop: NoopAbility,
@@ -205,7 +207,7 @@ pub struct HuTao {
 impl HuTao {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Hu Tao").vision(Pyro).weapon(Polearm).release_date("2021-01-12").version(1.3)
+            .name("Hu Tao").vision(Pyro).weapon(Polearm).version(1.3)
             .base_hp(15552.0).base_atk(106.0).base_def(876.0)
             .cd(88.4)
             // a4

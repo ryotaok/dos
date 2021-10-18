@@ -81,29 +81,29 @@ pub trait CharacterAttack {
         use CharacterAction::*;
         match event {
             StandStill => (),
-            Burst => self.burst(time, event, data, atk_queue, state),
-            PressSkill => self.press(time, event, data, atk_queue, state),
-            HoldSkill => self.hold(time, event, data, atk_queue, state),
-            Ca => self.ca(time, event, data, atk_queue, state),
-            Na1(_) => self.na1(time, event, data, atk_queue, state),
-            Na2(_) => self.na2(time, event, data, atk_queue, state),
-            Na3(_) => self.na3(time, event, data, atk_queue, state),
-            Na4(_) => self.na4(time, event, data, atk_queue, state),
-            Na5(_) => self.na5(time, event, data, atk_queue, state),
-            Na6(_) => self.na6(time, event, data, atk_queue, state),
+            Burst => self.burst(time, event, data, atk_queue, state, enemy),
+            PressSkill => self.press(time, event, data, atk_queue, state, enemy),
+            HoldSkill => self.hold(time, event, data, atk_queue, state, enemy),
+            Ca => self.ca(time, event, data, atk_queue, state, enemy),
+            Na1(_) => self.na1(time, event, data, atk_queue, state, enemy),
+            Na2(_) => self.na2(time, event, data, atk_queue, state, enemy),
+            Na3(_) => self.na3(time, event, data, atk_queue, state, enemy),
+            Na4(_) => self.na4(time, event, data, atk_queue, state, enemy),
+            Na5(_) => self.na5(time, event, data, atk_queue, state, enemy),
+            Na6(_) => self.na6(time, event, data, atk_queue, state, enemy),
         };
     }
 
-    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
-    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
-    fn hold(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
-    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
-    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
-    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
-    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
-    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
-    fn na6(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
-    fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {}
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
+    fn hold(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
+    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
+    fn na6(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
+    fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {}
 
@@ -123,6 +123,10 @@ pub trait AtkQueue {
     fn add_skill(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
     fn add_na(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
     fn add_ca(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
+    fn apply_burst(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
+    fn apply_skill(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
+    fn apply_na(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
+    fn apply_ca(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> ();
 }
 
 impl AtkQueue for Vec<Attack> {
@@ -165,6 +169,50 @@ impl AtkQueue for Vec<Attack> {
             multiplier,
             element,
             aura_application: state.apply_aura(time, event),
+            time,
+            idx: data.idx,
+        });
+    }
+
+    fn apply_burst(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> () {
+        self.push(Attack {
+            kind: DamageType::Burst,
+            multiplier,
+            element,
+            aura_application: true,
+            time,
+            idx: data.idx,
+        });
+    }
+
+    fn apply_skill(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> () {
+        self.push(Attack {
+            kind: DamageType::Skill,
+            multiplier,
+            element,
+            aura_application: true,
+            time,
+            idx: data.idx,
+        });
+    }
+
+    fn apply_na(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> () {
+        self.push(Attack {
+            kind: DamageType::Na,
+            multiplier,
+            element,
+            aura_application: true,
+            time,
+            idx: data.idx,
+        });
+    }
+
+    fn apply_ca(&mut self, multiplier: f32, element: &'static ElementalGauge, time: f32, event: &CharacterAction, data: &CharacterData, state: &mut State) -> () {
+        self.push(Attack {
+            kind: DamageType::Ca,
+            multiplier,
+            element,
+            aura_application: true,
             time,
             idx: data.idx,
         });

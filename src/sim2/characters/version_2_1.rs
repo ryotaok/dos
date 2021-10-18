@@ -8,6 +8,7 @@ use DamageType::*;
 use WeaponType::*;
 use Vision::*;
 
+#[derive(Debug)]
 pub struct RaidenShogun {
     once: bool,
     resolve_stack: f32,
@@ -23,7 +24,7 @@ pub struct RaidenShogun {
 impl RaidenShogun {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Raiden Shogun").vision(Electro).weapon(Polearm).release_date("2021-07-20").version(2.1)
+            .name("Raiden Shogun").vision(Electro).weapon(Polearm).version(2.1)
             .base_hp(12907.0).base_atk(337.0).base_def(789.0)
             .er(32.0)
             .energy_cost(90.)
@@ -171,6 +172,7 @@ impl CharacterAttack for RaidenShogun {
 }
 
 
+#[derive(Debug)]
 pub struct KujouSara {
     bonus_timer: DurationTimer,
     na: NaLoop,
@@ -182,7 +184,7 @@ pub struct KujouSara {
 impl KujouSara {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Kujou Sara").vision(Electro).weapon(Bow).release_date("2021-08-10").version(2.1)
+            .name("Kujou Sara").vision(Electro).weapon(Bow).version(2.1)
             .base_hp(9570.0).base_atk(195.0).base_def(628.0)
             .atk(24.0)
             .energy_cost(80.)
@@ -275,6 +277,7 @@ impl CharacterAttack for KujouSara {
     }
 }
 
+#[derive(Debug)]
 pub struct Aloy {
     skill_a4: DurationTimer,
     na: NaLoop,
@@ -286,7 +289,7 @@ pub struct Aloy {
 impl Aloy {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Aloy").vision(Cryo).weapon(Bow).release_date("2021-08-10").version(2.1)
+            .name("Aloy").vision(Cryo).weapon(Bow).version(2.1)
             .base_hp(10899.0).base_atk(234.0).base_def(676.0)
             .cryo_dmg(28.8)
             .energy_cost(40.)
@@ -375,6 +378,7 @@ impl CharacterAttack for Aloy {
     }
 }
 
+#[derive(Debug)]
 pub struct SangonomiyaKokomi {
     once: bool,
     na: NaLoop,
@@ -386,7 +390,7 @@ pub struct SangonomiyaKokomi {
 impl SangonomiyaKokomi {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Sangonomiya Kokomi").vision(Hydro).weapon(Catalyst).release_date("2021-08-10").version(2.1)
+            .name("Sangonomiya Kokomi").vision(Hydro).weapon(Catalyst).version(2.1)
             .base_hp(12262.0).base_atk(226.0).base_def(628.0)
             // passive 2?
             .cr(-100.0)

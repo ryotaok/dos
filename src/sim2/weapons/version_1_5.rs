@@ -31,11 +31,6 @@ impl SongOfBrokenPines {
             did_activate: Vec::new(),
         }
     }
-
-    pub fn reset(&mut self) -> () {
-        self.sigil = 0;
-        self.time = -99.;
-    }
 }
 
 impl Timeline for SongOfBrokenPines {
@@ -69,5 +64,6 @@ impl WeaponAttack for SongOfBrokenPines {
     fn reset(&mut self) -> () {
         self.sigil = 0;
         self.time = -99.;
+        self.did_activate.clear();
     }
 }

@@ -74,7 +74,7 @@ impl Timeline for Sim2TestCharacter {
 }
 
 impl CharacterAttack for Sim2TestCharacter {
-    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         atk_queue.push(Attack {
             kind: DamageType::Burst,
             multiplier: 300.0,
@@ -85,7 +85,7 @@ impl CharacterAttack for Sim2TestCharacter {
         });
     }
 
-    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         atk_queue.push(Attack {
             kind: DamageType::Skill,
             multiplier: 200.0,
@@ -96,7 +96,7 @@ impl CharacterAttack for Sim2TestCharacter {
         });
     }
 
-    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         atk_queue.push(Attack {
             kind: DamageType::Na,
             multiplier: 100.0,
@@ -111,16 +111,16 @@ impl CharacterAttack for Sim2TestCharacter {
         });
     }
 
-    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {
-        self.na1(time, event, data, atk_queue, state);
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.na1(time, event, data, atk_queue, state, enemy);
     }
 
-    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {
-        self.na1(time, event, data, atk_queue, state);
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.na1(time, event, data, atk_queue, state, enemy);
     }
 
-    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {
-        self.na1(time, event, data, atk_queue, state);
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.na1(time, event, data, atk_queue, state, enemy);
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {}
