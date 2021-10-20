@@ -109,9 +109,6 @@ impl Recorder {
 }
 
 fn combination_filter_attacker(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Artifact, args: &Args) -> bool {
-    // TODO
-    let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
-
     if cr.version > args.character_version ||
        wr.version > args.weapon_version ||
        ar.version > args.artifact_version {
@@ -124,7 +121,7 @@ fn combination_filter_attacker(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Art
     }
 
     // check artifact
-    let physical_attack = physical_infusion.contains(&cr.name);
+    let physical_attack = ar.is_physical_goblet_user(&cr.name);
     let mut result = if ar.preference.len() == 0 {
         true
     } else {
@@ -247,23 +244,19 @@ fn permu3(tx: Sender<Recorder>, start: usize, end: usize, args: &Args) -> () {
         artifact::all(),
     );
 
-    let mut enemy = Enemy::hilichurl();
     for ((cr1, mut ca1), (wr1, mut wa1), (mut ar1, mut aa1)) in member1.iter() {
         if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
             member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
             continue;
         }
 
+        let mut enemy = Enemy::hilichurl();
         let mut recorder = Recorder::new(&(&cr1, &wr1, &ar1));
         let mut history = History::<1>::new(args.simulation_time, args.unit_time);
         let dmg: f32;
 
         ar1.flat_atk = 311.;
-        ar1.infuse_goblet(if physical_infusion.contains(&cr1.name) {
-            &Vision::Physical
-        } else {
-            &cr1.vision
-        });
+        ar1.infuse_goblet(&cr1.vision, &cr1.name);
 
         let mut data = [CharacterData::new(0, &cr1, &wr1, &ar1); 1];
         {
@@ -273,8 +266,15 @@ fn permu3(tx: Sender<Recorder>, start: usize, end: usize, args: &Args) -> () {
                 artifact: aa1.timeline(),
             }; 1];
             let mut states = [ActionState::new(); 1];
-            states[0].energy = cr1.energy_cost;
+            states[0].energy = if args.start_energy < 0 {
+                cr1.energy_cost
+            } else {
+                args.start_energy as f32
+            };
             simulate::decide_action(&mut history, &mut members, &mut states, &mut data);
+            members[0].character.reset_timeline();
+            members[0].weapon.reset_timeline();
+            members[0].artifact.reset_timeline();
         }
         {
             let mut members = [FieldMember {
@@ -282,13 +282,10 @@ fn permu3(tx: Sender<Recorder>, start: usize, end: usize, args: &Args) -> () {
                 weapon: wa1.field(),
                 artifact: aa1.field(),
             }; 1];
-            members[0].character.reset();
-            members[0].weapon.reset();
-            members[0].artifact.reset();
             dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
-            members[0].character.reset();
-            members[0].weapon.reset();
-            members[0].artifact.reset();
+            members[0].character.reset_modify();
+            members[0].weapon.reset_modify();
+            members[0].artifact.reset_modify();
         }
 
         // destruct objects

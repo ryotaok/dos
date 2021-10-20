@@ -55,7 +55,7 @@ impl Timeline for Chongyun {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.7085 {
             // 4 attacks in 2.834 seconds
-            data.na_idx.to_na(4, state.carryover(0.7085))
+            data.na_idx.to_na(4, state.na_carryover(0.7085))
         } else {
             CharacterAction::StandStill
         }
@@ -86,8 +86,6 @@ impl CharacterAttack for Chongyun {
     }
 
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.skill_time = time;
-        self.a4_time = time+10.;
         atk_queue.add_skill(261.44, &CRYO_GAUGE2B, time, event, data, state);
         atk_queue.add_skill(261.44, &CRYO_GAUGE2B, time+10., event, data, state);
     }
@@ -109,20 +107,24 @@ impl CharacterAttack for Chongyun {
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        if action_state.did_skill() {
+            self.skill_time = action_state.current_time;
+            self.a4_time = self.skill_time+10.;
+        }
         // skill infusion, do not infuse if the attack is infused already
         if attack.time - self.skill_time <= 3. && attack.element.aura != Physical {
             attack.element = &CRYO_GAUGE1A;
         }
-        // if !self.apply_debuff && attack.time - self.a4_time <= 10. {
-        //     self.apply_debuff = true;
-        //     enemy.debuff.cryo += 10.;
-        // } else if self.apply_debuff && attack.time - self.a4_time > 10. {
-        //     self.apply_debuff = false;
-        //     enemy.debuff.cryo -= 10.;
-        // }
+        if !self.apply_debuff && attack.time - self.a4_time <= 10. {
+            self.apply_debuff = true;
+            enemy.debuff.cryo += 10.;
+        } else if self.apply_debuff && attack.time - self.a4_time > 10. {
+            self.apply_debuff = false;
+            enemy.debuff.cryo -= 10.;
+        }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.apply_debuff = false;
         self.skill_time = -99.;
         self.a4_time = -99.;
@@ -163,7 +165,7 @@ impl Timeline for Kaeya {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5468 {
             // 5 attacks in 2.734 seconds
-            data.na_idx.to_na(5, state.carryover(0.5468))
+            data.na_idx.to_na(5, state.na_carryover(0.5468))
         } else {
             CharacterAction::StandStill
         }
@@ -212,7 +214,7 @@ impl CharacterAttack for Kaeya {
     // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
     // }
 
-    // fn reset(&mut self) -> () {
+    // fn reset_modify(&mut self) -> () {
     // }
 }
 
@@ -250,7 +252,7 @@ impl Timeline for Qiqi {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.45 {
             // 5 attacks in 2.25 seconds
-            data.na_idx.to_na(5, state.carryover(0.45))
+            data.na_idx.to_na(5, state.na_carryover(0.45))
         } else {
             CharacterAction::StandStill
         }
@@ -298,6 +300,6 @@ impl CharacterAttack for Qiqi {
     // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
     // }
 
-    // fn reset(&mut self) -> () {
+    // fn reset_modify(&mut self) -> () {
     // }
 }

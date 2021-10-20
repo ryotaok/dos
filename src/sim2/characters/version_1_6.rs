@@ -1,24 +1,28 @@
-
 use crate::sim2::state::State;
-use crate::sim2::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::sim2::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
-use crate::sim2::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
-use crate::sim2::testutil;
+use crate::sim2::timeline::{ActionState, Timeline};
+use crate::sim2::attack::{Attack, CharacterAttack, AtkQueue};
+use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, WeaponType, FieldEnergy, Particle, VecFieldEnergy, ToNaAction};
+use crate::sim2::element::{ElementalGauge, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
+use crate::sim2::record::{CharacterRecord, CharacterData, Enemy};
 
-use DamageType::*;
 use WeaponType::*;
 use Vision::*;
 
+// If Chihayaburu comes into contact with Hydro/Pyro/Cryo/Electro when cast,
+// Chihayaburu will absorb that element and if Plunging Attack: Midare Ranzan is
+// used before the effect expires, it will deal an additional 200% ATK of the
+// absorbed elemental type as DMG. This will be considered Plunging Attack DMG.
+// Elemental Absorption may only occur once per use of Chihayaburu.
+
+// Upon triggering a Swirl reaction, Kaedehara Kazuha will grant all party
+// members a 0.04% Elemental DMG Bonus to the element absorbed by Swirl for
+// every point of Elemental Mastery he has for 8s. Bonuses for different
+// elements obtained through this method can co-exist.
 #[derive(Debug)]
 pub struct Kazuha {
-    swirl_a4: DurationTimer,
-    na: NaLoop,
-    ca: NoopAbility,
-    skill: SimpleSkill, // hold
-    burst: BurstDamage2Dot,
-    midare_ranzan: Attack,
-    soumon_swordsmanship: ElementalAbsorption,
-    burst_ea: ElementalAbsorption,
+    a4_time: f32,
+    a4_bonus: f32,
+    midare_ranzan: bool,
 }
 
 impl Kazuha {
@@ -32,109 +36,113 @@ impl Kazuha {
 
     pub fn new() -> Self {
         Self {
-            swirl_a4: DurationTimer::new(8.0, &[0.0]),
-            na: NaLoop::new(
-                // 5 attacks in 2.166 seconds
-                &[0.4332,0.4332,0.4332,0.4332,0.4332],
-                vec![
-                    Attack::na(88.91, 1, idx, &icd_timer),
-                    Attack::na(89.42, 1, idx, &icd_timer),
-                    Attack::na((51.0 + 61.2) / 2.0, 2, idx, &icd_timer),
-                    Attack::na(120.02, 1, idx, &icd_timer),
-                    Attack::na(50.15, 3, idx, &icd_timer),
-                ]
-            ),
-            midare_ranzan: Attack {
-                kind: DamageType::Ca,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 404.02,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.ca),
-                idx,
-            },
-            soumon_swordsmanship: ElementalAbsorption::new(idx, Ca, 200.0, NTimer::new(&[9.0]), icd_timer),
-            ca: NoopAbility,
-            skill: SimpleSkill::new(&[9.0], Particle::new(Anemo, 4.0), Attack {
-                kind: DamageType::PressSkill,
-                element: &ANEMO_GAUGE2B,
-                multiplier: 469.44,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }),
-            burst: BurstDamage2Dot::new(&[2.0,2.0,2.0,2.0, 7.0], Attack {
-                kind: DamageType::Burst,
-                element: &ANEMO_GAUGE2B,
-                multiplier: 419.04,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }, Attack {
-                kind: DamageType::BurstDot,
-                element: &ANEMO_GAUGE1A,
-                multiplier: 216.0,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }),
-            burst_ea: ElementalAbsorption::new(idx, BurstDot, 64.8, NTimer::new(&[8.0, 7.0]), icd_timer),
+            a4_time: -99.,
+            a4_bonus: 0.,
+            midare_ranzan: false,
         }
     }
 }
 
-impl CharacterAbility for Kazuha {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
-    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
-    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
-    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
-    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
+impl Timeline for Kazuha {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
+        } else if self.midare_ranzan {
+            CharacterAction::Ca(0.)
+        // check if skill can be used
+        } else if state.rel_time.hold >= 9. {
+            CharacterAction::HoldSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.4332 {
+            // 5 attacks in 2.166 seconds
+            data.na_idx.to_na(5, state.na_carryover(0.4332))
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            CharacterAction::Ca(_) => self.midare_ranzan = false,
+            CharacterAction::HoldSkill => {
+                self.midare_ranzan = true;
+                field_energy.push_p(Particle::new(data.character.vision, 4.));
+            },
+            _ => (),
+        }
+    }
+
+    fn reset_timeline(&mut self) -> () {
+        self.midare_ranzan = false;
+    }
 }
 
 impl CharacterAttack for Kazuha {
-    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.soumon_swordsmanship.absorb(time, event == &self.skill.attack, enemy);
-        self.burst_ea.absorb(time, event == &self.burst.attack, enemy);
-        // TODO remember the specific element on the enemy
-        let is_swirl = unsafe {
-            attack.iter().any(|&a| {
-                let atk = & *a;
-                atk.idx == data.idx && enemy.trigger_er(&atk.element.aura).is_swirl()
-            })
-        };
-        self.swirl_a4.update(time, is_swirl);
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        let absorbed = enemy.absorb_element();
+        atk_queue.apply_burst(419.04, &ANEMO_GAUGE2B, time, event, data, state);
+        for i in 1..5 {
+            let t = time + (2 * i) as f32;
+            if absorbed.aura != Physical {
+                atk_queue.apply_burst(64.8, absorbed, t, event, data, state);
+            }
+            atk_queue.apply_burst(216.0, &ANEMO_GAUGE1A, t, event, data, state);
+        }
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        if self.burst.timer.ping && 0 < self.burst.timer.n && self.burst.timer.n <= 4 {
-            if let Some(a) = self.burst_ea.attack() {
-                atk_queue.push(a);
-            }
+    fn hold(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_skill(469.44, &ANEMO_GAUGE1A, time, event, data, state);
+    }
+
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(88.91, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(89.42, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(51.0, &PHYSICAL_GAUGE, time, event, data, state);
+        atk_queue.add_na(61.2, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(120.02, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(50.15, &PHYSICAL_GAUGE, time, event, data, state);
+        atk_queue.add_na(50.15, &PHYSICAL_GAUGE, time, event, data, state);
+        atk_queue.add_na(50.15, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        let absorbed = enemy.absorb_element();
+        if absorbed.aura != Physical {
+            atk_queue.apply_ca(200., absorbed, time, event, data, state);
         }
-        if self.skill.timer.ping && self.skill.timer.n == 1 {
-            atk_queue.push(&self.midare_ranzan);
-            if let Some(a) = self.soumon_swordsmanship.attack() {
-                atk_queue.push(a);
-            }
-        }
+        atk_queue.apply_ca(404.02, &ANEMO_GAUGE1A, time, event, data, state);
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        if self.swirl_a4.n == 1 {
-            let em = modifiable_data[self.burst.attack.idx.0].state.em;
-            for data in modifiable_data.iter_mut() {
-                let bonus = em * 0.04;
-                data.state.pyro_dmg += bonus;
-                data.state.hydro_dmg += bonus;
-                data.state.electro_dmg += bonus;
-                data.state.cryo_dmg += bonus;
-            }
+        if attack.idx == data.idx && enemy.trigger_er(&attack.element.aura).is_swirl() {
+            self.a4_time = attack.time;
+            self.a4_bonus = 0.04 * state.em;
+        }
+        if attack.time - self.a4_time <= 8. {
+            state.pyro_dmg += self.a4_bonus;
+            state.hydro_dmg += self.a4_bonus;
+            state.electro_dmg += self.a4_bonus;
+            state.cryo_dmg += self.a4_bonus;
         }
     }
 
-    fn reset(&mut self) -> () {
-        self.swirl_a4.reset();
+    fn reset_modify(&mut self) -> () {
+        self.a4_time = -99.;
+        self.a4_bonus = 0.;
     }
 }

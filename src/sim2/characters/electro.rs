@@ -48,7 +48,7 @@ impl Timeline for Beidou {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.75 {
             // 5 attacks in 3.75 seconds
-            data.na_idx.to_na(5, state.carryover(0.75))
+            data.na_idx.to_na(5, state.na_carryover(0.75))
         } else {
             CharacterAction::StandStill
         }
@@ -101,7 +101,7 @@ impl CharacterAttack for Beidou {
         }
     }
 
-    // fn reset(&mut self) -> () {
+    // fn reset_modify(&mut self) -> () {
     // }
 }
 
@@ -141,16 +141,13 @@ impl Timeline for Fischl {
         // is burst CD off and has enough energy
         if state.rel_time.burst >= 15. && state.energy >= 60. {
             CharacterAction::Burst
-        // a4
-        } else if self.thundering_retribution {
-            CharacterAction::Ca
         // check if skill can be used
         } else if state.rel_time.press >= 25. {
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.42 {
             // 5 attacks in 2.1 seconds
-            data.na_idx.to_na(5, state.carryover(0.42))
+            data.na_idx.to_na(5, state.na_carryover(0.42))
         } else {
             CharacterAction::StandStill
         }
@@ -173,7 +170,6 @@ impl CharacterAttack for Fischl {
     }
 
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.skill_time = time;
         atk_queue.add_skill(207.79, &ELECTRO_GAUGE1A, time, event, data, state);
         for i in 1..11 {
             atk_queue.add_skill(159.84, &ELECTRO_GAUGE1A, time+i as f32, event, data, state);
@@ -200,19 +196,17 @@ impl CharacterAttack for Fischl {
         atk_queue.add_na(142.46, &PHYSICAL_GAUGE, time, event, data, state);
     }
 
-    // thundering retribution
-    fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.thundering_retribution = false;
-        atk_queue.add_skill(80., &ELECTRO_GAUGE1A, time, event, data, state);
-    }
-
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.time - self.skill_time <= 12. && enemy.trigger_er(&attack.element.aura).is_electro() {
             self.thundering_retribution = true;
         }
+        if attack.idx == data.idx && attack.kind == DamageType::Skill && self.thundering_retribution {
+            attack.multiplier += 80.;
+            self.thundering_retribution = false;
+        }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.skill_time = -99.;
         self.thundering_retribution = false;
     }
@@ -260,7 +254,7 @@ impl Timeline for Lisa {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.375 {
             // 4 attacks in 1.5 seconds
-            data.na_idx.to_na(4, state.carryover(0.375))
+            data.na_idx.to_na(4, state.na_carryover(0.375))
         } else {
             CharacterAction::StandStill
         }
@@ -269,16 +263,25 @@ impl Timeline for Lisa {
     // generate energy and modify acceleration states according to the event
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         match event {
-            CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 0.3)),
-            CharacterAction::HoldSkill => field_energy.push_p(Particle::new(data.character.vision, 5.)),
+            CharacterAction::PressSkill => {
+                self.conductive_status += 1;
+                field_energy.push_p(Particle::new(data.character.vision, 0.3));
+            },
+            CharacterAction::HoldSkill => {
+                self.conductive_status = 0;
+                field_energy.push_p(Particle::new(data.character.vision, 5.));
+            },
             _ => (),
         }
+    }
+
+    fn reset_timeline(&mut self) -> () {
+        self.conductive_status = 0;
     }
 }
 
 impl CharacterAttack for Lisa {
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.burst_time = time;
         for i in 0..28 {
             let t = time + 0.5555 * i as f32;
             atk_queue.add_burst(65.81, &ELECTRO_GAUGE1A, t, event, data, state);
@@ -286,12 +289,10 @@ impl CharacterAttack for Lisa {
     }
 
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.conductive_status += 1;
         atk_queue.add_skill(144.0, &ELECTRO_GAUGE1A, time, event, data, state);
     }
 
     fn hold(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.conductive_status = 0;
         atk_queue.add_skill(876.96, &ELECTRO_GAUGE2B, time, event, data, state);
     }
 
@@ -311,17 +312,20 @@ impl CharacterAttack for Lisa {
         atk_queue.add_na(98.93, &ELECTRO_GAUGE1A, time, event, data, state);
     }
 
-    // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-    //     if !self.apply_debuff && attack.time - self.burst_time <= 25. {
-    //         self.apply_debuff = true;
-    //         enemy.def_down += 15.;
-    //     } else if self.apply_debuff && attack.time - self.burst_time > 25. {
-    //         self.apply_debuff = false;
-    //         enemy.def_down -= 15.;
-    //     }
-    // }
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        if action_state.did_burst() {
+            self.burst_time = action_state.current_time;
+        }
+        if !self.apply_debuff && attack.time - self.burst_time <= 25. {
+            self.apply_debuff = true;
+            enemy.def_down += 15.;
+        } else if self.apply_debuff && attack.time - self.burst_time > 25. {
+            self.apply_debuff = false;
+            enemy.def_down -= 15.;
+        }
+    }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.burst_time = -99.;
         self.conductive_status = 0;
         self.apply_debuff = false;
@@ -367,7 +371,7 @@ impl Timeline for Razor {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.6835 {
             // 4 attacks in 2.734 seconds
-            data.na_idx.to_na(4, state.carryover(0.6835))
+            data.na_idx.to_na(4, state.na_carryover(0.6835))
         } else {
             CharacterAction::StandStill
         }
@@ -395,6 +399,10 @@ impl Timeline for Razor {
             },
             _ => (),
         }
+    }
+
+    fn reset_timeline(&mut self) -> () {
+        self.electro_sigil = 0;
     }
 }
 
@@ -434,7 +442,7 @@ impl CharacterAttack for Razor {
     // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
     // }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.electro_sigil = 0;
     }
 }
@@ -487,7 +495,7 @@ impl Timeline for Keqing {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.4034 {
             // 5 attacks in 2.017 seconds
-            data.na_idx.to_na(5, state.carryover(0.4034))
+            data.na_idx.to_na(5, state.na_carryover(0.4034))
         } else {
             CharacterAction::StandStill
         }
@@ -504,11 +512,14 @@ impl Timeline for Keqing {
             state.er += 15.;
         }
     }
+
+    fn reset_timeline(&mut self) -> () {
+        self.burst_time = -99.;
+    }
 }
 
 impl CharacterAttack for Keqing {
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.burst_time = time;
         atk_queue.add_burst(158.4, &ELECTRO_GAUGE1A, time, event, data, state);
         for i in 1..9 {
             atk_queue.add_burst(43.2, &ELECTRO_GAUGE1A, time + i as f32, event, data, state);
@@ -544,12 +555,15 @@ impl CharacterAttack for Keqing {
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        if action_state.did_burst() {
+            self.burst_time = action_state.current_time;
+        }
         if attack.idx == data.idx && attack.time - self.burst_time <= 8. {
             state.cr += 15.;
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.burst_time = -99.;
         self.skill_time = -99.;
     }

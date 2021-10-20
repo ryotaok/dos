@@ -1,4 +1,4 @@
-use crate::sim2::types::{CharacterAction, FieldEnergy};
+use crate::sim2::types::{CharacterAction, DamageType, FieldEnergy};
 use crate::sim2::record::CharacterData;
 
 #[derive(Debug, Clone, Copy)]
@@ -80,11 +80,19 @@ impl ActionState {
     }
 
     // see also `ActionState::new` for the default value
-    pub fn carryover(&self, cooldown: f32) -> f32 {
+    pub fn na_carryover(&self, cooldown: f32) -> f32 {
         if self.rel_time.na >= 100. {
             0.
         } else {
             self.rel_time.na - cooldown
+        }
+    }
+
+    pub fn ca_carryover(&self, cooldown: f32) -> f32 {
+        if self.rel_time.ca >= 100. {
+            0.
+        } else {
+            self.rel_time.ca - cooldown
         }
     }
 
@@ -118,9 +126,9 @@ impl ActionState {
                 self.abs_time.na = current_time;
                 self.rel_time.na = *carryover;
             },
-            CharacterAction::Ca => {
+            CharacterAction::Ca(carryover) => {
                 self.abs_time.ca = current_time;
-                self.rel_time.ca = 0.;
+                self.rel_time.ca = *carryover;
                 self.rel_time.na = 100.;
             },
         }
@@ -159,6 +167,20 @@ impl ActionState {
         1.0 + self.er / 100.0
     }
 
+    pub fn to_damagetype(&self) -> DamageType {
+        if self.did_burst() {
+            DamageType::Burst
+        } else if self.did_skill() {
+            DamageType::Skill
+        } else if self.did_ca() {
+            DamageType::Ca
+        } else if self.did_na() {
+            DamageType::Na
+        } else {
+            DamageType::AdditionalAttack
+        }
+    }
+
     pub fn did_burst(&self) -> bool {
         self.abs_time.burst == self.current_time
     }
@@ -192,5 +214,5 @@ pub trait Timeline {
     // generate energy and modify acceleration states according to the event
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {}
 
-    fn reset(&mut self) -> () {}
+    fn reset_timeline(&mut self) -> () {}
 }

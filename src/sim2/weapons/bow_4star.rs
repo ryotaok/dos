@@ -1,7 +1,7 @@
 use crate::sim2::state::State;
 use crate::sim2::timeline::{ActionState, Timeline};
 use crate::sim2::attack::{Attack, WeaponAttack};
-use crate::sim2::types::{DamageType, CharacterAction, WeaponType, FieldEnergy, Vision, near_eq};
+use crate::sim2::types::{DamageType, CharacterAction, WeaponType, FieldEnergy, Vision};
 use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReaction, PHYSICAL_GAUGE};
 use crate::sim2::record::{CharacterData, WeaponRecord, Enemy};
 use crate::sim2::testutil;
@@ -64,6 +64,11 @@ impl Timeline for CompoundBowR5 {
             state.atk_spd += 2.4 * self.stack;
         }
     }
+
+    fn reset_timeline(&mut self) -> () {
+        self.stack = 0.;
+        self.time = -99.;
+    }
 }
 
 impl WeaponAttack for CompoundBowR5 {
@@ -80,7 +85,7 @@ impl WeaponAttack for CompoundBowR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.stack = 0.;
         self.time = -99.;
     }
@@ -138,7 +143,7 @@ impl WeaponAttack for TheViridescentHuntR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.time = -99.;
         self.last_attack = -99.;
         self.stack = 0;

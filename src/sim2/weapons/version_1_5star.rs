@@ -39,6 +39,10 @@ impl Timeline for SkywardBlade {
             state.atk_spd += 10.;
         }
     }
+
+    fn reset_timeline(&mut self) -> () {
+        self.time = -99.;
+    }
 }
 
 impl WeaponAttack for SkywardBlade {
@@ -59,7 +63,7 @@ impl WeaponAttack for SkywardBlade {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -102,7 +106,7 @@ impl WeaponAttack for AquilaFavonia {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -148,7 +152,7 @@ impl WeaponAttack for SkywardPride {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.stack = 0;
     }
 }
@@ -206,7 +210,7 @@ impl WeaponAttack for SkywardSpine {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -252,7 +256,7 @@ impl WeaponAttack for PrimordialJadeWingedSpear {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.stack = 0.;
         self.time = -99.;
     }
@@ -296,7 +300,7 @@ impl WeaponAttack for SkywardHarp {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -364,7 +368,7 @@ impl WeaponAttack for SkywardAtlas {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.start_time = -99.;
         self.last_attack = -99.;
         self.stack = 0;
@@ -409,7 +413,7 @@ impl WeaponAttack for LostPrayerToTheSacredWinds {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.stack = 0.;
         self.time = -99.;
     }

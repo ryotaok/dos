@@ -1,24 +1,25 @@
-
 use crate::sim2::state::State;
-use crate::sim2::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::sim2::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
-use crate::sim2::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SkillDamage2DotParticle, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
+use crate::sim2::timeline::{ActionState, Timeline};
+use crate::sim2::attack::{Attack, CharacterAttack, AtkQueue};
+use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, WeaponType, FieldEnergy, Particle, VecFieldEnergy, ToNaAction};
+use crate::sim2::element::{ElementalGauge, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
+use crate::sim2::record::{CharacterRecord, CharacterData, Enemy};
 
-use DamageType::*;
 use WeaponType::*;
 use Vision::*;
 
+// When nearby party members gain Elemental Orbs or Particles, Chakra Desiderata
+// gains 2 Resolve stacks. This effect can occur once every 3s.
+
+// Each 1% above 100% Energy Recharge that the Raiden Shogun possesses grants
+// her:
+// - 0.6% greater Energy restoration from Musou Isshin
+// - 0.4% Electro DMG Bonus
 #[derive(Debug)]
 pub struct RaidenShogun {
-    once: bool,
     resolve_stack: f32,
-    musou_isshin_energy: DurationTimer,
-    a1_timer: NTimer,
-    na: NaLoop,
-    ca: NoopAbility,
-    skill: SkillDamage2DotParticle,
-    burst: SimpleBurst,
-    na_burst: NaLoop,
+    burst_time: f32,
+    energy_restoration: u8,
 }
 
 impl RaidenShogun {
@@ -31,154 +32,137 @@ impl RaidenShogun {
     }
 
     pub fn new() -> Self {
-        let na = NaLoop::new(
-            // 5 attacks in 2.117 seconds
-            &[0.4234,0.4234,0.4234,0.4234,0.4234],
-            vec![
-                Attack::na(78.37, 1, idx, &icd_timer),
-                Attack::na(78.54, 1, idx, &icd_timer),
-                Attack::na(98.6, 1, idx, &icd_timer),
-                Attack::na(57.29, 2, idx, &icd_timer),
-                Attack::na(129.37, 1, idx, &icd_timer),
-            ]
-        );
-        let mut na_burst = na.clone();
-        for a in na_burst.attack.iter_mut() {
-            a.kind = BurstDot;
-        }
         Self {
-            once: true,
             resolve_stack: 40.0, // TODO starting 200 energy consumption
-            musou_isshin_energy: DurationTimer::new(7.0, &[1.0,1.0,1.0,1.0,1.0]),
-            a1_timer: NTimer::new(&[3.0]),
-            na,
-            ca: NoopAbility,
-            skill: SkillDamage2DotParticle::new(&[0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9], Particle::new(Electro, 0.5), Attack {
-                kind: DamageType::PressSkill,
-                element: &ELECTRO_GAUGE1A,
-                multiplier: 210.96,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }, Attack {
-                kind: DamageType::SkillDot,
-                element: &ELECTRO_GAUGE1A,
-                multiplier: 75.6,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }),
-            burst: SimpleBurst::new(&[7.0, 11.0], Attack {
-                kind: DamageType::Burst,
-                element: &ELECTRO_GAUGE1A,
-                multiplier: 721.44,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }),
-            na_burst,
+            burst_time: -99.,
+            energy_restoration: 0,
+        }
+    }
+
+    fn musou_isshin_na(&mut self, multiplier: f32, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State) -> () {
+        if time - self.burst_time <= 7. {
+            atk_queue.add_burst(multiplier + 1.31 * self.resolve_stack, &ELECTRO_GAUGE1A, time, event, data, state);
+        } else {
+            atk_queue.add_na(multiplier, &PHYSICAL_GAUGE, time, event, data, state);
         }
     }
 }
 
-impl CharacterAbility for RaidenShogun {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
-    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
-    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
+impl Timeline for RaidenShogun {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 18. && state.energy >= 90. {
+            CharacterAction::Burst
+        // check if skill can be used
+        } else if state.rel_time.press >= 10. {
+            CharacterAction::PressSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.4234 {
+            // 5 attacks in 2.117 seconds
+            data.na_idx.to_na(5, state.na_carryover(0.4234))
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            CharacterAction::Burst => {
+                self.burst_time = state.current_time;
+                self.energy_restoration = 0;
+            },
+            CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 4.4)),
+            CharacterAction::Na1(_) |
+            CharacterAction::Na2(_) |
+            CharacterAction::Na3(_) |
+            CharacterAction::Na4(_) |
+            CharacterAction::Na5(_) |
+            CharacterAction::Na6(_) => {
+                if state.current_time - self.burst_time <= 7. && self.energy_restoration < 5 {
+                    let bonus = 1.0 + 0.6 * state.er / 100.0;
+                    field_energy.push_e(2.5 * bonus);
+                    self.energy_restoration += 1;
+                }
+            },
+            _ => (),
+        }
+    }
+
+    fn reset_timeline(&mut self) -> () {
+        self.energy_restoration = 0;
+    }
 }
 
 impl CharacterAttack for RaidenShogun {
-    fn maybe_attack(&self, data: &CharacterData) -> Option<AttackEvent> {
-        if self.burst.timer.n == 1 {
-            self.na_burst.maybe_attack(data)
-        } else {
-            self.na.maybe_attack(data)
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.burst_time = time;
+        atk_queue.add_burst(721.44 + 7. * self.resolve_stack, &ELECTRO_GAUGE2B, time, event, data, state);
+    }
+
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_skill(210.96, &ELECTRO_GAUGE1A, time, event, data, state);
+        for i in 1..12 {
+            atk_queue.add_skill(75.6, &ELECTRO_GAUGE1A, time + 0.9 * i as f32, event, data, state);
         }
     }
 
-    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        let speedup_time = time * (1.0 + data.state.atk_spd / 100.0);
-        self.na.update(speedup_time, event, data, attack, particles, enemy);
-        self.na_burst.update(speedup_time, event, data, attack, particles, enemy);
-        self.a1_timer.update(time, particles.has_particles());
-        if self.a1_timer.ping && self.a1_timer.n > 0 {
-            self.resolve_stack += 2.0;
-        }
-        if self.burst.timer.n == 1 {
-            self.musou_isshin_energy.update(time, event.idx == data.idx && (event.kind == Na || event.kind == BurstDot));
-        }
-        if self.burst.timer.ping {
-            match self.burst.timer.n {
-                1 => {
-                    self.burst.attack.multiplier += 7.0 * self.resolve_stack;
-                    let na = 1.31 * self.resolve_stack;
-                    for a in self.na_burst.attack.iter_mut() {
-                        a.multiplier += na;
-                    }
-                },
-                2 => {
-                    self.burst.attack.multiplier -= 7.0 * self.resolve_stack;
-                    let na = 1.31 * self.resolve_stack;
-                    for a in self.na_burst.attack.iter_mut() {
-                        a.multiplier -= na;
-                    }
-                    self.resolve_stack = 30.0; // TODO gives 30 stacks regardless
-                    self.musou_isshin_energy.reset();
-                },
-                _ => (),
-            }
-        }
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.musou_isshin_na(78.37, time, event, data, atk_queue, state);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        self.na.additional_attack(atk_queue, particles, data);
-        self.na_burst.additional_attack(atk_queue, particles, data);
-        if self.musou_isshin_energy.ping && 0 < self.musou_isshin_energy.n && self.musou_isshin_energy.n <= 5 {
-            let bonus = 1.0 + 0.6 * data.state.er / 100.0;
-            particles.push_e(2.5 * bonus);
-        }
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.musou_isshin_na(78.54, time, event, data, atk_queue, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.musou_isshin_na(98.6, time, event, data, atk_queue, state);
+    }
+
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.musou_isshin_na(57.29, time, event, data, atk_queue, state);
+        self.musou_isshin_na(57.29, time, event, data, atk_queue, state);
+    }
+
+    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.musou_isshin_na(129.37, time, event, data, atk_queue, state);
+    }
+
+    fn reset_attack(&mut self) -> () {
+        self.burst_time = -99.;
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        // TODO Eye of Stormy Judgment
-        for data in modifiable_data.iter_mut() {
-            data.state.burst_dmg += 0.3 * data.character.energy_cost;
-        }
-        // a4
-        let er = modifiable_data[self.skill.attack.idx.0].state.er;
-        let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-        state.electro_dmg += 0.4 * er;
-        if self.burst.timer.n == 1 {
-            state.infusion = true;
+        // if action_state.did_burst() {
+        //     self.burst_time = action_state.current_time;
+        // }
+        // if action_state.did_skill() {
+        //     self.skill_time = action_state.current_time;
+        // }
+        // TODO the skill is always active and the bonus is based on energy_cost 80
+        state.burst_dmg += 24.;
+        if attack.idx == data.idx {
+            state.electro_dmg += 0.4 * action_state.er;
         }
     }
 
-    fn reset(&mut self) -> () {
-        self.resolve_stack = 40.0;
-        self.musou_isshin_energy.reset();
-        self.a1_timer.reset();
-        self.na_burst.attack[0].multiplier = self.na.attack[0].multiplier;
-        self.na_burst.attack[1].multiplier = self.na.attack[1].multiplier;
-        self.na_burst.attack[2].multiplier = self.na.attack[2].multiplier;
-        self.na_burst.attack[3].multiplier = self.na.attack[3].multiplier;
-        self.na_burst.attack[4].multiplier = self.na.attack[4].multiplier;
-        self.burst.attack.multiplier = 721.44;
+    fn reset_modify(&mut self) -> () {
+        self.burst_time = -99.;
+        self.energy_restoration = 0;
     }
 }
 
+// While in the Crowfeather Cover state provided by Tengu Stormcall, Aimed Shot
+// charge times are decreased by 60%.
 
+// When Tengu Juurai: Ambush hits opponents, Kujou Sara will restore 1.2 Energy
+// to all party members for every 100% Energy Recharge she has. This effect can
+// be triggered once every 3s.
 #[derive(Debug)]
 pub struct KujouSara {
-    bonus_timer: DurationTimer,
-    na: NaLoop,
-    ca: NoopAbility,
-    skill: SimpleSkill,
-    burst: BurstDamage2Dot,
+    base_atk: f32,
+    skill_time: f32,
 }
 
 impl KujouSara {
@@ -192,98 +176,96 @@ impl KujouSara {
 
     pub fn new() -> Self {
         Self {
-            bonus_timer: DurationTimer::new(6.0, &[0.0]),
-            na: NaLoop::new(
-                // 5 attacks in 2.1 seconds
-                &[0.42,0.42,0.42,0.42,0.42],
-                vec![
-                    Attack::na(78.08, 1, idx, &icd_timer),
-                    Attack::na(81.9, 1, idx, &icd_timer),
-                    Attack::na(95.88, 1, idx, &icd_timer),
-                    Attack::na(99.62, 1, idx, &icd_timer),
-                    Attack::na(114.75, 1, idx, &icd_timer),
-                ]
-            ),
-            ca: NoopAbility,
-            skill: SimpleSkill::new(&[6.0, 4.0], Particle::new(Electro, 2.5), Attack {
-                kind: DamageType::PressSkill,
-                element: &ELECTRO_GAUGE1A,
-                multiplier: 226.37,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }),
-            burst: BurstDamage2Dot::new(&[0.5,0.5,0.5,0.5, 6.0, 12.0], Attack {
-                kind: DamageType::Burst,
-                element: &ELECTRO_GAUGE1A,
-                multiplier: 737.28,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }, Attack {
-                kind: DamageType::BurstDot,
-                element: &ELECTRO_GAUGE1A,
-                multiplier: 61.42,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }),
+            base_atk: 0.,
+            skill_time: -99.
         }
     }
 }
 
-impl CharacterAbility for KujouSara {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
-    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
-    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
-    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
-    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
+impl Timeline for KujouSara {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
+        // check if skill can be used
+        } else if state.rel_time.press >= 10. {
+            CharacterAction::PressSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.42 {
+            // 5 attacks in 2.1 seconds
+            data.na_idx.to_na(5, state.na_carryover(0.42))
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            CharacterAction::PressSkill => {
+                field_energy.push_p(Particle::new(data.character.vision, 3.));
+                field_energy.push_e(1.2 * (100. + state.er) / 100.);
+            },
+            _ => (),
+        }
+    }
 }
 
 impl CharacterAttack for KujouSara {
-    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        let mut should_update = false;
-        if self.burst.timer.ping && 0 < self.burst.timer.n && self.burst.timer.n <= 5 {
-            should_update = true;
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_burst(737.28, &ELECTRO_GAUGE1A, time, event, data, state);
+        for i in 1..4 {
+            atk_queue.add_burst(61.42, &ELECTRO_GAUGE1A, time + i as f32, event, data, state);
         }
-        if self.skill.timer.ping && self.skill.timer.n == 1 {
-            should_update = true;
-        }
-        self.bonus_timer.update(time, should_update);
     }
 
-    fn additional_attack(&self, atk_queue: &mut Vec<*const Attack>, particles: &mut Vec<FieldEnergy>, data: &CharacterData) -> () {
-        if self.skill.timer.ping && self.skill.timer.n == 1 {
-            // a4
-            let er = 100.0 + data.state.er;
-            particles.push_e(0.012 * er);
-        }
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        // save the valur for later
+        self.base_atk = state.base_atk;
+        atk_queue.add_skill(226.37, &ELECTRO_GAUGE1A, time, event, data, state);
+    }
+
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(78.08, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(81.9, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(95.88, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(99.62, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(114.75, &PHYSICAL_GAUGE, time, event, data, state);
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        if self.bonus_timer.n == 1 {
-            let base_atk = modifiable_data[self.burst.attack.idx.0].state.base_atk;
-            for data in modifiable_data.iter_mut() {
-                data.state.flat_atk += base_atk * 0.7733;
-            }
+        if action_state.did_burst() {
+            self.skill_time = action_state.current_time;
+        }
+        if action_state.did_skill() {
+            self.skill_time = action_state.current_time;
+        }
+        if attack.time - self.skill_time <= 6. {
+            state.flat_atk += 0.7733 * self.base_atk;
         }
     }
 
-    fn reset(&mut self) -> () {
-        self.bonus_timer.reset();
+    fn reset_modify(&mut self) -> () {
+        self.skill_time = -99.;
     }
 }
 
 #[derive(Debug)]
 pub struct Aloy {
-    skill_a4: DurationTimer,
-    na: NaLoop,
-    ca: NoopAbility,
-    skill: SkillDamage2Dot,
-    burst: SimpleBurst,
+    skill_time: f32,
 }
 
 impl Aloy {
@@ -297,94 +279,115 @@ impl Aloy {
 
     pub fn new() -> Self {
         Self {
-            skill_a4: DurationTimer::new(1.5, &[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]),
-            na: NaLoop::new(
-                // 4 attacks in 1.6 seconds
-                &[0.4,0.4,0.4,0.4],
-                vec![
-                    Attack::na((37.68 + 42.39) / 2.0, 2, idx, &icd_timer),
-                    Attack::na(76.93, 1, idx, &icd_timer),
-                    Attack::na(94.2, 1, idx, &icd_timer),
-                    Attack::na(117.12, 1, idx, &icd_timer),
-                ]
-            ),
-    ca: NoopAbility,
-            skill: SkillDamage2Dot::new(&[1.0,1.0,1.0,1.0, 10.0, 6.0], Particle::new(Cryo, 4.0), Attack {
-                kind: DamageType::PressSkill,
-                element: &CRYO_GAUGE1A,
-                multiplier: 319.68,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }, Attack {
-                kind: DamageType::SkillDot,
-                element: &CRYO_GAUGE1A,
-                multiplier: 72.0,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }),
-            burst: SimpleBurst::new(&[12.0], Attack {
-                kind: DamageType::Burst,
-                element: &CRYO_GAUGE1A,
-                multiplier: 646.56,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }),
+            skill_time: -99.
+        }
+    }
+
+    fn infusion(&self, time: f32) -> &'static ElementalGauge {
+        if time - self.skill_time <= 10. {
+            &CRYO_GAUGE1A
+        } else {
+            &PHYSICAL_GAUGE
         }
     }
 }
 
-impl CharacterAbility for Aloy {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
-    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
-    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
-    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
-    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
+// When Aloy receives the Coil effect from Frozen Wilds, her ATK is increased by
+// 16%, while nearby party members' ATK is increased by 8%. This effect lasts
+// 10s.
+
+// When Aloy is in the Rushing Ice state conferred by Frozen Wilds, her Cryo DMG
+// Bonus increases by 3.5% every 1s. A maximum Cryo DMG Bonus increase of 35%
+// can be gained in this way.
+impl Timeline for Aloy {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 12. && state.energy >= 40. {
+            CharacterAction::Burst
+        // check if skill can be used
+        } else if state.rel_time.press >= 20. {
+            CharacterAction::PressSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.7 {
+            // 4 attacks in 2.8 seconds
+            data.na_idx.to_na(4, state.na_carryover(0.7))
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 5.)),
+            _ => (),
+        }
+    }
 }
 
 impl CharacterAttack for Aloy {
-    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        self.skill_a4.update(time, self.skill.timer.ping && self.skill.timer.n == 5);
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_burst(646.56, &CRYO_GAUGE1A, time, event, data, state);
+    }
+
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_skill(319.68, &CRYO_GAUGE1A, time, event, data, state);
+        for i in 1..7 {
+            atk_queue.add_skill(72.0, &CRYO_GAUGE1A, time + 0.5 * i as f32, event, data, state);
+        }
+    }
+
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(37.68, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(42.39, self.infusion(time), time, event, data, state);
+    }
+
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(76.93, self.infusion(time), time, event, data, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(94.2, self.infusion(time), time, event, data, state);
+    }
+
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(117.12, self.infusion(time), time, event, data, state);
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        if 0 < self.skill_a4.n && self.skill_a4.n <= 10 {
-            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            state.cryo_dmg += 3.5 * self.skill_a4.n as f32;
+        if action_state.did_skill() {
+            self.skill_time = action_state.current_time;
         }
-        if 1 <= self.skill.timer.n && self.skill.timer.n <= 5 {
-            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            state.na_dmg += 9.52 * self.skill.timer.n as f32;
-            if self.skill.timer.n == 5 {
-                state.infusion = true;
-                for (i, data) in modifiable_data.iter_mut().enumerate() {
-                    if i == self.burst.attack.idx.0 {
-                        data.state.atk += 16.0;
-                    } else {
-                        data.state.atk += 8.0;
-                    }
-                }
+        if attack.idx == data.idx {
+            if attack.time - self.skill_time <= 10. {
+                state.cryo_dmg += 17.5;
+                state.na_dmg += 47.6;
+                state.atk += 16.;
+            }
+        } else {
+            if attack.time - self.skill_time <= 10. {
+                state.atk += 8.;
             }
         }
     }
 
-    fn reset(&mut self) -> () {
-        self.skill_a4.reset();
+    fn reset_modify(&mut self) -> () {
+        self.skill_time = -99.;
     }
 }
 
+// If Sangonomiya Kokomi's own Bake-Kurage are on the field when she uses
+// Nereid's Ascension, the Bake-Kurage's duration will be refreshed.
+
+// While donning the Ceremonial Garment created by Nereid's Ascension, the
+// Normal and Charged Attack DMG Bonus Sangonomiya Kokomi gains based on her Max
+// HP will receive a further increase based on 15% of her Healing Bonus.
+
+// Sangonomiya Kokomi has a 25% Healing Bonus, but a 100% decrease in CRIT Rate.
 #[derive(Debug)]
 pub struct SangonomiyaKokomi {
-    once: bool,
-    na: NaLoop,
-    ca: NoopAbility,
-    skill: SimpleSkillDot,
-    burst: SimpleBurst,
+    burst_time: f32,
 }
 
 impl SangonomiyaKokomi {
@@ -400,70 +403,77 @@ impl SangonomiyaKokomi {
 
     pub fn new() -> Self {
         Self {
-            once: true,
-            na: NaLoop::new(
-                // 3 attacks in 1.5 seconds
-                &[0.5,0.5,0.5],
-                vec![
-                    Attack::na(123.08, 1, idx, &icd_timer),
-                    Attack::na(110.77, 1, idx, &icd_timer),
-                    Attack::na(169.75, 1, idx, &icd_timer),
-                ]
-            ),
-            ca: NoopAbility,
-            skill: SimpleSkillDot::new(&[2.0,2.0,2.0,2.0,2.0,2.0, 8.0], Particle::new(Hydro, 0.75), Attack {
-                kind: DamageType::SkillDot,
-                element: &HYDRO_GAUGE1A,
-                multiplier: 196.54,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }),
-            burst: SimpleBurst::new(&[10.0, 8.0], Attack {
-                kind: DamageType::Burst,
-                element: &HYDRO_GAUGE1A,
-                multiplier: 0.0,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }),
+            burst_time: -99.
         }
     }
 }
 
-impl CharacterAbility for SangonomiyaKokomi {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
-    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
-    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
-    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
-    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
+impl Timeline for SangonomiyaKokomi {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 18. && state.energy >= 70. {
+            CharacterAction::Burst
+        // check if skill can be used
+        } else if state.rel_time.press >= 20. {
+            CharacterAction::PressSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.5 {
+            // 3 attacks in 1.5 seconds
+            data.na_idx.to_na(3, state.na_carryover(0.5))
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            CharacterAction::Burst => state.reduce_skill = 99.,
+            CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 4.)),
+            _ => (),
+        }
+    }
 }
 
 impl CharacterAttack for SangonomiyaKokomi {
-    fn update(&mut self, time: f32, event: &AttackEvent, data: &CharacterData, attack: &[*const Attack], particles: &[FieldEnergy], enemy: &Enemy) -> () {
-        if self.once {
-            self.once = false;
-            // TODO multiplier?
-            self.burst.attack.multiplier = 0.01875 * data.state.HP();
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_burst(100., &HYDRO_GAUGE2B, time, event, data, state);
+    }
+
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        for i in 0..6 {
+            atk_queue.add_skill(196.54, &HYDRO_GAUGE1A, time + i as f32, event, data, state);
         }
-        if self.burst.timer.ping && self.burst.timer.n == 1 {
-            self.skill.reset();
-        }
+    }
+
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(123.08, &HYDRO_GAUGE1A, time, event, data, state);
+    }
+
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(110.77, &HYDRO_GAUGE1A, time, event, data, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(169.75, &HYDRO_GAUGE1A, time, event, data, state);
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        if self.burst.timer.n == 1 {
-            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            let hp = state.HP();
-            // passive 2
-            state.flat_atk += hp * 0.0871 + 0.15 * 25.0;
+        if action_state.did_burst() {
+            self.burst_time = action_state.current_time;
+        }
+        if attack.idx == data.idx && attack.time - self.burst_time <= 10. {
+            match &attack.kind {
+                DamageType::Burst => state.flat_atk += 18.75 / 100. * state.HP(),
+                DamageType::Skill => state.flat_atk += 12.77 / 100. * state.HP(),
+                DamageType::Na    => state.flat_atk += 8.71 / 100. * state.HP(),
+                _ => (),
+            }
         }
     }
 
-    fn reset(&mut self) -> () {
-        self.once = true;
+    fn reset_modify(&mut self) -> () {
+        self.burst_time = -99.;
     }
 }

@@ -73,7 +73,7 @@ impl WeaponAttack for FrostBurial {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -102,7 +102,7 @@ impl WeaponAttack for SnowTombedStarsilver {
         self.0.attack(time, event, data, atk_queue, state, enemy);
     }
 
-    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
+    fn reset_attack(&mut self) -> () { self.0.reset_attack(); }
 }
 
 pub struct DragonspineSpear(FrostBurial);
@@ -129,7 +129,7 @@ impl WeaponAttack for DragonspineSpear {
         self.0.attack(time, event, data, atk_queue, state, enemy);
     }
 
-    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
+    fn reset_attack(&mut self) -> () { self.0.reset_attack(); }
 }
 
 pub struct Frostbearer(FrostBurial);
@@ -156,5 +156,5 @@ impl WeaponAttack for Frostbearer {
         self.0.attack(time, event, data, atk_queue, state, enemy);
     }
 
-    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
+    fn reset_attack(&mut self) -> () { self.0.reset_attack(); }
 }

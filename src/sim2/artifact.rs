@@ -272,7 +272,7 @@ impl WeaponAttack for ViridescentVenerer {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.pyro = -1.;
         self.hydro = -1.;
         self.electro = -1.;
@@ -306,8 +306,8 @@ impl WeaponAttack for VVem {
         self.0.modify(action_state, data, attack, state, enemy);
     }
 
-    fn reset(&mut self) -> () {
-        WeaponAttack::reset(&mut self.0);
+    fn reset_modify(&mut self) -> () {
+        self.0.reset_modify();
     }
 }
 
@@ -343,6 +343,15 @@ impl Timeline for ArchaicPetra {}
 
 impl WeaponAttack for ArchaicPetra {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        if data.idx == attack.idx && enemy.trigger_er(&attack.element.aura).is_crystallize() {
+            match &enemy.aura.aura {
+                Vision::Pyro => self.pyro = attack.time,
+                Vision::Hydro => self.hydro = attack.time,
+                Vision::Electro => self.electro = attack.time,
+                Vision::Cryo => self.cryo = attack.time,
+                _ => (),
+            }
+        }
         if attack.time - self.pyro <= 10. {
             state.pyro_dmg += 35.;
         }
@@ -355,18 +364,9 @@ impl WeaponAttack for ArchaicPetra {
         if attack.time - self.cryo <= 10. {
             state.cryo_dmg += 35.;
         }
-        if data.idx == attack.idx && enemy.trigger_er(&attack.element.aura).is_crystallize() {
-            match &enemy.aura.aura {
-                Vision::Pyro => self.pyro = attack.time,
-                Vision::Hydro => self.hydro = attack.time,
-                Vision::Electro => self.electro = attack.time,
-                Vision::Cryo => self.cryo = attack.time,
-                _ => (),
-            }
-        }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.pyro = -99.;
         self.hydro = -99.;
         self.electro = -99.;
@@ -420,7 +420,7 @@ impl WeaponAttack for CrimsonWitchOfFlames {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.time = -1.;
         self.stack = 0.;
     }
@@ -452,8 +452,8 @@ impl WeaponAttack for CrimsonWitchOfFlamesHp {
         self.0.modify(action_state, data, attack, state, enemy);
     }
 
-    fn reset(&mut self) -> () {
-        WeaponAttack::reset(&mut self.0);
+    fn reset_modify(&mut self) -> () {
+        self.0.reset_modify();
     }
 }
 
@@ -490,7 +490,7 @@ impl WeaponAttack for NoblesseOblige {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -845,7 +845,7 @@ impl WeaponAttack for HeartOfDepth {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -915,7 +915,7 @@ impl Timeline for PaleFlame {}
 impl WeaponAttack for PaleFlame {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         let oneself = attack.idx == data.idx;
-        if oneself && attack.kind == Skill { // TODO CD .3
+        if oneself && attack.kind == Skill { // TODO cooldown .3
             self.time = attack.time;
             self.stack += 1.;
             if self.stack > 2. {
@@ -934,7 +934,7 @@ impl WeaponAttack for PaleFlame {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.time = -99.;
         self.stack = 0.;
     }
@@ -973,7 +973,7 @@ impl WeaponAttack for TenacityOfTheMillelith {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -1028,7 +1028,7 @@ impl WeaponAttack for ShimenawasReminiscence {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.time = -99.;
         self.did_activate.clear();
     }

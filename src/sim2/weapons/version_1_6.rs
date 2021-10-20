@@ -50,7 +50,7 @@ impl WeaponAttack for FreedomSworn {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.sigil = 0;
         self.time = -99.;
     }
@@ -96,7 +96,7 @@ impl WeaponAttack for MitternachtsWaltz {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.na_time = -99.;
         self.skill_time = -99.;
     }
@@ -142,7 +142,7 @@ impl WeaponAttack for DodocoTales {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.na_time = -99.;
         self.ca_time = -99.;
     }

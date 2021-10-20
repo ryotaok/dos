@@ -84,7 +84,7 @@ pub trait CharacterAttack {
             Burst => self.burst(time, event, data, atk_queue, state, enemy),
             PressSkill => self.press(time, event, data, atk_queue, state, enemy),
             HoldSkill => self.hold(time, event, data, atk_queue, state, enemy),
-            Ca => self.ca(time, event, data, atk_queue, state, enemy),
+            Ca(_) => self.ca(time, event, data, atk_queue, state, enemy),
             Na1(_) => self.na1(time, event, data, atk_queue, state, enemy),
             Na2(_) => self.na2(time, event, data, atk_queue, state, enemy),
             Na3(_) => self.na3(time, event, data, atk_queue, state, enemy),
@@ -105,17 +105,23 @@ pub trait CharacterAttack {
     fn na6(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
     fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
 
+    fn reset_attack(&mut self) -> () {}
+
+    // `ActionState` is the state of this character
+    // `Attack` and `State` can be owned by this character or the others
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {}
 
-    fn reset(&mut self) -> () {}
+    fn reset_modify(&mut self) -> () {}
 }
 
 pub trait WeaponAttack {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {}
 
+    fn reset_attack(&mut self) -> () {}
+
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {}
 
-    fn reset(&mut self) -> () {}
+    fn reset_modify(&mut self) -> () {}
 }
 
 pub trait AtkQueue {

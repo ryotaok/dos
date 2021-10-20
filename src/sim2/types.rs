@@ -7,9 +7,11 @@ use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReact
 use self::Vision::*;
 use self::ElementalReactionType::*;
 
-pub fn near_eq(a: f32, b: f32) -> bool {
-    let diff = (a - b).abs();
-    diff <= 0.001
+pub fn approx_equal(a: f32, b: f32, decimal_places: u8) -> bool {
+    let factor = 10.0f32.powi(decimal_places as i32);
+    let a = (a * factor).trunc();
+    let b = (b * factor).trunc();
+    a == b
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -42,7 +44,7 @@ pub enum DamageType {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum CharacterAction {
     Na1(f32), Na2(f32), Na3(f32), Na4(f32), Na5(f32), Na6(f32),
-    Ca,
+    Ca(f32),
     // Plunge,
     PressSkill,
     HoldSkill,
@@ -64,7 +66,12 @@ impl CharacterAction {
     }
 
     pub fn is_ca(&self) -> bool {
-        *self == CharacterAction::Ca
+        // *self == CharacterAction::Ca(_)
+        if let CharacterAction::Ca(_) = *self {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn is_skill(&self) -> bool {

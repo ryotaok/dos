@@ -48,10 +48,23 @@ impl Timeline for SongOfBrokenPines {
             state.atk_spd += 12.;
         }
     }
+
+    fn reset_timeline(&mut self) -> () {
+        self.sigil = 0;
+        self.time = -99.;
+    }
 }
 
 impl WeaponAttack for SongOfBrokenPines {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        // println!("len{:?}", self.did_activate);
+        // for i in self.did_activate.iter() {
+        //     println!("{:?} {:?}", *i, action_state.current_time);
+        //     if approx_equal(*i, action_state.current_time, 3) {
+        //         self.time = action_state.current_time;
+        //         break;
+        //     }
+        // }
         if self.did_activate.contains(&action_state.current_time) {
             self.time = action_state.current_time;
         }
@@ -61,7 +74,7 @@ impl WeaponAttack for SongOfBrokenPines {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.sigil = 0;
         self.time = -99.;
         self.did_activate.clear();

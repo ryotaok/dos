@@ -1,6 +1,6 @@
 use crate::sim2::state::State;
 use crate::sim2::timeline::ActionState;
-use crate::sim2::attack::Attack;
+use crate::sim2::attack::{Attack, CharacterAttack, WeaponAttack};
 use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, FieldEnergy};
 use crate::sim2::record::{TimelineMember, FieldMember, CharacterData, Enemy};
 
@@ -82,6 +82,15 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
             member.character.attack(state[i].current_time, &event[i], &data[i], &mut atk_queue, &mut states[i], enemy);
             member.weapon.attack(state[i].current_time, &event[i], &data[i], &mut atk_queue, &mut states[i], enemy);
         }
+    }
+    for i in 0..N {
+        let member = &mut members[i];
+        member.character.reset_attack();
+        // There is no need to call `reset_attack` if the weapon does not implement `attack()`.
+        // However, it's just safe to call it anyway.
+        member.weapon.reset_attack();
+        // `artifact` is not used yet
+        // member.artifact.reset_attack();
     }
     atk_queue.sort_unstable_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
     let mut total_dmg = 0.0;

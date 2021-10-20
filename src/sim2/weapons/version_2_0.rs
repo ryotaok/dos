@@ -1,7 +1,7 @@
 use crate::sim2::state::State;
 use crate::sim2::timeline::{ActionState, Timeline};
 use crate::sim2::attack::{Attack, WeaponAttack};
-use crate::sim2::types::{DamageType, CharacterAction, WeaponType, FieldEnergy, Vision, near_eq};
+use crate::sim2::types::{DamageType, CharacterAction, WeaponType, FieldEnergy, Vision, approx_equal};
 use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReaction};
 use crate::sim2::record::{CharacterData, WeaponRecord, Enemy};
 
@@ -70,10 +70,54 @@ impl WeaponAttack for MistsplitterReforged {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.seal_1 = -99.;
         self.seal_2 = -99.;
     }
+}
+
+pub struct MistsplitterReforgedClaymore(MistsplitterReforged);
+impl MistsplitterReforgedClaymore {
+    pub fn record() -> WeaponRecord { MistsplitterReforged::record().type_(Claymore).name("Mistsplitter Reforged (Claymore)").version(99.) }
+    pub fn new() -> Self { Self(MistsplitterReforged::new()) }
+}
+impl Timeline for MistsplitterReforgedClaymore {}
+impl WeaponAttack for MistsplitterReforgedClaymore {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () { self.0.modify(action_state, data, attack, state, enemy); }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
+}
+
+pub struct MistsplitterReforgedPolearm(MistsplitterReforged);
+impl MistsplitterReforgedPolearm {
+    pub fn record() -> WeaponRecord { MistsplitterReforged::record().type_(Polearm).name("Mistsplitter Reforged (Polearm)").version(99.) }
+    pub fn new() -> Self { Self(MistsplitterReforged::new()) }
+}
+impl Timeline for MistsplitterReforgedPolearm {}
+impl WeaponAttack for MistsplitterReforgedPolearm {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () { self.0.modify(action_state, data, attack, state, enemy); }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
+}
+
+pub struct MistsplitterReforgedBow(MistsplitterReforged);
+impl MistsplitterReforgedBow {
+    pub fn record() -> WeaponRecord { MistsplitterReforged::record().type_(Bow).name("Mistsplitter Reforged (Bow)").version(99.) }
+    pub fn new() -> Self { Self(MistsplitterReforged::new()) }
+}
+impl Timeline for MistsplitterReforgedBow {}
+impl WeaponAttack for MistsplitterReforgedBow {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () { self.0.modify(action_state, data, attack, state, enemy); }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
+}
+
+pub struct MistsplitterReforgedCatalyst(MistsplitterReforged);
+impl MistsplitterReforgedCatalyst {
+    pub fn record() -> WeaponRecord { MistsplitterReforged::record().type_(Catalyst).name("Mistsplitter Reforged (Catalyst)").version(99.) }
+    pub fn new() -> Self { Self(MistsplitterReforged::new()) }
+}
+impl Timeline for MistsplitterReforgedCatalyst {}
+impl WeaponAttack for MistsplitterReforgedCatalyst {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () { self.0.modify(action_state, data, attack, state, enemy); }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
 }
 
 // Increases ATK by 20% and grants the might of the Thunder Emblem. At stack
@@ -133,7 +177,7 @@ impl WeaponAttack for ThunderingPulse {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.seal_1 = -99.;
         self.seal_2 = -99.;
     }
@@ -165,12 +209,7 @@ impl AmenomaKageuchi {
     }
 }
 
-impl WeaponAttack for AmenomaKageuchi {
-    fn reset(&mut self) -> () {
-        self.seed = 0.;
-        self.time = -99.;
-    }
-}
+impl WeaponAttack for AmenomaKageuchi {}
 
 impl Timeline for AmenomaKageuchi {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
@@ -185,6 +224,11 @@ impl Timeline for AmenomaKageuchi {
             state.energy += 12. * self.seed;
             self.seed = 0.;
         }
+    }
+
+    fn reset_timeline(&mut self) -> () {
+        self.seed = 0.;
+        self.time = -99.;
     }
 }
 
@@ -218,19 +262,19 @@ impl Timeline for KatsuragikiriNagamasa {
             state.energy -= 3.;
             self.time = state.current_time;
         }
-        if near_eq(state.current_time, self.time + 2.) ||
-           near_eq(state.current_time, self.time + 4.) ||
-           near_eq(state.current_time, self.time + 6.) {
+        if approx_equal(state.current_time, self.time + 2., 3) ||
+           approx_equal(state.current_time, self.time + 4., 3) ||
+           approx_equal(state.current_time, self.time + 6., 3) {
             state.energy += 5.;
         }
     }
-}
 
-impl WeaponAttack for KatsuragikiriNagamasa {
-    fn reset(&mut self) -> () {
+    fn reset_timeline(&mut self) -> () {
         self.time = -99.;
     }
 }
+
+impl WeaponAttack for KatsuragikiriNagamasa {}
 
 // Increases Elemental Skill DMG by 6%. After Elemental Skill hits an opponent,
 // the character loses 3 Energy but regenerates 3 Energy every 2s for the next
@@ -262,19 +306,19 @@ impl Timeline for KitainCrossSpear {
             state.energy -= 3.;
             self.time = state.current_time;
         }
-        if near_eq(state.current_time, self.time + 2.) ||
-           near_eq(state.current_time, self.time + 4.) ||
-           near_eq(state.current_time, self.time + 6.) {
+        if approx_equal(state.current_time, self.time + 2., 3) ||
+           approx_equal(state.current_time, self.time + 4., 3) ||
+           approx_equal(state.current_time, self.time + 6., 3) {
             state.energy += 5.;
         }
     }
-}
 
-impl WeaponAttack for KitainCrossSpear {
-    fn reset(&mut self) -> () {
+    fn reset_timeline(&mut self) -> () {
         self.time = -99.;
     }
 }
+
+impl WeaponAttack for KitainCrossSpear {}
 
 // Increases Normal Attack DMG by 16% and Charged Attack DMG by 12%. When the
 // equipping character's Energy reaches 100%, this effect is increased by 100%.
@@ -346,7 +390,7 @@ impl WeaponAttack for HakushinRing {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.time = -99.;
     }
 }

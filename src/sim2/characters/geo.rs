@@ -48,13 +48,11 @@ impl Timeline for Ningguang {
         } else if state.rel_time.burst >= 12. && state.energy >= 40. {
             CharacterAction::Burst
         } else if self.star_jade > 1 && state.rel_time.na >= 0.8 {
-            self.star_jade = 0;
-            CharacterAction::Ca
+            CharacterAction::Ca(state.ca_carryover(1.5))
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.8 && state.rel_time.ca >= 1.5 {
-            self.star_jade += 1;
             // 1 attacks in 0.8 seconds
-            CharacterAction::Na1(state.carryover(0.8))
+            CharacterAction::Na1(state.na_carryover(0.8))
         } else {
             CharacterAction::StandStill
         }
@@ -64,8 +62,14 @@ impl Timeline for Ningguang {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         match event {
             CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 3.5)),
+            CharacterAction::Ca(_) => self.star_jade = 0,
+            CharacterAction::Na1(_) => self.star_jade += 1,
             _ => (),
         }
+    }
+
+    fn reset_timeline(&mut self) -> () {
+        self.star_jade = 0;
     }
 }
 
@@ -101,12 +105,15 @@ impl CharacterAttack for Ningguang {
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        if action_state.did_skill() {
+            self.skill_time = action_state.current_time;
+        }
         if attack.time - self.skill_time <= 10. {
             state.geo_dmg += 12.;
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.star_jade = 0;
         self.skill_time = -99.;
     }
@@ -129,7 +136,7 @@ pub struct Noelle {
 impl Noelle {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Noelle").vision(Geo).weapon(Claymore).version(1.0)
+            .name("Noelle (C6)").vision(Geo).weapon(Claymore).version(1.0)
             .base_hp(12071.0).base_atk(191.0).base_def(799.0)
             .def(30.0)
             .energy_cost(60.)
@@ -162,7 +169,7 @@ impl Timeline for Noelle {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.654 {
             // 4 attacks in 2.616 seconds
-            data.na_idx.to_na(4, state.carryover(0.654))
+            data.na_idx.to_na(4, state.na_carryover(0.654))
         } else {
             CharacterAction::StandStill
         }
@@ -204,12 +211,16 @@ impl CharacterAttack for Noelle {
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        if action_state.did_burst() {
+            self.burst_time = action_state.current_time;
+        }
         if attack.idx == data.idx && attack.time - self.burst_time <= 15. {
-            state.flat_atk += state.DEF() * 0.72;
+            // state.flat_atk += 0.72 * state.DEF();
+            state.flat_atk += 1.35 * state.DEF();
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.burst_time = -99.;
     }
 }
@@ -247,7 +258,7 @@ impl Timeline for TravelerGeo {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.51 {
             // 5 attacks in 2.55 seconds
-            data.na_idx.to_na(5, state.carryover(0.51))
+            data.na_idx.to_na(5, state.na_carryover(0.51))
         } else {
             CharacterAction::StandStill
         }
@@ -297,6 +308,6 @@ impl CharacterAttack for TravelerGeo {
     // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
     // }
 
-    // fn reset(&mut self) -> () {
+    // fn reset_modify(&mut self) -> () {
     // }
 }

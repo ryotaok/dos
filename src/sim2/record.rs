@@ -288,7 +288,19 @@ impl Artifact {
     pub fn amplifying_bonus(mut self, amplifying_bonus: f32) -> Self { self.amplifying_bonus = amplifying_bonus; self }
     pub fn transformative_bonus(mut self, transformative_bonus: f32) -> Self { self.transformative_bonus = transformative_bonus; self }
 
-    pub fn infuse_goblet(&mut self, vision: &Vision) -> &mut Self {
+    pub fn is_physical_goblet_user(&self, name: &str) -> bool {
+        match name {
+            "Eula" |
+            "Razor" => true,
+            _ => false,
+        }
+    }
+
+    pub fn infuse_goblet(&mut self, vision: &Vision, name: &str) -> &mut Self {
+        if self.is_physical_goblet_user(name) {
+            self.physical_dmg = 58.3;
+            return self;
+        };
         match &vision {
             Vision::Pyro => self.pyro_dmg = 46.6,
             Vision::Cryo => self.cryo_dmg = 46.6,
@@ -499,98 +511,8 @@ impl<'a> CharacterData<'a> {
             CharacterAction::Burst |
             CharacterAction::PressSkill |
             CharacterAction::HoldSkill |
-            CharacterAction::Ca => self.na_idx = 1,
+            CharacterAction::Ca(_) => self.na_idx = 1,
             _ => (),
         };
     }
 }
-
-/*
-impl Timeline for HuTao {
-    fn decide_action(&mut self, state: &ActionState) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15.0 && state.energy >= 60.0 {
-            Burst
-        // check if skill can be used
-        } else if state.rel_time.skill >= 16.0 {
-            PressSkill
-        // check if normal attacks can be used (both animations are ended)
-        } else if state.rel_time.na >= 0.4875 && state.rel_time.ca >= 0.915 {
-            if state.rel_time.skill <= 9.0 {
-                Ca
-            } else {
-                let na = self.na_idx.to_action();
-                self.na_idx += 1;
-                if self.na_idx > 6 {
-                    self.na_idx = 1;
-                }
-                na
-            }
-        } else {
-            StandStill
-        }
-    }
-
-    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState) -> () {
-        match event {
-            CharacterAction::PressSkill => field_energy.push_p(Particle::new(Pyro, 3.0)),
-            _ => (),
-        }
-    }
-}
-*/
-
-/*
-impl CharacterAttack for HuTao {
-    fn burst(&self, time: f32, event: &CharacterAction, atk_queue: &mut Vec<Attack2>, state: &mut State2) -> () {
-        atk_queue.push(Attack2 {
-            kind: DamageType::Burst,
-            multiplier: 617.44,
-            element: &PYRO_GAUGE2B,
-            aura_application: state.apply_aura(time, event),
-            time,
-            idx: self.idx,
-        });
-    }
-
-    fn press(&self, time: f32, event: &CharacterAction, atk_queue: &mut Vec<Attack2>, state: &mut State2) -> () {
-        atk_queue.push(Attack2 {
-            kind: DamageType::Skill,
-            multiplier: 115.2,
-            element: &PYRO_GAUGE1A,
-            aura_application: state.apply_aura(time, event),
-            time,
-            idx: self.idx,
-        });
-        atk_queue.push(Attack2 {
-            kind: DamageType::Skill,
-            multiplier: 115.2,
-            element: &PYRO_GAUGE1A,
-            aura_application: state.apply_aura(time + 4.0, event),
-            time: time + 4.0,
-            idx: self.idx,
-        });
-    }
-
-    // self FieldCharacterIndex
-    // TODO own attack and others?
-    // `ActionState` is the state of this character
-    // `Attack2` and `State2` can be owned by this character or the others
-    fn modify(&self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack2, state: &mut State2, enemy: &mut Enemy) -> () {
-        // skill duration
-        let oneself = self.idx == attack.idx;
-        let dr = attack.time - action_state.abs_time.press;
-        if oneself && dr <= 9.0 {
-            state.flat_atk += state.HP() * 0.0626;
-            match &attack.kind {
-                DamageType::Ca |
-                DamageType::Na => attack.element = &PYRO_GAUGE1A,
-                _ => (),
-            };
-        // a1
-        } else if !oneself && 9.0 < dr && dr <= 17.0 {
-            state.cr += 12.0;
-        }
-    }
-}
-*/

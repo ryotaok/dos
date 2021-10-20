@@ -152,7 +152,7 @@ impl State {
 
     #[allow(non_snake_case)]
     pub fn CRCD(&self) -> f32 {
-        let cr_threshold = 80.0;
+        let cr_threshold = 75.0;
         let mut cr = self.cr;
         let mut cd = self.cd;
         if cr > cr_threshold {
@@ -189,7 +189,7 @@ impl State {
                 _count_hit(time, &mut self.icd_time.na, &mut self.icd_count.na);
                 b
             },
-            Ca => {
+            Ca(_) => {
                 let b = _can_apply_aura(time, self.icd_time.ca, self.icd_count.ca);
                 _count_hit(time, &mut self.icd_time.ca, &mut self.icd_count.ca);
                 b

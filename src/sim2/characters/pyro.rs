@@ -45,7 +45,7 @@ impl Timeline for Amber {
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.ca >= 2. {
-            CharacterAction::Ca
+            CharacterAction::Ca(state.ca_carryover(2.))
         } else {
             CharacterAction::StandStill
         }
@@ -91,7 +91,7 @@ impl CharacterAttack for Amber {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.ca_time = -99.;
     }
 }
@@ -137,7 +137,7 @@ impl Timeline for Bennett {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5134 {
             // 5 attacks in 2.567 seconds
-            data.na_idx.to_na(5, state.carryover(0.5134))
+            data.na_idx.to_na(5, state.na_carryover(0.5134))
         } else {
             CharacterAction::StandStill
         }
@@ -192,9 +192,9 @@ impl CharacterAttack for Bennett {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.bonus = 1.008;
-        self.base_atk = 0.;
+        // self.base_atk = 0.;
         self.burst_time = -99.;
     }
 }
@@ -235,7 +235,7 @@ impl Timeline for Xiangling {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.48 {
             // 5 attacks in 2.4 seconds
-            data.na_idx.to_na(5, state.carryover(0.48))
+            data.na_idx.to_na(5, state.na_carryover(0.48))
         } else {
             CharacterAction::StandStill
         }
@@ -319,7 +319,7 @@ impl CharacterAttack for Xiangling {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.skill_time = -99.;
     }
 }
@@ -374,9 +374,9 @@ impl Timeline for Diluc {
             self.charge += 1;
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
-        } else if state.rel_time.na >= 0.7085 {
-            // 4 attacks in 2.834 seconds
-            data.na_idx.to_na(4, state.carryover(0.7085))
+        } else if state.rel_time.na >= 0.7 {
+            // 4 attacks in 2.8 seconds
+            data.na_idx.to_na(4, state.na_carryover(0.7))
         } else {
             CharacterAction::StandStill
         }
@@ -389,10 +389,15 @@ impl Timeline for Diluc {
             _ => (),
         }
     }
+
+    fn reset_timeline(&mut self) -> () {
+        self.charge = 1;
+    }
 }
 
 impl CharacterAttack for Diluc {
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.burst_time = time;
         atk_queue.add_burst(367.2, &PYRO_GAUGE1A, time, event, data, state);
         atk_queue.add_burst(114.0, &PYRO_GAUGE1A, time+0.5, event, data, state);
         atk_queue.add_burst(114.0, &PYRO_GAUGE1A, time+1.0, event, data, state);
@@ -439,7 +444,7 @@ impl CharacterAttack for Diluc {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.charge = 1;
         self.burst_time = -99.;
     }
@@ -481,7 +486,7 @@ impl Timeline for Klee {
         // use ca when explosive_spark
         } else if self.explosive_spark {
             self.explosive_spark = false;
-            CharacterAction::Ca
+            CharacterAction::Ca(0.)
         // check if skill can be used
         } else if state.rel_time.press >= 20. {
             self.explosive_spark = true;
@@ -492,7 +497,7 @@ impl Timeline for Klee {
                 self.explosive_spark = true;
             }
             // 3 attacks in 1.5 seconds
-            data.na_idx.to_na(3, state.carryover(0.5))
+            data.na_idx.to_na(3, state.na_carryover(0.5))
         } else {
             CharacterAction::StandStill
         }
@@ -502,9 +507,13 @@ impl Timeline for Klee {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         match event {
             CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 4.)),
-            CharacterAction::Ca => field_energy.push_e(2.),
+            CharacterAction::Ca(_) => field_energy.push_e(2.),
             _ => (),
         }
+    }
+
+    fn reset_timeline(&mut self) -> () {
+        self.explosive_spark = false;
     }
 }
 
@@ -553,114 +562,7 @@ impl CharacterAttack for Klee {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.explosive_spark = false;
-    }
-}
-
-
-
-#[derive(Debug)]
-pub struct Tartaglia {
-    riptide: f32,
-}
-
-impl Tartaglia {
-    pub fn record() -> CharacterRecord {
-        CharacterRecord::default()
-            .name("Tartaglia").vision(Hydro).weapon(Bow).version(1.1)
-            .base_hp(13103.0).base_atk(301.0).base_def(815.0)
-            .hydro_dmg(28.8)
-            .energy_cost(60.)
-    }
-
-    pub fn new() -> Self {
-        Self {
-            riptide: -99.,
-        }
-    }
-
-    fn riptide_attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        if time - self.riptide >= 1.5 {
-            atk_queue.add_skill(119.0, &HYDRO_GAUGE1A, time, event, data, state);
-            self.riptide = time;
-        }
-    }
-}
-
-impl Timeline for Tartaglia {
-    // perform an action
-    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
-        // check if skill can be used
-        } else if state.rel_time.press >= 30. {
-            CharacterAction::PressSkill
-        // check if normal attacks can be used (both animations are ended)
-        } else if state.rel_time.na >= 0.4025 {
-            // 6 attacks in 2.415 seconds
-            data.na_idx.to_na(6, state.carryover(0.4025))
-        } else {
-            CharacterAction::StandStill
-        }
-    }
-
-    // generate energy and modify acceleration states according to the event
-    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
-        match event {
-            CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 10.)),
-            _ => (),
-        }
-    }
-}
-
-impl CharacterAttack for Tartaglia {
-    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_burst(835.2, &HYDRO_GAUGE2B, time, event, data, state);
-        atk_queue.add_burst(216.0, &HYDRO_GAUGE2B, time + 1., event, data, state);
-    }
-
-    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_skill(122.4, &HYDRO_GAUGE2B, time, event, data, state);
-    }
-
-    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.riptide_attack(time, event, data, atk_queue, state, enemy);
-        atk_queue.add_na(76.84, &HYDRO_GAUGE1A, time, event, data, state);
-    }
-
-    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.riptide_attack(time, event, data, atk_queue, state, enemy);
-        atk_queue.add_na(82.28, &HYDRO_GAUGE1A, time, event, data, state);
-    }
-
-    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.riptide_attack(time, event, data, atk_queue, state, enemy);
-        atk_queue.add_na(111.35, &HYDRO_GAUGE1A, time, event, data, state);
-    }
-
-    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.riptide_attack(time, event, data, atk_queue, state, enemy);
-        atk_queue.add_na(118.49, &HYDRO_GAUGE1A, time, event, data, state);
-    }
-
-    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.riptide_attack(time, event, data, atk_queue, state, enemy);
-        atk_queue.add_na(109.31, &HYDRO_GAUGE1A, time, event, data, state);
-    }
-
-    fn na6(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        self.riptide_attack(time, event, data, atk_queue, state, enemy);
-        atk_queue.add_na(70.04, &HYDRO_GAUGE1A, time, event, data, state);
-        atk_queue.add_na(74.46, &HYDRO_GAUGE1A, time + 0.1111, event, data, state);
-    }
-
-    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        state.na_talent += 5.;
-    }
-
-    fn reset(&mut self) -> () {
-        self.riptide = -99.;
     }
 }

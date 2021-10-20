@@ -30,6 +30,10 @@ impl Timeline for Windfall {
             field_energy.push_p(Particle::neutral(3.));
         }
     }
+
+    fn reset_timeline(&mut self) -> () {
+        self.time = -99.;
+    }
 }
 
 impl WeaponAttack for Windfall {}
@@ -53,6 +57,8 @@ impl Timeline for FavoniusGreatswordR5 {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         self.0.accelerate(field_energy, event, state, data);
     }
+
+    fn reset_timeline(&mut self) -> () { self.0.reset_timeline(); }
 }
 
 impl WeaponAttack for FavoniusGreatswordR5 {}
@@ -76,6 +82,8 @@ impl Timeline for FavoniusSwordR5 {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         self.0.accelerate(field_energy, event, state, data);
     }
+
+    fn reset_timeline(&mut self) -> () { self.0.reset_timeline(); }
 }
 
 impl WeaponAttack for FavoniusSwordR5 {}
@@ -99,6 +107,8 @@ impl Timeline for FavoniusLanceR5 {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         self.0.accelerate(field_energy, event, state, data);
     }
+
+    fn reset_timeline(&mut self) -> () { self.0.reset_timeline(); }
 }
 
 impl WeaponAttack for FavoniusLanceR5 {}
@@ -122,6 +132,8 @@ impl Timeline for FavoniusWarbowR5 {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         self.0.accelerate(field_energy, event, state, data);
     }
+
+    fn reset_timeline(&mut self) -> () { self.0.reset_timeline(); }
 }
 
 impl WeaponAttack for FavoniusWarbowR5 {}
@@ -145,6 +157,8 @@ impl Timeline for FavoniusCodexR5 {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         self.0.accelerate(field_energy, event, state, data);
     }
+
+    fn reset_timeline(&mut self) -> () { self.0.reset_timeline(); }
 }
 
 impl WeaponAttack for FavoniusCodexR5 {}

@@ -63,7 +63,7 @@ impl WeaponAttack for MappaMareR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.stack = 0.;
         self.time = -99.;
     }
@@ -110,7 +110,7 @@ impl WeaponAttack for SolarPearlR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.na_time = -99.;
         self.skill_time = -99.;
     }
@@ -179,7 +179,7 @@ impl WeaponAttack for ThrillingTalesOfDragonSlayersR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -222,7 +222,7 @@ impl WeaponAttack for EyeOfPerceptionR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -273,7 +273,7 @@ impl WeaponAttack for TheWidsithR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.time = -99.;
     }
 }

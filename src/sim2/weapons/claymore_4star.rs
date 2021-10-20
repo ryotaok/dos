@@ -49,7 +49,7 @@ impl WeaponAttack for PrototypeArchaicR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.time = -99.;
     }
 }
@@ -92,7 +92,7 @@ impl WeaponAttack for WhiteblindR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.stack = 0.;
         self.time = -99.;
     }
@@ -106,14 +106,14 @@ pub struct SerpentSpineR5 {
 impl SerpentSpineR5 {
     pub fn record() -> WeaponRecord {
         WeaponRecord::default()
-            .name("Serpent Spine").type_(Claymore).version(1.0)
+            .name("Serpent Spine (start 3s)").type_(Claymore).version(1.0)
             .base_atk(510.0)
             .cr(27.6)
     }
 
     pub fn new() -> Self {
         Self {
-            stack: 0.,
+            stack: 3.,
             time: -99.,
         }
     }
@@ -135,8 +135,8 @@ impl WeaponAttack for SerpentSpineR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
-        self.stack = 0.;
+    fn reset_modify(&mut self) -> () {
+        self.stack = 3.;
         self.time = -99.;
     }
 }

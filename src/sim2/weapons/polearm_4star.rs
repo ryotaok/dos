@@ -49,7 +49,7 @@ impl WeaponAttack for PrototypeStarglitterR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.stack = 0.;
         self.time = -99.;
     }

@@ -45,7 +45,7 @@ impl Timeline for Barbara {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.375 {
             // 4 attacks in 1.5 seconds
-            data.na_idx.to_na(4, state.carryover(0.375))
+            data.na_idx.to_na(4, state.na_carryover(0.375))
         } else {
             CharacterAction::StandStill
         }
@@ -116,7 +116,7 @@ impl Timeline for Xingqiu {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5666 {
             // 5 attacks in 2.833 seconds
-            data.na_idx.to_na(5, state.carryover(0.5666))
+            data.na_idx.to_na(5, state.na_carryover(0.5666))
         } else {
             CharacterAction::StandStill
         }
@@ -171,7 +171,7 @@ impl CharacterAttack for Xingqiu {
     // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
     // }
 
-    // fn reset(&mut self) -> () {
+    // fn reset_modify(&mut self) -> () {
     // }
 }
 
@@ -215,7 +215,7 @@ impl Timeline for Mona {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.375 {
             // 4 attacks in 1.5 seconds
-            data.na_idx.to_na(4, state.carryover(0.375))
+            data.na_idx.to_na(4, state.na_carryover(0.375))
         } else {
             CharacterAction::StandStill
         }
@@ -272,7 +272,7 @@ impl CharacterAttack for Mona {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.burst_time = -99.;
     }
 }

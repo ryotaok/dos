@@ -49,7 +49,7 @@ impl WeaponAttack for ElegyForTheEnd {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.sigil = 0;
         self.time = -99.;
     }
@@ -108,7 +108,7 @@ impl WeaponAttack for AlleyHunter {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.stack = 0.;
         self.time = 0.;
     }
@@ -160,7 +160,7 @@ impl WeaponAttack for WindblumeOde {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.time = -99.
     }
 }

@@ -131,6 +131,10 @@ pub enum WeaponUnion {
     DodocoTales(DodocoTales),
     // version_2_0
     MistsplitterReforged(MistsplitterReforged),
+    MistsplitterReforgedClaymore(MistsplitterReforgedClaymore),
+    MistsplitterReforgedPolearm(MistsplitterReforgedPolearm),
+    MistsplitterReforgedBow(MistsplitterReforgedBow),
+    MistsplitterReforgedCatalyst(MistsplitterReforgedCatalyst),
     ThunderingPulse(ThunderingPulse),
     AmenomaKageuchi(AmenomaKageuchi),
     KatsuragikiriNagamasa(KatsuragikiriNagamasa),
@@ -143,6 +147,12 @@ pub enum WeaponUnion {
     LuxuriousSeaLord(LuxuriousSeaLord),
     TheCatch(TheCatch),
     PolarStar(PolarStar),
+    PolarStarSword(PolarStarSword),
+    PolarStarClaymore(PolarStarClaymore),
+    PolarStarPolearm(PolarStarPolearm),
+    PolarStarCatalyst(PolarStarCatalyst),
+    Akuoumaru(Akuoumaru),
+    RedhornStonethresher(RedhornStonethresher),
 }
 
 impl WeaponUnion {
@@ -243,6 +253,10 @@ impl WeaponUnion {
             DodocoTales(x) => x,
             // version_2_0
             MistsplitterReforged(x) => x,
+            MistsplitterReforgedClaymore(x) => x,
+            MistsplitterReforgedPolearm(x) => x,
+            MistsplitterReforgedBow(x) => x,
+            MistsplitterReforgedCatalyst(x) => x,
             ThunderingPulse(x) => x,
             AmenomaKageuchi(x) => x,
             KatsuragikiriNagamasa(x) => x,
@@ -255,6 +269,12 @@ impl WeaponUnion {
             LuxuriousSeaLord(x) => x,
             TheCatch(x) => x,
             PolarStar(x) => x,
+            PolarStarSword(x) => x,
+            PolarStarClaymore(x) => x,
+            PolarStarPolearm(x) => x,
+            PolarStarCatalyst(x) => x,
+            Akuoumaru(x) => x,
+            RedhornStonethresher(x) => x,
         }
     }
 
@@ -355,6 +375,10 @@ impl WeaponUnion {
             DodocoTales(x) => x,
             // version_2_0
             MistsplitterReforged(x) => x,
+            MistsplitterReforgedClaymore(x) => x,
+            MistsplitterReforgedPolearm(x) => x,
+            MistsplitterReforgedBow(x) => x,
+            MistsplitterReforgedCatalyst(x) => x,
             ThunderingPulse(x) => x,
             AmenomaKageuchi(x) => x,
             KatsuragikiriNagamasa(x) => x,
@@ -367,6 +391,12 @@ impl WeaponUnion {
             LuxuriousSeaLord(x) => x,
             TheCatch(x) => x,
             PolarStar(x) => x,
+            PolarStarSword(x) => x,
+            PolarStarClaymore(x) => x,
+            PolarStarPolearm(x) => x,
+            PolarStarCatalyst(x) => x,
+            Akuoumaru(x) => x,
+            RedhornStonethresher(x) => x,
         }
     }
 }
@@ -467,6 +497,10 @@ pub fn all() -> Vec<(WeaponRecord, WeaponUnion)> {
     (DodocoTales::record(), WeaponUnion::DodocoTales(DodocoTales::new())),
     // version_2_0
     (MistsplitterReforged::record(), WeaponUnion::MistsplitterReforged(MistsplitterReforged::new())),
+    (MistsplitterReforgedClaymore::record(), WeaponUnion::MistsplitterReforgedClaymore(MistsplitterReforgedClaymore::new())),
+    (MistsplitterReforgedPolearm::record(), WeaponUnion::MistsplitterReforgedPolearm(MistsplitterReforgedPolearm::new())),
+    (MistsplitterReforgedBow::record(), WeaponUnion::MistsplitterReforgedBow(MistsplitterReforgedBow::new())),
+    (MistsplitterReforgedCatalyst::record(), WeaponUnion::MistsplitterReforgedCatalyst(MistsplitterReforgedCatalyst::new())),
     (ThunderingPulse::record(), WeaponUnion::ThunderingPulse(ThunderingPulse::new())),
     (AmenomaKageuchi::record(), WeaponUnion::AmenomaKageuchi(AmenomaKageuchi::new())),
     (KatsuragikiriNagamasa::record(), WeaponUnion::KatsuragikiriNagamasa(KatsuragikiriNagamasa::new())),
@@ -479,6 +513,12 @@ pub fn all() -> Vec<(WeaponRecord, WeaponUnion)> {
     (LuxuriousSeaLord::record(), WeaponUnion::LuxuriousSeaLord(LuxuriousSeaLord::new())),
     (TheCatch::record(), WeaponUnion::TheCatch(TheCatch::new())),
     (PolarStar::record(), WeaponUnion::PolarStar(PolarStar::new())),
+    (PolarStarSword::record(), WeaponUnion::PolarStarSword(PolarStarSword::new())),
+    (PolarStarClaymore::record(), WeaponUnion::PolarStarClaymore(PolarStarClaymore::new())),
+    (PolarStarPolearm::record(), WeaponUnion::PolarStarPolearm(PolarStarPolearm::new())),
+    (PolarStarCatalyst::record(), WeaponUnion::PolarStarCatalyst(PolarStarCatalyst::new())),
+    (Akuoumaru::record(), WeaponUnion::Akuoumaru(Akuoumaru::new())),
+    (RedhornStonethresher::record(), WeaponUnion::RedhornStonethresher(RedhornStonethresher::new())),
     ]
 }
 
@@ -671,7 +711,7 @@ mod tests {
         assert_eq!(dmg, expect);
     }
 
-    #[test] #[ignore]
+    #[test]
     fn songofbrokenpines() {
         let mut history = History::<1>::new(7., 0.2);
         let cr = Sim2TestCharacter::record(Pyro);
@@ -691,7 +731,7 @@ mod tests {
             }; 1];
             simulate::decide_action(&mut history, &mut members, &mut states, &mut data);
         }
-        WeaponAttack::reset(&mut weapon);
+        weapon.reset_timeline();
         let mut members = [FieldMember {
             character: &mut character,
             weapon: &mut weapon,

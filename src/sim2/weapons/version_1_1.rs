@@ -46,7 +46,7 @@ impl WeaponAttack for GoldenMajesty {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.stack = 0.;
         self.time = -99.;
     }
@@ -71,7 +71,7 @@ impl WeaponAttack for TheUnforged {
         self.0.modify(action_state, data, attack, state, enemy);
     }
 
-    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
 }
 
 pub struct SummitShaper(GoldenMajesty);
@@ -93,7 +93,7 @@ impl WeaponAttack for SummitShaper {
         self.0.modify(action_state, data, attack, state, enemy);
     }
 
-    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
 }
 
 pub struct VortexVanquisher(GoldenMajesty);
@@ -115,7 +115,7 @@ impl WeaponAttack for VortexVanquisher {
         self.0.modify(action_state, data, attack, state, enemy);
     }
 
-    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
 }
 
 pub struct MemoryOfDust(GoldenMajesty);
@@ -137,5 +137,5 @@ impl WeaponAttack for MemoryOfDust {
         self.0.modify(action_state, data, attack, state, enemy);
     }
 
-    fn reset(&mut self) -> () { WeaponAttack::reset(&mut self.0) }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
 }

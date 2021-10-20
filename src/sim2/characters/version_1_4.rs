@@ -1,20 +1,23 @@
-
 use crate::sim2::state::State;
-use crate::sim2::types::{AttackType, WeaponType, Vision, FieldEnergy, VecFieldEnergy, Particle, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
-use crate::sim2::fc::{FieldCharacterIndex, SpecialAbility, SkillAbility, CharacterAbility, NoopAbility, CharacterData, CharacterRecord, Enemy};
-use crate::sim2::action::{Attack, AttackEvent, ICDTimer, ElementalAbsorption, NaLoop, SimpleSkill, SimpleSkillDot, SkillDamage2Dot, SimpleBurst, SimpleBurstDot, BurstDamage2Dot, NTimer, DurationTimer, ICDTimers};
-use crate::sim2::testutil;
+use crate::sim2::timeline::{ActionState, Timeline};
+use crate::sim2::attack::{Attack, CharacterAttack, AtkQueue};
+use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, WeaponType, FieldEnergy, Particle, VecFieldEnergy, ToNaAction};
+use crate::sim2::element::{ElementalGauge, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
+use crate::sim2::record::{CharacterRecord, CharacterData, Enemy};
 
-use DamageType::*;
 use WeaponType::*;
 use Vision::*;
 
+// When Rosaria strikes an opponent from behind using Ravaging Confession,
+// Rosaria's CRIT Rate increases by 12% for 5s.
+
+// Casting Rites of Termination increases CRIT Rate of all nearby party members
+// (except Rosaria herself) by 15% of Rosaria's CRIT Rate for 10s. CRIT Rate
+// Bonus gained this way cannot exceed 15%.
 #[derive(Debug)]
 pub struct Rosaria {
-    na: NaLoop,
-    ca: NoopAbility,
-    skill: SimpleSkill,
-    burst: BurstDamage2Dot,
+    skill_time: f32,
+    burst_time: f32,
 }
 
 impl Rosaria {
@@ -28,69 +31,94 @@ impl Rosaria {
 
     pub fn new() -> Self {
         Self {
-            na: NaLoop::new(
-                // 5 attacks in 2.733 seconds
-                &[0.5466,0.5466,0.5466,0.5466,0.5466],
-                vec![
-                    Attack::na(103.7, 1, idx, &icd_timer),
-                    Attack::na(102.0, 1, idx, &icd_timer),
-                    Attack::na(62.9, 2, idx, &icd_timer),
-                    Attack::na(137.7, 1, idx, &icd_timer),
-                    Attack::na((82.28 + 85.0) / 2.0, 2, idx, &icd_timer),
-                ]
-            ),
-            ca: NoopAbility,
-            skill: SimpleSkill::new(&[5.0, 1.0], Particle::new(Cryo, 3.0), Attack {
-                kind: DamageType::PressSkill,
-                element: &CRYO_GAUGE1A,
-                multiplier: (105.21 + 244.8) / 2.0,
-                hits: 2,
-                icd_timer: Rc::clone(&icd_timer.skill),
-                idx,
-            }),
-            burst: BurstDamage2Dot::new(&[2.0,2.0,2.0,2.0, 2.0, 5.0,], Attack {
-                kind: DamageType::Burst,
-                element: &CRYO_GAUGE1A,
-                multiplier: (187.2 + 273.6) / 2.0,
-                hits: 2,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }, Attack {
-                kind: DamageType::BurstDot,
-                element: &CRYO_GAUGE1A,
-                multiplier: 237.6,
-                hits: 1,
-                icd_timer: Rc::clone(&icd_timer.burst),
-                idx,
-            }),
+            skill_time: -99.,
+            burst_time: -99.,
         }
     }
 }
 
-impl CharacterAbility for Rosaria {
-    fn na_ref(&self) -> &dyn SpecialAbility { &self.na }
-    fn ca_ref(&self) -> &dyn SpecialAbility { &self.ca }
-    fn skill_ref(&self) -> &dyn SkillAbility { &self.skill }
-    fn burst_ref(&self) -> &dyn SpecialAbility { &self.burst }
-    fn na_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.na }
-    fn ca_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.ca }
-    fn skill_mut(&mut self) -> &mut dyn SkillAbility { &mut self.skill }
-    fn burst_mut(&mut self) -> &mut dyn SpecialAbility { &mut self.burst }
+impl Timeline for Rosaria {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
+        // check if skill can be used
+        } else if state.rel_time.press >= 6. {
+            CharacterAction::PressSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.5466 {
+            // 5 attacks in 2.733 seconds
+            data.na_idx.to_na(5, state.na_carryover(0.5466))
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 3.)),
+            _ => (),
+        }
+    }
 }
 
 impl CharacterAttack for Rosaria {
-    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        if self.skill.timer.n == 1 {
-            let state = &mut modifiable_data[self.skill.attack.idx.0].state;
-            state.cr += 12.0;
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_burst(187.2, &CRYO_GAUGE1A, time, event, data, state);
+        atk_queue.add_burst(273.6, &CRYO_GAUGE1A, time+0.1111, event, data, state);
+        for i in 0..4 {
+            atk_queue.add_burst(237.6, &CRYO_GAUGE1A, time, event, data, state);
         }
-        if 1 <= self.burst.timer.n && self.burst.timer.n < 6 {
-            let cr = modifiable_data[self.skill.attack.idx.0].state.cr;
-            for (i, data) in modifiable_data.iter_mut().enumerate() {
-                if i != self.burst.attack.idx.0 {
-                    data.state.cr += cr * 0.15;
-                }
+    }
+
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_skill(105.21, &CRYO_GAUGE1A, time, event, data, state);
+        atk_queue.add_skill(244.80, &CRYO_GAUGE1A, time+0.1111, event, data, state);
+    }
+
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(103.7, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(102.0, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(62.9, &PHYSICAL_GAUGE, time, event, data, state);
+        atk_queue.add_na(62.9, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(137.7, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(82.28, &PHYSICAL_GAUGE, time, event, data, state);
+        atk_queue.add_na(85.00, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        if action_state.did_burst() {
+            self.burst_time = action_state.current_time;
+        } else if action_state.did_skill() {
+            self.skill_time = action_state.current_time;
+        }
+        if attack.idx == data.idx {
+            if attack.time - self.skill_time <= 5. {
+                state.cr += 12.;
+            }
+        } else {
+            if attack.time - self.burst_time <= 10. {
+                state.cr += 15.;
             }
         }
+    }
+
+    fn reset_modify(&mut self) -> () {
+        self.skill_time = -99.;
+        self.burst_time = -99.;
     }
 }

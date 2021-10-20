@@ -48,7 +48,7 @@ impl WeaponAttack for PrototypeRancourR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.stack = 0.;
         self.time = -99.;
     }
@@ -158,7 +158,7 @@ impl WeaponAttack for TheFluteR5 {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_attack(&mut self) -> () {
         self.stack = 0;
         self.time = -99.;
     }

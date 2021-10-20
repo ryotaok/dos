@@ -36,6 +36,10 @@ impl Timeline for EngulfingLightning {
             state.er += 30.;
         }
     }
+
+    fn reset_timeline(&mut self) -> () {
+        self.time = -99.;
+    }
 }
 
 impl WeaponAttack for EngulfingLightning {
@@ -68,12 +72,16 @@ impl EverlastingMoonglow {
 
 impl Timeline for EverlastingMoonglow {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
-        if *event == CharacterAction::Burst {
+        if event.is_burst() {
             self.time = state.current_time;
         }
         if state.current_time - self.time <= 12. && state.did_na() {
             state.energy += 0.6;
         }
+    }
+
+    fn reset_timeline(&mut self) -> () {
+        self.time = -99.;
     }
 }
 
@@ -83,14 +91,9 @@ impl WeaponAttack for EverlastingMoonglow {
             state.flat_atk += 0.01 * state.HP();
         }
     }
-
-    fn reset(&mut self) -> () {
-        self.time = -99.;
-    }
 }
 
-pub struct LuxuriousSeaLord {
-}
+pub struct LuxuriousSeaLord {}
 
 impl LuxuriousSeaLord {
     pub fn record() -> WeaponRecord {
@@ -216,10 +219,110 @@ impl WeaponAttack for PolarStar {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.na = -99.;
         self.ca = -99.;
         self.skill = -99.;
         self.burst = -99.;
+    }
+}
+
+pub struct PolarStarSword(PolarStar);
+impl PolarStarSword {
+    pub fn record() -> WeaponRecord { PolarStar::record().type_(Sword).name("Polar Star (Sword)") }
+    pub fn new() -> Self { Self(PolarStar::new()) }
+}
+impl Timeline for PolarStarSword {}
+impl WeaponAttack for PolarStarSword {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () { self.0.modify(action_state, data, attack, state, enemy); }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
+}
+
+pub struct PolarStarClaymore(PolarStar);
+impl PolarStarClaymore {
+    pub fn record() -> WeaponRecord { PolarStar::record().type_(Claymore).name("Polar Star (Claymore)") }
+    pub fn new() -> Self { Self(PolarStar::new()) }
+}
+impl Timeline for PolarStarClaymore {}
+impl WeaponAttack for PolarStarClaymore {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () { self.0.modify(action_state, data, attack, state, enemy); }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
+}
+
+pub struct PolarStarPolearm(PolarStar);
+impl PolarStarPolearm {
+    pub fn record() -> WeaponRecord { PolarStar::record().type_(Polearm).name("Polar Star (Polearm)") }
+    pub fn new() -> Self { Self(PolarStar::new()) }
+}
+impl Timeline for PolarStarPolearm {}
+impl WeaponAttack for PolarStarPolearm {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () { self.0.modify(action_state, data, attack, state, enemy); }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
+}
+
+pub struct PolarStarCatalyst(PolarStar);
+impl PolarStarCatalyst {
+    pub fn record() -> WeaponRecord { PolarStar::record().type_(Catalyst).name("Polar Star (Catalyst)") }
+    pub fn new() -> Self { Self(PolarStar::new()) }
+}
+impl Timeline for PolarStarCatalyst {}
+impl WeaponAttack for PolarStarCatalyst {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () { self.0.modify(action_state, data, attack, state, enemy); }
+    fn reset_modify(&mut self) -> () { self.0.reset_modify(); }
+}
+
+#[derive(Debug)]
+pub struct Akuoumaru {}
+
+impl Akuoumaru {
+    pub fn record() -> WeaponRecord {
+        WeaponRecord::default()
+            .name("Akuoumaru").type_(Claymore).version(2.2)
+            .base_atk(510.0)
+            .atk(41.3)
+            .burst_dmg(80.)
+    }
+
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Timeline for Akuoumaru {}
+
+impl WeaponAttack for Akuoumaru {}
+
+// DEF is increased by 20%. Normal and Charged Attack DMG is increased by 28% of
+// DEF.
+#[derive(Debug)]
+pub struct RedhornStonethresher {}
+
+impl RedhornStonethresher {
+    pub fn record() -> WeaponRecord {
+        WeaponRecord::default()
+            .name("Redhorn Stonethresher").type_(Claymore).version(2.3)
+            .base_atk(608.0)
+            .cd(66.2)
+            .def(20.)
+    }
+
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Timeline for RedhornStonethresher {}
+
+impl WeaponAttack for RedhornStonethresher {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        if attack.idx == data.idx {
+            if attack.kind == DamageType::Na || attack.kind == DamageType::Ca {
+                let bonus = 0.28 * state.DEF();
+                state.flat_atk += bonus;
+            }
+            // let bonus = 0.28 * state.DEF();
+            // state.na_dmg += bonus;
+            // state.ca_dmg += bonus;
+        }
     }
 }

@@ -55,7 +55,7 @@ impl Timeline for Sucrose {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.375 {
             // 4 attacks in 1.5 seconds
-            data.na_idx.to_na(4, state.carryover(0.375))
+            data.na_idx.to_na(4, state.na_carryover(0.375))
         } else {
             CharacterAction::StandStill
         }
@@ -126,7 +126,7 @@ impl CharacterAttack for Sucrose {
         }
     }
 
-    fn reset(&mut self) -> () {
+    fn reset_modify(&mut self) -> () {
         self.a1_time = -99.;
         self.a4_time = -99.;
         self.em = 0.;
@@ -165,9 +165,9 @@ impl Timeline for TravelerAnemo {
         } else if state.rel_time.hold >= 8. {
             CharacterAction::HoldSkill
         // check if normal attacks can be used (both animations are ended)
-        } else if state.rel_time.na >= 0.51 {
+        } else if state.rel_time.na >= 0.51 && state.rel_time.hold >= 2.5 {
             // 5 attacks in 2.555 seconds
-            data.na_idx.to_na(5, state.carryover(0.51))
+            data.na_idx.to_na(5, state.na_carryover(0.51))
         } else {
             CharacterAction::StandStill
         }
@@ -233,7 +233,7 @@ impl CharacterAttack for TravelerAnemo {
    // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
    // }
 
-    // fn reset(&mut self) -> () {
+    // fn reset_modify(&mut self) -> () {
     // }
 }
 
@@ -269,7 +269,7 @@ impl Timeline for Jean {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.51 {
             // 5 attacks in 2.55 seconds
-            data.na_idx.to_na(5, state.carryover(0.51))
+            data.na_idx.to_na(5, state.na_carryover(0.51))
         } else {
             CharacterAction::StandStill
         }
@@ -321,7 +321,7 @@ impl CharacterAttack for Jean {
    // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
    // }
 
-    // fn reset(&mut self) -> () {
+    // fn reset_modify(&mut self) -> () {
     // }
 }
 
@@ -359,7 +359,7 @@ impl Timeline for Venti {
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.475 {
             // 6 attacks in 2.85 seconds
-            data.na_idx.to_na(6, state.carryover(0.475))
+            data.na_idx.to_na(6, state.na_carryover(0.475))
         } else {
             CharacterAction::StandStill
         }
@@ -420,6 +420,6 @@ impl CharacterAttack for Venti {
    // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
    // }
 
-    // fn reset(&mut self) -> () {
+    // fn reset_modify(&mut self) -> () {
     // }
 }

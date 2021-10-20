@@ -58,7 +58,7 @@ impl Timeline for Sim2TestCharacter {
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.4 {
-            data.na_idx.to_na(4, state.carryover(0.4))
+            data.na_idx.to_na(4, state.na_carryover(0.4))
         } else {
             CharacterAction::StandStill
         }

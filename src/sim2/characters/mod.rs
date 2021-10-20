@@ -8,14 +8,14 @@ pub mod electro;
 pub mod cryo;
 pub mod anemo;
 pub mod geo;
-// pub mod version_1_1;
-// pub mod version_1_2;
-// pub mod version_1_3;
-// pub mod version_1_4;
-// pub mod version_1_5;
-// pub mod version_1_6;
-// pub mod version_2_0;
-// pub mod version_2_1;
+pub mod version_1_1;
+pub mod version_1_2;
+pub mod version_1_3;
+pub mod version_1_4;
+pub mod version_1_5;
+pub mod version_1_6;
+pub mod version_2_0;
+pub mod version_2_1;
 
 use pyro::*;
 use hydro::*;
@@ -23,14 +23,14 @@ use electro::*;
 use cryo::*;
 use anemo::*;
 use geo::*;
-// use version_1_1::*;
-// use version_1_2::*;
-// use version_1_3::*;
-// use version_1_4::*;
-// use version_1_5::*;
-// use version_1_6::*;
-// use version_2_0::*;
-// use version_2_1::*;
+use version_1_1::*;
+use version_1_2::*;
+use version_1_3::*;
+use version_1_4::*;
+use version_1_5::*;
+use version_1_6::*;
+use version_2_0::*;
+use version_2_1::*;
 
 #[derive(Debug)]
 pub enum CharacterUnion {
@@ -40,7 +40,6 @@ pub enum CharacterUnion {
     Xiangling(Xiangling),
     Diluc(Diluc),
     Klee(Klee),
-    Tartaglia(Tartaglia),
     // hydro
     Barbara(Barbara),
     Xingqiu(Xingqiu),
@@ -64,33 +63,33 @@ pub enum CharacterUnion {
     Ningguang(Ningguang),
     Noelle(Noelle),
     TravelerGeo(TravelerGeo),
-    // // version_1_1
-    // Tartaglia(Tartaglia),
-    // Diona(Diona),
-    // Zhongli(Zhongli),
-    // Xinyan(Xinyan),
-    // // version_1_2
-    // Albedo(Albedo),
-    // Ganyu(Ganyu),
-    // // version_1_3
-    // Xiao(Xiao),
-    // HuTao(HuTao),
-    // // version_1_4
-    // Rosaria(Rosaria),
-    // // version_1_5
-    // Yanfei(Yanfei),
-    // Eula(Eula),
-    // // version_1_6
-    // Kazuha(Kazuha),
-    // // version_2_0
-    // Ayaka(Ayaka),
-    // Yoimiya(Yoimiya),
-    // Sayu(Sayu),
-    // // version_2_1
-    // RaidenShogun(RaidenShogun),
-    // KujouSara(KujouSara),
-    // Aloy(Aloy),
-    // SangonomiyaKokomi(SangonomiyaKokomi),
+    // version_1_1
+    Tartaglia(Tartaglia),
+    Diona(Diona),
+    Zhongli(Zhongli),
+    Xinyan(Xinyan),
+    // version_1_2
+    Albedo(Albedo),
+    Ganyu(Ganyu),
+    // version_1_3
+    Xiao(Xiao),
+    HuTao(HuTao),
+    // version_1_4
+    Rosaria(Rosaria),
+    // version_1_5
+    Yanfei(Yanfei),
+    Eula(Eula),
+    // version_1_6
+    Kazuha(Kazuha),
+    // version_2_0
+    Ayaka(Ayaka),
+    Yoimiya(Yoimiya),
+    Sayu(Sayu),
+    // version_2_1
+    RaidenShogun(RaidenShogun),
+    KujouSara(KujouSara),
+    Aloy(Aloy),
+    SangonomiyaKokomi(SangonomiyaKokomi),
 }
 
 impl CharacterUnion {
@@ -103,7 +102,6 @@ impl CharacterUnion {
             Xiangling(x) => x,
             Diluc(x) => x,
             Klee(x) => x,
-            Tartaglia(x) => x,
             // hydro
             Barbara(x) => x,
             Xingqiu(x) => x,
@@ -127,33 +125,33 @@ impl CharacterUnion {
             Ningguang(x) => x,
             Noelle(x) => x,
             TravelerGeo(x) => x,
-            // // version_1_1
-            // Tartaglia(x) => x,
-            // Diona(x) => x,
-            // Zhongli(x) => x,
-            // Xinyan(x) => x,
-            // // version_1_2
-            // Albedo(x) => x,
-            // Ganyu(x) => x,
-            // // version_1_3
-            // Xiao(x) => x,
-            // HuTao(x) => x,
-            // // version_1_4
-            // Rosaria(x) => x,
-            // // version_1_5
-            // Yanfei(x) => x,
-            // Eula(x) => x,
-            // // version_1_6
-            // Kazuha(x) => x,
-            // // version_2_0
-            // Ayaka(x) => x,
-            // Yoimiya(x) => x,
-            // Sayu(x) => x,
-            // // version_2_1
-            // RaidenShogun(x) => x,
-            // KujouSara(x) => x,
-            // Aloy(x) => x,
-            // SangonomiyaKokomi(x) => x,
+            // version_1_1
+            Tartaglia(x) => x,
+            Diona(x) => x,
+            Zhongli(x) => x,
+            Xinyan(x) => x,
+            // version_1_2
+            Albedo(x) => x,
+            Ganyu(x) => x,
+            // version_1_3
+            Xiao(x) => x,
+            HuTao(x) => x,
+            // version_1_4
+            Rosaria(x) => x,
+            // version_1_5
+            Yanfei(x) => x,
+            Eula(x) => x,
+            // version_1_6
+            Kazuha(x) => x,
+            // version_2_0
+            Ayaka(x) => x,
+            Yoimiya(x) => x,
+            Sayu(x) => x,
+            // version_2_1
+            RaidenShogun(x) => x,
+            KujouSara(x) => x,
+            Aloy(x) => x,
+            SangonomiyaKokomi(x) => x,
         }
     }
 
@@ -166,7 +164,6 @@ impl CharacterUnion {
             Xiangling(x) => x,
             Diluc(x) => x,
             Klee(x) => x,
-            Tartaglia(x) => x,
             // hydro
             Barbara(x) => x,
             Xingqiu(x) => x,
@@ -190,39 +187,38 @@ impl CharacterUnion {
             Ningguang(x) => x,
             Noelle(x) => x,
             TravelerGeo(x) => x,
-            // // version_1_1
-            // Tartaglia(x) => x,
-            // Diona(x) => x,
-            // Zhongli(x) => x,
-            // Xinyan(x) => x,
-            // // version_1_2
-            // Albedo(x) => x,
-            // Ganyu(x) => x,
-            // // version_1_3
-            // Xiao(x) => x,
-            // HuTao(x) => x,
-            // // version_1_4
-            // Rosaria(x) => x,
-            // // version_1_5
-            // Yanfei(x) => x,
-            // Eula(x) => x,
-            // // version_1_6
-            // Kazuha(x) => x,
-            // // version_2_0
-            // Ayaka(x) => x,
-            // Yoimiya(x) => x,
-            // Sayu(x) => x,
-            // // version_2_1
-            // RaidenShogun(x) => x,
-            // KujouSara(x) => x,
-            // Aloy(x) => x,
-            // SangonomiyaKokomi(x) => x,
+            // version_1_1
+            Tartaglia(x) => x,
+            Diona(x) => x,
+            Zhongli(x) => x,
+            Xinyan(x) => x,
+            // version_1_2
+            Albedo(x) => x,
+            Ganyu(x) => x,
+            // version_1_3
+            Xiao(x) => x,
+            HuTao(x) => x,
+            // version_1_4
+            Rosaria(x) => x,
+            // version_1_5
+            Yanfei(x) => x,
+            Eula(x) => x,
+            // version_1_6
+            Kazuha(x) => x,
+            // version_2_0
+            Ayaka(x) => x,
+            Yoimiya(x) => x,
+            Sayu(x) => x,
+            // version_2_1
+            RaidenShogun(x) => x,
+            KujouSara(x) => x,
+            Aloy(x) => x,
+            SangonomiyaKokomi(x) => x,
         }
     }
 }
 
-// pub const N_CHARACTERS: usize = 42;
-pub const N_CHARACTERS: usize = 24;
+pub const N_CHARACTERS: usize = 42;
 
 pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     vec![
@@ -232,7 +228,6 @@ pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     (Xiangling::record(), CharacterUnion::Xiangling(Xiangling::new())),
     (Diluc::record(), CharacterUnion::Diluc(Diluc::new())),
     (Klee::record(), CharacterUnion::Klee(Klee::new())),
-    (Tartaglia::record(), CharacterUnion::Tartaglia(Tartaglia::new())),
     // hydro
     (Barbara::record(), CharacterUnion::Barbara(Barbara::new())),
     (Xingqiu::record(), CharacterUnion::Xingqiu(Xingqiu::new())),
@@ -256,33 +251,33 @@ pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     (Ningguang::record(), CharacterUnion::Ningguang(Ningguang::new())),
     (Noelle::record(), CharacterUnion::Noelle(Noelle::new())),
     (TravelerGeo::record(), CharacterUnion::TravelerGeo(TravelerGeo::new())),
-    // // version_1_1
-    // (Tartaglia::record(), CharacterUnion::Tartaglia(Tartaglia::new())),
-    // (Diona::record(), CharacterUnion::Diona(Diona::new())),
-    // (Zhongli::record(), CharacterUnion::Zhongli(Zhongli::new())),
-    // (Xinyan::record(), CharacterUnion::Xinyan(Xinyan::new())),
-    // // version_1_2
-    // (Albedo::record(), CharacterUnion::Albedo(Albedo::new())),
-    // (Ganyu::record(), CharacterUnion::Ganyu(Ganyu::new())),
-    // // version_1_3
-    // (Xiao::record(), CharacterUnion::Xiao(Xiao::new())),
-    // (HuTao::record(), CharacterUnion::HuTao(HuTao::new())),
-    // // version_1_4
-    // (Rosaria::record(), CharacterUnion::Rosaria(Rosaria::new())),
-    // // version_1_5
-    // (Yanfei::record(), CharacterUnion::Yanfei(Yanfei::new())),
-    // (Eula::record(), CharacterUnion::Eula(Eula::new())),
-    // // version_1_6
-    // (Kazuha::record(), CharacterUnion::Kazuha(Kazuha::new())),
-    // // version_2_0
-    // (Ayaka::record(), CharacterUnion::Ayaka(Ayaka::new())),
-    // (Yoimiya::record(), CharacterUnion::Yoimiya(Yoimiya::new())),
-    // (Sayu::record(), CharacterUnion::Sayu(Sayu::new())),
-    // // version_2_1
-    // (RaidenShogun::record(), CharacterUnion::RaidenShogun(RaidenShogun::new())),
-    // (KujouSara::record(), CharacterUnion::KujouSara(KujouSara::new())),
-    // (Aloy::record(), CharacterUnion::Aloy(Aloy::new())),
-    // (SangonomiyaKokomi::record(), CharacterUnion::SangonomiyaKokomi(SangonomiyaKokomi::new())),
+    // version_1_1
+    (Tartaglia::record(), CharacterUnion::Tartaglia(Tartaglia::new())),
+    (Diona::record(), CharacterUnion::Diona(Diona::new())),
+    (Zhongli::record(), CharacterUnion::Zhongli(Zhongli::new())),
+    (Xinyan::record(), CharacterUnion::Xinyan(Xinyan::new())),
+    // version_1_2
+    (Albedo::record(), CharacterUnion::Albedo(Albedo::new())),
+    (Ganyu::record(), CharacterUnion::Ganyu(Ganyu::new())),
+    // version_1_3
+    (Xiao::record(), CharacterUnion::Xiao(Xiao::new())),
+    (HuTao::record(), CharacterUnion::HuTao(HuTao::new())),
+    // version_1_4
+    (Rosaria::record(), CharacterUnion::Rosaria(Rosaria::new())),
+    // version_1_5
+    (Yanfei::record(), CharacterUnion::Yanfei(Yanfei::new())),
+    (Eula::record(), CharacterUnion::Eula(Eula::new())),
+    // version_1_6
+    (Kazuha::record(), CharacterUnion::Kazuha(Kazuha::new())),
+    // version_2_0
+    (Ayaka::record(), CharacterUnion::Ayaka(Ayaka::new())),
+    (Yoimiya::record(), CharacterUnion::Yoimiya(Yoimiya::new())),
+    (Sayu::record(), CharacterUnion::Sayu(Sayu::new())),
+    // version_2_1
+    (RaidenShogun::record(), CharacterUnion::RaidenShogun(RaidenShogun::new())),
+    (KujouSara::record(), CharacterUnion::KujouSara(KujouSara::new())),
+    (Aloy::record(), CharacterUnion::Aloy(Aloy::new())),
+    (SangonomiyaKokomi::record(), CharacterUnion::SangonomiyaKokomi(SangonomiyaKokomi::new())),
     ]
 }
 
@@ -399,30 +394,35 @@ mod tests {
 //     use super::*;
 //     use crate::sim2::testutil;
 //     use crate::sim2::simulate;
+//     use crate::sim2::types::Vision;
 //     use crate::sim2::timeline::ActionState;
 //     use crate::sim2::record::{CharacterData, TimelineMember, FieldMember, Enemy};
 //     #[test]
 //     fn debug_character() {
-//         let mut history = simulate::History::<1>::new(7.0, 0.2);
-//         let mut enemy     = Enemy::simple();
-//         // let mut character = Tartaglia::new();
-//         // let cr            = Tartaglia::record();
-//         // // let wr            = crate::sim2::weapons::version_2_1::PolarStar::record();
-//         // let mut weapon    = crate::sim2::weapons::bow_4star::PrototypeCrescentR5 {};
+//         let mut history = simulate::History::<1>::new(10., 0.2);
+//         let mut enemy = Enemy::simple();
+//         // let mut character = Ganyu::new();
+//         // let cr            = Ganyu::record();
+//         // let mut weapon    = crate::sim2::weapons::bow_4star::PrototypeCrescentR5;
 //         // let wr            = crate::sim2::weapons::bow_4star::PrototypeCrescentR5::record();
 //         // let mut character = TravelerAnemo::new();
 //         // let cr            = TravelerAnemo::record();
 //         // let mut weapon    = crate::sim2::weapons::version_1_3::PrimordialJadeCutter::new();
 //         // let wr            = crate::sim2::weapons::version_1_3::PrimordialJadeCutter::record();
-//         let mut character = Ningguang::new();
-//         let cr            = Ningguang::record();
-//         let mut weapon    = crate::sim2::weapons::version_1_5star::LostPrayerToTheSacredWinds::new();
-//         let wr            = crate::sim2::weapons::version_1_5star::LostPrayerToTheSacredWinds::record();
+//         // let mut character = Ningguang::new();
+//         // let cr            = Ningguang::record();
+//         // let mut weapon    = crate::sim2::weapons::version_1_5star::LostPrayerToTheSacredWinds::new();
+//         // let wr            = crate::sim2::weapons::version_1_5star::LostPrayerToTheSacredWinds::record();
+//         let mut character = Eula::new();
+//         let cr            = Eula::record();
+//         let mut weapon    = crate::sim2::weapons::version_1_5star::WolfsGravestone;
+//         let wr            = crate::sim2::weapons::version_1_5star::WolfsGravestone::record();
 //         // (some space)
 //         let mut artifact  = crate::sim2::artifact::Gfelm;
 //         let mut ar        = crate::sim2::artifact::Gfelm::record();
 //         ar.flat_atk = 311.;
-//         ar.infuse_goblet(&cr.vision);
+//         // ar.infuse_goblet(&cr.vision);
+//         ar.infuse_goblet(&Vision::Physical);
 //         let mut states = [ActionState::new(); 1];
 //         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
 //         let dmg: f32;
