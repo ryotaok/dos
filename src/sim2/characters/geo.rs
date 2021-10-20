@@ -47,7 +47,7 @@ impl Timeline for Ningguang {
         // is burst CD off and has enough energy
         } else if state.rel_time.burst >= 12. && state.energy >= 40. {
             CharacterAction::Burst
-        } else if self.star_jade > 1 && state.rel_time.na >= 0.8 {
+        } else if data.can_use_ca && self.star_jade > 1 && state.rel_time.na >= 0.8 {
             CharacterAction::Ca(state.ca_carryover(1.5))
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.8 && state.rel_time.ca >= 1.5 {

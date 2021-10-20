@@ -221,8 +221,6 @@ impl CharacterAttack for KujouSara {
     }
 
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        // save the valur for later
-        self.base_atk = state.base_atk;
         atk_queue.add_skill(226.37, &ELECTRO_GAUGE1A, time, event, data, state);
     }
 
@@ -248,9 +246,13 @@ impl CharacterAttack for KujouSara {
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.did_burst() {
+            // save the valur for later
+            self.base_atk = state.base_atk;
             self.skill_time = action_state.current_time;
         }
         if action_state.did_skill() {
+            // save the valur for later
+            self.base_atk = state.base_atk;
             self.skill_time = action_state.current_time;
         }
         if attack.time - self.skill_time <= 6. {

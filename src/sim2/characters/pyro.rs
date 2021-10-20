@@ -154,8 +154,6 @@ impl Timeline for Bennett {
 
 impl CharacterAttack for Bennett {
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        // save the valur for later
-        self.base_atk = state.base_atk;
         atk_queue.add_burst(419.04, &PYRO_GAUGE2B, time, event, data, state);
     }
 
@@ -185,6 +183,8 @@ impl CharacterAttack for Bennett {
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.did_burst() {
+            // save the valur for later
+            self.base_atk = state.base_atk;
             self.burst_time = action_state.current_time;
         }
         if attack.time - self.burst_time <= 12. {
@@ -484,7 +484,7 @@ impl Timeline for Klee {
         if state.rel_time.burst >= 15. && state.energy >= 60. {
             CharacterAction::Burst
         // use ca when explosive_spark
-        } else if self.explosive_spark {
+        } else if data.can_use_ca && self.explosive_spark {
             self.explosive_spark = false;
             CharacterAction::Ca(0.)
         // check if skill can be used

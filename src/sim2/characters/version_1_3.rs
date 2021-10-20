@@ -66,7 +66,7 @@ impl Timeline for Xiao {
             self.charge += 1;
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
-        } else if during_burst && state.rel_time.ca >= 1.7 {
+        } else if data.can_use_ca && during_burst && state.rel_time.ca >= 1.7 {
             CharacterAction::Ca(state.ca_carryover(1.7))
         } else if !during_burst && state.rel_time.na >= 0.625 {
             // 6 attacks in 3.75 seconds
@@ -220,7 +220,7 @@ impl Timeline for HuTao {
         } else if state.rel_time.press >= 16. {
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
-        } else if during_skill && state.rel_time.ca >= 0.935 {
+        } else if data.can_use_ca && during_skill && state.rel_time.ca >= 0.935 {
             CharacterAction::Ca(state.ca_carryover(0.935))
         } else if !during_skill && state.rel_time.na >= 0.4875 {
             // 6 attacks in 2.925 seconds

@@ -235,19 +235,27 @@ impl WeaponAttack for ViridescentVenerer {
         if data.idx == attack.idx && enemy.trigger_er(&attack.element.aura).is_swirl() {
             match &enemy.aura.aura {
                 Vision::Pyro => {
-                    enemy.debuff.pyro += 40.;
+                    if self.pyro < 0. {
+                        enemy.debuff.pyro += 40.;
+                    }
                     self.pyro = attack.time;
                 },
                 Vision::Hydro => {
-                    enemy.debuff.hydro += 40.;
+                    if self.hydro < 0. {
+                        enemy.debuff.hydro += 40.;
+                    }
                     self.hydro = attack.time;
                 },
                 Vision::Electro => {
-                    enemy.debuff.electro += 40.;
+                    if self.electro < 0. {
+                        enemy.debuff.electro += 40.;
+                    }
                     self.electro = attack.time;
                 },
                 Vision::Cryo => {
-                    enemy.debuff.cryo += 40.;
+                    if self.cryo < 0. {
+                        enemy.debuff.cryo += 40.;
+                    }
                     self.cryo = attack.time;
                 },
                 _ => (),

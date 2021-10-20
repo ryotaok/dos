@@ -235,15 +235,15 @@ fn combination_filter_supporter(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Ar
 //     }
 // }
 
-fn permu3(tx: Sender<Recorder>, start: usize, end: usize, args: &Args) -> () {
+fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
     let input_characters: Vec<(CharacterRecord, characters::CharacterUnion)> = characters::all().drain(start..end).collect();
-    let physical_infusion: Vec<&'static str> = vec!["Razor", "Eula", ];
     let mut member1 = Permutation3::new(
         input_characters,
         weapons::all(),
         artifact::all(),
     );
 
+    let mut items: Vec<Recorder> = Vec::new();
     for ((cr1, mut ca1), (wr1, mut wa1), (mut ar1, mut aa1)) in member1.iter() {
         if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
             member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
@@ -292,7 +292,110 @@ fn permu3(tx: Sender<Recorder>, start: usize, end: usize, args: &Args) -> () {
         ar1.dry_goblet();
         member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
         recorder.data.push(dmg as usize);
-        tx.send(recorder).unwrap();
+        items.push(recorder);
+    }
+    tx.send(items).unwrap();
+}
+
+fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
+    let input_characters: Vec<(CharacterRecord, characters::CharacterUnion)> = characters::all().drain(start..end).collect();
+    let mut member1 = Permutation3::new(
+        input_characters,
+        weapons::all(),
+        artifact::all(),
+    );
+    let mut member2 = Permutation3::new(
+        characters::all(),
+        weapons::all(),
+        artifact::all(),
+    );
+
+    for ((cr1, mut ca1), (wr1, mut wa1), (mut ar1, mut aa1)) in member1.iter() {
+        if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
+            member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
+            continue;
+        }
+        ar1.flat_atk = 311.;
+        ar1.infuse_goblet(&cr1.vision, &cr1.name);
+        let mut items: Vec<Recorder> = Vec::new();
+        for ((cr2, mut ca2), (wr2, mut wa2), (mut ar2, mut aa2)) in member2.iter() {
+            if cr1.name == cr2.name || !combination_filter_attacker(&cr2, &wr2, &ar2, args) {
+                member2.back(((cr2, ca2), (wr2, wa2), (ar2, aa2)));
+                continue;
+            }
+
+            let mut enemy = Enemy::hilichurl();
+            let mut history = History::<2>::new(args.simulation_time, args.unit_time);
+            let dmg: f32;
+
+            // supporter role
+            ar2.atk_spd = -80.;
+            ar2.flat_atk = 311.;
+            ar2.infuse_goblet(&cr2.vision, &cr2.name);
+
+            let mut data = [CharacterData::new(0, &cr1, &wr1, &ar1),CharacterData::new(1, &cr2, &wr2, &ar2),];
+            let mut head: Vec<&'static str> = Vec::new();
+            for i in data.iter() {
+                head.push(i.character.name);
+                head.push(i.weapon.name);
+                head.push(i.artifact.name);
+            }
+            let mut recorder = Recorder::new(head);
+            {
+                let mut members = [TimelineMember {
+                    character: ca1.timeline(),
+                    weapon: wa1.timeline(),
+                    artifact: aa1.timeline(),
+                }, TimelineMember {
+                    character: ca2.timeline(),
+                    weapon: wa2.timeline(),
+                    artifact: aa2.timeline(),
+                }, ];
+                let mut states = [ActionState::new(); 2];
+                states[0].energy = if args.start_energy < 0 {
+                    cr1.energy_cost
+                } else {
+                    args.start_energy as f32
+                };
+                states[1].energy = if args.start_energy < 0 {
+                    cr2.energy_cost
+                } else {
+                    args.start_energy as f32
+                };
+                simulate::decide_action(&mut history, &mut members, &mut states, &mut data);
+                for m in members.iter_mut() {
+                    m.character.reset_timeline();
+                    m.weapon.reset_timeline();
+                    m.artifact.reset_timeline();
+                }
+            }
+            {
+                let mut members = [FieldMember {
+                    character: ca1.field(),
+                    weapon: wa1.field(),
+                    artifact: aa1.field(),
+                }, FieldMember {
+                    character: ca2.field(),
+                    weapon: wa2.field(),
+                    artifact: aa2.field(),
+                }, ];
+                dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+                for m in members.iter_mut() {
+                    m.character.reset_modify();
+                    m.weapon.reset_modify();
+                    m.artifact.reset_modify();
+                }
+            }
+
+            // destruct objects
+            ar2.dry_goblet();
+            member2.back(((cr2, ca2), (wr2, wa2), (ar2, aa2)));
+            recorder.data.push(dmg as usize);
+            items.push(recorder);
+        }
+        ar1.dry_goblet();
+        member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
+        tx.send(items).unwrap();
     }
 }
 
@@ -356,7 +459,7 @@ fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
             let txn = tx.clone();
             match args.n_members {
                 1 => thread::spawn(move || permu3(txn, start, end, &args) ),
-                // 2 => thread::spawn(move || permu6(txn, start, end, &args) ),
+                2 => thread::spawn(move || permu6(txn, start, end, &args) ),
                 _ => unimplemented!(),
             };
         }
@@ -365,15 +468,14 @@ fn start_and_wait() -> Result<(), Box<dyn Error + 'static>> {
     let mut wtr = csv::Writer::from_writer(io::stdout());
     let mut count = 0;
     for mut received in rx {
-        // if args.truncate && args.n_members > 1 {
-        //     received.sort();
-        //     received.drain(..received.len() / 2);
-        // }
-        wtr.write_record(&received.make_row())?;
-        count += 1;
-        if count % 1000 == 0 {
-            wtr.flush()?;
+        if args.truncate && args.n_members > 1 {
+            received.sort();
+            received.drain(..received.len() / 2);
         }
+        for rc in received.iter_mut() {
+            wtr.write_record(&rc.make_row())?;
+        }
+        wtr.flush()?;
     }
     wtr.flush()?;
     Ok(())

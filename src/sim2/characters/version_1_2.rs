@@ -147,7 +147,7 @@ impl Timeline for Ganyu {
         } else if state.rel_time.press >= 10. {
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
-        } else if state.rel_time.ca >= 2.266 {
+        } else if data.can_use_ca && state.rel_time.ca >= 2.266 {
             CharacterAction::Ca(state.ca_carryover(2.266))
         } else {
             CharacterAction::StandStill

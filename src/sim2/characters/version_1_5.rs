@@ -92,7 +92,7 @@ impl Timeline for Yanfei {
         if state.rel_time.burst >= 20. && state.energy >= 80. {
             CharacterAction::Burst
         // use ca
-        } else if self.scarlet_seal >= 3 && state.rel_time.ca >= 1. && state.rel_time.na >= 0.5 {
+        } else if data.can_use_ca && self.scarlet_seal >= 3 && state.rel_time.ca >= 1. && state.rel_time.na >= 0.5 {
             CharacterAction::Ca(state.ca_carryover(1.))
         // check if skill can be used
         } else if state.rel_time.press >= 9. {

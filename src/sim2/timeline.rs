@@ -137,11 +137,11 @@ impl ActionState {
 
     pub fn update2(&mut self, event: &CharacterAction, current_time: f32, elapsed_time: f32, energy: f32) -> () {
         self.energy += energy;
-        if self.reduce_skill > 0. {
+        if self.reduce_skill != 0. {
             self.rel_time.press += self.reduce_skill;
             self.rel_time.hold += self.reduce_skill;
         }
-        if self.atk_spd > 0. {
+        if self.atk_spd != 0. {
             let t = elapsed_time * self.atk_spd / 100.;
             self.rel_time.na += t;
         }
