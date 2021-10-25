@@ -4,6 +4,7 @@ use crate::sim2::attack::{Attack, CharacterAttack, AtkQueue};
 use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, WeaponType, FieldEnergy, Particle, VecFieldEnergy, ToNaAction};
 use crate::sim2::element::{ElementalGauge, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
 use crate::sim2::record::{CharacterRecord, CharacterData, Enemy};
+// use crate::sim2::characters::CharacterName;
 
 use WeaponType::*;
 use Vision::*;
@@ -44,7 +45,7 @@ impl Timeline for Amber {
         } else if state.rel_time.press >= 15. {
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
-        } else if state.rel_time.ca >= 2. {
+        } else if data.can_use_ca && state.rel_time.ca >= 2. {
             CharacterAction::Ca(state.ca_carryover(2.))
         } else {
             CharacterAction::StandStill
@@ -214,6 +215,7 @@ impl Xiangling {
             .name("Xiangling").vision(Pyro).weapon(Polearm).version(1.0)
             .base_hp(10875.0).base_atk(225.0).base_def(669.0)
             .em(96.0)
+            .energy_cost(80.)
     }
 
     pub fn new() -> Self {
@@ -256,31 +258,15 @@ impl CharacterAttack for Xiangling {
         atk_queue.add_burst(129.6, &PYRO_GAUGE1A, time, event, data, state);
         atk_queue.add_burst(158.4, &PYRO_GAUGE1A, time + 0.3333, event, data, state);
         atk_queue.add_burst(197.28, &PYRO_GAUGE1A, time + 0.6666, event, data, state);
-        for i in 0..10 {
-            let t = time + 1. + i as f32;
-            atk_queue.push(Attack {
-                kind: DamageType::Burst,
-                multiplier: 201.6,
-                element: &PYRO_GAUGE1A,
-                aura_application: true,
-                time: t,
-                idx: data.idx,
-            });
+        for i in 1..11 {
+            atk_queue.apply_burst(201.6, &PYRO_GAUGE1A, time + i as f32, event, data, state);
         }
     }
 
     // always apply pyro aura
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         for i in 0..4 {
-            let t = time + 2. * i as f32;
-            atk_queue.push(Attack {
-                kind: DamageType::Skill,
-                multiplier: 200.3,
-                element: &PYRO_GAUGE1A,
-                aura_application: true,
-                time: t,
-                idx: data.idx,
-            });
+            atk_queue.add_skill(200.3, &PYRO_GAUGE1A, time + (2 * i) as f32, event, data, state);
         }
     }
 
@@ -519,12 +505,15 @@ impl Timeline for Klee {
 
 impl CharacterAttack for Klee {
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        for i in 0..6 {
-            let t = time + i as f32;
-            atk_queue.add_burst(76.76, &PYRO_GAUGE1A, t, event, data, state);
-            atk_queue.add_burst(76.76, &PYRO_GAUGE1A, t+0.1111, event, data, state);
-            atk_queue.add_burst(76.76, &PYRO_GAUGE1A, t+0.2222, event, data, state);
-            atk_queue.add_burst(76.76, &PYRO_GAUGE1A, t+0.3333, event, data, state);
+        // burst can be used if on field
+        if data.idx.0 == 0 {
+            for i in 0..6 {
+                let t = time + i as f32;
+                atk_queue.add_burst(76.76, &PYRO_GAUGE1A, t, event, data, state);
+                atk_queue.add_burst(76.76, &PYRO_GAUGE1A, t+0.1111, event, data, state);
+                atk_queue.add_burst(76.76, &PYRO_GAUGE1A, t+0.2222, event, data, state);
+                atk_queue.add_burst(76.76, &PYRO_GAUGE1A, t+0.3333, event, data, state);
+            }
         }
     }
 

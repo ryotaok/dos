@@ -281,8 +281,14 @@ impl CharacterAttack for Eula {
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         self.grimheart += 1;
         atk_queue.add_burst(617.44, &CRYO_GAUGE2B, time, event, data, state);
+        // burst can be used if on field
         // lightfall_sword
-        atk_queue.add_burst(725.56, &PHYSICAL_GAUGE, time+7., event, data, state);
+        let t = if data.idx.0 == 0 {
+            time + 7.
+        } else {
+            time
+        };
+        atk_queue.add_burst(725.56, &PHYSICAL_GAUGE, t, event, data, state);
     }
 
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
@@ -337,8 +343,9 @@ impl CharacterAttack for Eula {
             if attack.time - self.burst_time < 7. {
                 self.lightfall_sword_stack += 1.;
             }
+            // burst can be used if on field
             // lightfall_sword
-            if attack.kind == DamageType::Burst && attack.multiplier == 725.56 {
+            if data.idx.0 == 0 && attack.kind == DamageType::Burst && attack.multiplier == 725.56 {
                 attack.multiplier += 148.24 * self.lightfall_sword_stack;
             }
             if !self.apply_debuff && action_state.did_hold() {

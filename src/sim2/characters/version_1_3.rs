@@ -130,6 +130,10 @@ impl CharacterAttack for Xiao {
         atk_queue.add_ca(404.02, self.infusion(time), time, event, data, state);
     }
 
+    fn reset_attack(&mut self) -> () {
+        self.burst_time = -99.;
+    }
+
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if attack.idx == data.idx {
             match action_state.to_damagetype() {
@@ -156,7 +160,7 @@ impl CharacterAttack for Xiao {
             } else if burst_duration < 15. {
                 25.
             } else {
-                0.
+                25.
             };
             if attack.time - self.skill_time > 7. {
                 self.skill_stack = 0.;
@@ -220,8 +224,8 @@ impl Timeline for HuTao {
         } else if state.rel_time.press >= 16. {
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
-        } else if data.can_use_ca && during_skill && state.rel_time.ca >= 0.935 {
-            CharacterAction::Ca(state.ca_carryover(0.935))
+        } else if data.can_use_ca && during_skill && state.rel_time.ca >= 0.925 {
+            CharacterAction::Ca(state.ca_carryover(0.925))
         } else if !during_skill && state.rel_time.na >= 0.4875 {
             // 6 attacks in 2.925 seconds
             data.na_idx.to_na(6, state.na_carryover(0.4875))
@@ -234,6 +238,8 @@ impl Timeline for HuTao {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         match event {
             CharacterAction::PressSkill => {
+                // reset ca time
+                state.rel_time.ca = 100.;
                 self.skill_time = state.current_time;
                 field_energy.push_p(Particle::new(data.character.vision, 3.));
             },
@@ -286,6 +292,10 @@ impl CharacterAttack for HuTao {
     fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         atk_queue.add_na(83.65, self.infusion(time), time, event, data, state);
         atk_queue.add_ca(242.57, self.infusion(time), time, event, data, state);
+    }
+
+    fn reset_attack(&mut self) -> () {
+        self.skill_time = -99.;
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

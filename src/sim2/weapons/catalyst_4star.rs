@@ -235,7 +235,7 @@ pub struct TheWidsithR5 {
 impl TheWidsithR5 {
     pub fn record() -> WeaponRecord {
         WeaponRecord::default()
-            .name("The Widsith").type_(Catalyst).version(1.0)
+            .name("The Widsith (EM)").type_(Catalyst).version(1.0)
             .base_atk(510.0)
             .cd(55.1)
     }

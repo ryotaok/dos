@@ -1,13 +1,11 @@
 use crate::sim2::state::State;
 use crate::sim2::timeline::{ActionState, Timeline};
 use crate::sim2::attack::{Attack, WeaponAttack};
-use crate::sim2::types::{DamageType, CharacterAction, WeaponType, FieldEnergy, Preference, Vision, GearScore, NOBLESSE_OBLIGE, TENACITY_OF_THE_MILLELITH};
+use crate::sim2::types::{DamageType, CharacterAction, WeaponType, FieldEnergy, Preference, Vision, GearScore, SCORE, NOBLESSE_OBLIGE, TENACITY_OF_THE_MILLELITH};
 use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReaction};
 use crate::sim2::record::{CharacterData, Artifact, Enemy};
 
 use DamageType::*;
-
-const SCORE: GearScore = GearScore { score: 140.0 };
 
 #[derive(Debug)]
 pub enum ArtifactUnion {
@@ -19,7 +17,6 @@ pub enum ArtifactUnion {
     CrimsonWitchOfFlames(CrimsonWitchOfFlames),
     CrimsonWitchOfFlamesHp(CrimsonWitchOfFlamesHp),
     NoblesseOblige(NoblesseOblige),
-    Gfno(Gfno),
     GladiatorsFinale(GladiatorsFinale),
     GladiatorsFinaleDef(GladiatorsFinaleDef),
     WanderersTroupe(WanderersTroupe),
@@ -29,8 +26,8 @@ pub enum ArtifactUnion {
     Lavawalker(Lavawalker),
     LavawalkerHp(LavawalkerHp),
     Gfelm(Gfelm),
-    GfelmEr(GfelmEr),
-    GfelmEr2(GfelmEr2),
+    Gfelm1(Gfelm1),
+    Gfelm2(Gfelm2),
     GfelmHpCr(GfelmHpCr),
     BlizzardStrayer(BlizzardStrayer),
     HeartOfDepth(HeartOfDepth),
@@ -41,7 +38,6 @@ pub enum ArtifactUnion {
     GfShimenawa(GfShimenawa),
     EmblemOfSeveredFate(EmblemOfSeveredFate),
     EmblemOfSeveredFateER(EmblemOfSeveredFateER),
-    EmblemOfSeveredFateER2(EmblemOfSeveredFateER2),
 }
 
 impl ArtifactUnion {
@@ -56,7 +52,6 @@ impl ArtifactUnion {
             CrimsonWitchOfFlames(x) => x,
             CrimsonWitchOfFlamesHp(x) => x,
             NoblesseOblige(x) => x,
-            Gfno(x) => x,
             GladiatorsFinale(x) => x,
             GladiatorsFinaleDef(x) => x,
             WanderersTroupe(x) => x,
@@ -66,8 +61,8 @@ impl ArtifactUnion {
             Lavawalker(x) => x,
             LavawalkerHp(x) => x,
             Gfelm(x) => x,
-            GfelmEr(x) => x,
-            GfelmEr2(x) => x,
+            Gfelm1(x) => x,
+            Gfelm2(x) => x,
             GfelmHpCr(x) => x,
             BlizzardStrayer(x) => x,
             HeartOfDepth(x) => x,
@@ -78,7 +73,6 @@ impl ArtifactUnion {
             GfShimenawa(x) => x,
             EmblemOfSeveredFate(x) => x,
             EmblemOfSeveredFateER(x) => x,
-            EmblemOfSeveredFateER2(x) => x,
         }
     }
 
@@ -93,7 +87,6 @@ impl ArtifactUnion {
             CrimsonWitchOfFlames(x) => x,
             CrimsonWitchOfFlamesHp(x) => x,
             NoblesseOblige(x) => x,
-            Gfno(x) => x,
             GladiatorsFinale(x) => x,
             GladiatorsFinaleDef(x) => x,
             WanderersTroupe(x) => x,
@@ -103,8 +96,8 @@ impl ArtifactUnion {
             Lavawalker(x) => x,
             LavawalkerHp(x) => x,
             Gfelm(x) => x,
-            GfelmEr(x) => x,
-            GfelmEr2(x) => x,
+            Gfelm1(x) => x,
+            Gfelm2(x) => x,
             GfelmHpCr(x) => x,
             BlizzardStrayer(x) => x,
             HeartOfDepth(x) => x,
@@ -115,7 +108,6 @@ impl ArtifactUnion {
             GfShimenawa(x) => x,
             EmblemOfSeveredFate(x) => x,
             EmblemOfSeveredFateER(x) => x,
-            EmblemOfSeveredFateER2(x) => x,
         }
     }
 }
@@ -130,7 +122,6 @@ pub fn all() -> Vec<(Artifact, ArtifactUnion)> {
     (CrimsonWitchOfFlames::record(), ArtifactUnion::CrimsonWitchOfFlames(CrimsonWitchOfFlames::new())),
     (CrimsonWitchOfFlamesHp::record(), ArtifactUnion::CrimsonWitchOfFlamesHp(CrimsonWitchOfFlamesHp::new())),
     (NoblesseOblige::record(), ArtifactUnion::NoblesseOblige(NoblesseOblige::new())),
-    (Gfno::record(), ArtifactUnion::Gfno(Gfno)),
     (GladiatorsFinale::record(), ArtifactUnion::GladiatorsFinale(GladiatorsFinale::new())),
     (GladiatorsFinaleDef::record(), ArtifactUnion::GladiatorsFinaleDef(GladiatorsFinaleDef::new())),
     (WanderersTroupe::record(), ArtifactUnion::WanderersTroupe(WanderersTroupe)),
@@ -140,8 +131,8 @@ pub fn all() -> Vec<(Artifact, ArtifactUnion)> {
     (Lavawalker::record(), ArtifactUnion::Lavawalker(Lavawalker::new())),
     (LavawalkerHp::record(), ArtifactUnion::LavawalkerHp(LavawalkerHp::new())),
     (Gfelm::record(), ArtifactUnion::Gfelm(Gfelm)),
-    (GfelmEr::record(), ArtifactUnion::GfelmEr(GfelmEr)),
-    (GfelmEr2::record(), ArtifactUnion::GfelmEr2(GfelmEr2)),
+    (Gfelm1::record(), ArtifactUnion::Gfelm1(Gfelm1)),
+    (Gfelm2::record(), ArtifactUnion::Gfelm2(Gfelm2)),
     (GfelmHpCr::record(), ArtifactUnion::GfelmHpCr(GfelmHpCr)),
     (BlizzardStrayer::record(), ArtifactUnion::BlizzardStrayer(BlizzardStrayer::new())),
     (HeartOfDepth::record(), ArtifactUnion::HeartOfDepth(HeartOfDepth::new())),
@@ -152,7 +143,6 @@ pub fn all() -> Vec<(Artifact, ArtifactUnion)> {
     (GfShimenawa::record(), ArtifactUnion::GfShimenawa(GfShimenawa)),
     (EmblemOfSeveredFate::record(), ArtifactUnion::EmblemOfSeveredFate(EmblemOfSeveredFate::new())),
     (EmblemOfSeveredFateER::record(), ArtifactUnion::EmblemOfSeveredFateER(EmblemOfSeveredFateER::new())),
-    (EmblemOfSeveredFateER2::record(), ArtifactUnion::EmblemOfSeveredFateER2(EmblemOfSeveredFateER2::new())),
     ]
 }
 
@@ -166,7 +156,7 @@ impl WeaponAttack for Bcpf {}
 impl Bcpf {
     pub fn record() -> Artifact {
         Artifact::default()
-            .name("BCPF Physical 50%")
+            .name("BCPF Physical 50")
             .version(1.0)
             .preference(&[Preference::Physical])
             .physical_dmg(50.0)
@@ -503,34 +493,12 @@ impl WeaponAttack for NoblesseOblige {
     }
 }
 
-
 #[derive(Debug)]
-pub struct Gfno;
-
-impl Timeline for Gfno {}
-
-impl WeaponAttack for Gfno {}
-
-impl Gfno {
-    pub fn record() -> Artifact {
-        Artifact::default()
-            .name("GFNO ATK 18% Burst 20%")
-            .version(1.0)
-            .preference(&[Preference::Supporter])
-            .burst_dmg(20.0)
-            .atk(18.0 + SCORE.atk(40.0)).cr(SCORE.cr(60.0))
-    }
-}
-
-#[derive(Debug)]
-pub struct GladiatorsFinale {
-    bonus: f32,
-    checked: bool,
-}
+pub struct GladiatorsFinale {}
 
 impl GladiatorsFinale {
     pub fn new() -> Self {
-        Self { bonus: 0.0, checked: false }
+        Self {}
     }
 
     pub fn record() -> Artifact {
@@ -548,11 +516,11 @@ impl Timeline for GladiatorsFinale {}
 impl WeaponAttack for GladiatorsFinale {}
 
 #[derive(Debug)]
-pub struct GladiatorsFinaleDef(GladiatorsFinale);
+pub struct GladiatorsFinaleDef {}
 
 impl GladiatorsFinaleDef {
     fn new() -> Self {
-        Self(GladiatorsFinale::new())
+        Self {}
     }
 
     pub fn record() -> Artifact {
@@ -722,7 +690,7 @@ impl WeaponAttack for Gfelm {}
 impl Gfelm {
     pub fn record() -> Artifact {
         Artifact::default()
-            .name("GFElem ATK 18% DMG 15%")
+            .name("GFElem ATK 18 DMG 15")
             .version(1.0)
             .preference(&[])
             .elemental_dmg(15.0)
@@ -731,38 +699,38 @@ impl Gfelm {
 }
 
 #[derive(Debug)]
-pub struct GfelmEr;
+pub struct Gfelm1;
 
-impl Timeline for GfelmEr {}
+impl Timeline for Gfelm1 {}
 
-impl WeaponAttack for GfelmEr {}
+impl WeaponAttack for Gfelm1 {}
 
-impl GfelmEr {
+impl Gfelm1 {
     pub fn record() -> Artifact {
         Artifact::default()
-            .name("GFElem ATK88% CR46% ER77% DMG 15%")
+            .name("GFElem ATK88 CR46 Em280 DMG15")
             .version(1.0)
             .preference(&[])
             .elemental_dmg(15.0)
-            .atk(18.0 + SCORE.atk(33.3333)).cr(SCORE.cr(33.3333)).er(SCORE.er(33.3333))
+            .atk(18.0 + SCORE.atk(33.3333)).cr(SCORE.cr(33.3333)).em(SCORE.em(33.3333))
     }
 }
 
 #[derive(Debug)]
-pub struct GfelmEr2;
+pub struct Gfelm2;
 
-impl Timeline for GfelmEr2 {}
+impl Timeline for Gfelm2 {}
 
-impl WeaponAttack for GfelmEr2 {}
+impl WeaponAttack for Gfelm2 {}
 
-impl GfelmEr2 {
+impl Gfelm2 {
     pub fn record() -> Artifact {
         Artifact::default()
-            .name("GFElem ATK70% CR35% ER116% DMG 15%")
+            .name("GFElem ATK70 CR35 Em420 DMG15")
             .version(1.0)
             .preference(&[])
             .elemental_dmg(15.0)
-            .atk(18.0 + SCORE.atk(25.0)).cr(SCORE.cr(25.0)).er(SCORE.er(50.0))
+            .atk(18.0 + SCORE.atk(25.0)).cr(SCORE.cr(25.0)).em(SCORE.em(50.0))
     }
 }
 
@@ -776,7 +744,7 @@ impl WeaponAttack for GfelmHpCr {}
 impl GfelmHpCr {
     pub fn record() -> Artifact {
         Artifact::default()
-            .name("GFE HP 105% ATK 105% DMG 15%")
+            .name("GFE HP 105 ATK 105 DMG15")
             .version(1.0)
             .preference(&[Preference::Hydro])
             .elemental_dmg(15.0)
@@ -785,8 +753,7 @@ impl GfelmHpCr {
 }
 
 #[derive(Debug)]
-pub struct BlizzardStrayer {
-}
+pub struct BlizzardStrayer {}
 
 impl BlizzardStrayer {
     pub fn record() -> Artifact {
@@ -1052,7 +1019,7 @@ impl WeaponAttack for GfShimenawa {}
 impl GfShimenawa {
     pub fn record() -> Artifact {
         Artifact::default()
-            .name("GFShimenawa ATK 36%")
+            .name("GFShimenawa ATK 36")
             .version(2.0)
             .preference(&[])
             .atk(36.0 + SCORE.atk(40.0)).cr(SCORE.cr(60.0))
@@ -1103,13 +1070,12 @@ impl WeaponAttack for EmblemOfSeveredFate {
 }
 
 #[derive(Debug)]
-pub struct EmblemOfSeveredFateER {
-}
+pub struct EmblemOfSeveredFateER {}
 
 impl EmblemOfSeveredFateER {
     pub fn record() -> Artifact {
         Artifact::default()
-            .name("EoSF ATK70% CR47% ER77%")
+            .name("EoSF ATK70 CR47 ER77")
             .version(2.0)
             .preference(&[])
             .er(20.0 + SCORE.er(33.3333))
@@ -1132,37 +1098,6 @@ impl WeaponAttack for EmblemOfSeveredFateER {
     }
 }
 
-#[derive(Debug)]
-pub struct EmblemOfSeveredFateER2 {
-}
-
-impl EmblemOfSeveredFateER2 {
-    pub fn record() -> Artifact {
-        Artifact::default()
-            .name("EoSF ATK52% CR35% ER136%")
-            .version(2.0)
-            //(ODO both attacker and supporter)
-            .preference(&[Preference::Supporter])
-            .er(20.0 + SCORE.er(50.0))
-            .atk(SCORE.atk(25.0)).cr(SCORE.cr(25.0))
-    }
-
-    pub fn new() -> Self {
-        Self {
-        }
-    }
-}
-
-impl Timeline for EmblemOfSeveredFateER2 {}
-
-impl WeaponAttack for EmblemOfSeveredFateER2 {
-    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        if attack.idx == data.idx && attack.kind == Burst {
-            emblem_of_severed_fate(action_state, state);
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1173,14 +1108,25 @@ mod tests {
     use crate::sim2::simulate::History;
     use crate::sim2::element::{ElementalGauge, ElementalGaugeDecay};
     use crate::sim2::types::{Vision};
+    use crate::sim2::attack::{DamageResultUtil};
     use crate::sim2::timeline::{ActionColumn, Timeline};
     use crate::sim2::record::{WeaponRecord, Artifact, FieldMember, TimelineMember};
+    use crate::sim2::training;
 
     use Vision::*;
 
     // #[test]
     // fn name() {
-    //     println!("{:?}", Gfelm::record().state);
+    //     println!("{:?}", training::TrainingArtifact0::record());
+    //     println!("{:?}", training::TrainingArtifact1::record());
+    //     println!("{:?}", training::TrainingArtifact2::record());
+    //     println!("{:?}", training::TrainingArtifact3::record());
+    //     println!("{:?}", training::TrainingArtifact4::record());
+    //     println!("{:?}", training::TrainingArtifact5::record());
+    //     println!("{:?}", training::TrainingArtifact6::record());
+    //     // println!("{:?}", training::TrainingArtifact7::record());
+    //     // println!("{:?}", training::TrainingArtifact8::record());
+    //     // println!("{:?}", training::TrainingArtifact9::record());
     //     assert!(false);
     // }
 
@@ -1246,7 +1192,7 @@ mod tests {
             artifact: &mut artifact2,
         }];
 
-        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect: f32 = 1.2 * (8.*100. + 2.*200. + 2.*300.);
         assert_eq!(dmg.floor(), expect.floor());
     }
@@ -1276,7 +1222,7 @@ mod tests {
             artifact: &mut artifact2,
         }];
 
-        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect: f32 = 1.2 * (8.*100. + 2.*200. + 2.*300.);
         assert_eq!(dmg.floor(), expect.floor());
     }
@@ -1358,7 +1304,7 @@ mod tests {
         let wr = WeaponRecord::default();
         let ar = Artifact::default();
         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
-        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = (
             // na
             15.*100.*1.09 + 2.*100.*1.18 +
@@ -1400,7 +1346,7 @@ mod tests {
             weapon: &mut weapon,
             artifact: &mut artifact,
         }; 1];
-        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = (
             // na
             25.*100.*1.5 + 5.*100. +

@@ -2,7 +2,7 @@ use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterInde
 use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReaction, PYRO_GAUGE1A, HYDRO_GAUGE1A, ELECTRO_GAUGE1A, CRYO_GAUGE1A, PHYSICAL_GAUGE};
 use crate::sim2::state::State;
 use crate::sim2::timeline::Timeline;
-use crate::sim2::attack::{CharacterAttack, WeaponAttack};
+use crate::sim2::attack::{Attack, CharacterAttack, WeaponAttack};
 
 #[derive(Debug)]
 pub struct CharacterRecord {
@@ -421,6 +421,16 @@ impl Enemy {
             Vision::Electro => &ELECTRO_GAUGE1A,
             Vision::Cryo => &CRYO_GAUGE1A,
             _ => &PHYSICAL_GAUGE,
+        }
+    }
+
+    pub fn undergo_reaction(&mut self, attack: &Attack, elemental_reaction: &ElementalReactionType) -> () {
+        use ElementalReactionType::*;
+        self.aura.trigger2(attack.time, &mut self.aura_time, &attack.element);
+        match &elemental_reaction {
+            Freeze(_) => self.isfrozen = true,
+            Superconduct(_) => self.superconduct_time = attack.time,
+            _ => (),
         }
     }
 

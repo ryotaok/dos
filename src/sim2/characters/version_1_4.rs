@@ -68,8 +68,8 @@ impl CharacterAttack for Rosaria {
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         atk_queue.add_burst(187.2, &CRYO_GAUGE1A, time, event, data, state);
         atk_queue.add_burst(273.6, &CRYO_GAUGE1A, time+0.1111, event, data, state);
-        for i in 0..4 {
-            atk_queue.add_burst(237.6, &CRYO_GAUGE1A, time, event, data, state);
+        for i in 1..5 {
+            atk_queue.add_burst(237.6, &CRYO_GAUGE1A, time + (2 * i) as f32, event, data, state);
         }
     }
 

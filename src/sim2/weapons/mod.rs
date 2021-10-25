@@ -532,6 +532,7 @@ mod tests {
     use crate::sim2::simulate::History;
     use crate::sim2::element::{ElementalGauge, ElementalGaugeDecay};
     use crate::sim2::types::{CharacterAction, Vision};
+    use crate::sim2::attack::{DamageResultUtil};
     use crate::sim2::timeline::{ActionState, Timeline};
     use crate::sim2::record::{WeaponRecord, Artifact, CharacterData, FieldMember, TimelineMember, Enemy};
 
@@ -555,7 +556,7 @@ mod tests {
         let wr = WeaponRecord::default();
         let ar = Artifact::default();
         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
-        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = (
             // na
             14.*100.*1.32 + 100.*1.24 + 100.*1.16 + 100.*1.08 +
@@ -583,7 +584,7 @@ mod tests {
         let wr = WeaponRecord::default();
         let ar = Artifact::default();
         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
-        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = (
             // flute
             200. +
@@ -613,7 +614,7 @@ mod tests {
         let wr = WeaponRecord::default();
         let ar = Artifact::default();
         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
-        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = (
             // prototype_archaic
             480. +
@@ -643,7 +644,7 @@ mod tests {
         let wr = WeaponRecord::default();
         let ar = Artifact::default().physical_dmg(10.).na_dmg(10.);
         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
-        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = (
             // prototype_archaic
             480.*1.1 +
@@ -699,7 +700,7 @@ mod tests {
             weapon: &mut weapon,
             artifact: &mut artifact,
         }; 1];
-        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = (
             // skywardblade
             10.*20. +
@@ -737,7 +738,7 @@ mod tests {
             weapon: &mut weapon,
             artifact: &mut artifact,
         }; 1];
-        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = (
             // na
             3.*100. + 15.*120. +

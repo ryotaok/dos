@@ -171,6 +171,8 @@ impl PolarStar {
             .base_atk(608.0)
             .cr(33.1)
             .skill_dmg(12.0).burst_dmg(12.0)
+            // .skill_dmg(18.0).burst_dmg(18.0)
+            // .skill_dmg(24.0).burst_dmg(24.0)
     }
 
     pub fn new() -> Self {
@@ -214,6 +216,14 @@ impl WeaponAttack for PolarStar {
                 3 => state.atk += 30.0,
                 2 => state.atk += 20.0,
                 1 => state.atk += 10.0,
+                // 4 => state.atk += 72.0,
+                // 3 => state.atk += 45.0,
+                // 2 => state.atk += 30.0,
+                // 1 => state.atk += 15.0,
+                // 4 => state.atk += 96.0,
+                // 3 => state.atk += 60.0,
+                // 2 => state.atk += 40.0,
+                // 1 => state.atk += 20.0,
                 _ => (),
             }
         }
@@ -229,7 +239,7 @@ impl WeaponAttack for PolarStar {
 
 pub struct PolarStarSword(PolarStar);
 impl PolarStarSword {
-    pub fn record() -> WeaponRecord { PolarStar::record().type_(Sword).name("Polar Star (Sword)") }
+    pub fn record() -> WeaponRecord { PolarStar::record().type_(Sword).name("Polar Star (Sword)").version(99.) }
     pub fn new() -> Self { Self(PolarStar::new()) }
 }
 impl Timeline for PolarStarSword {}
@@ -240,7 +250,7 @@ impl WeaponAttack for PolarStarSword {
 
 pub struct PolarStarClaymore(PolarStar);
 impl PolarStarClaymore {
-    pub fn record() -> WeaponRecord { PolarStar::record().type_(Claymore).name("Polar Star (Claymore)") }
+    pub fn record() -> WeaponRecord { PolarStar::record().type_(Claymore).name("Polar Star (Claymore)").version(99.) }
     pub fn new() -> Self { Self(PolarStar::new()) }
 }
 impl Timeline for PolarStarClaymore {}
@@ -251,7 +261,7 @@ impl WeaponAttack for PolarStarClaymore {
 
 pub struct PolarStarPolearm(PolarStar);
 impl PolarStarPolearm {
-    pub fn record() -> WeaponRecord { PolarStar::record().type_(Polearm).name("Polar Star (Polearm)") }
+    pub fn record() -> WeaponRecord { PolarStar::record().type_(Polearm).name("Polar Star (Polearm)").version(99.) }
     pub fn new() -> Self { Self(PolarStar::new()) }
 }
 impl Timeline for PolarStarPolearm {}
@@ -262,7 +272,7 @@ impl WeaponAttack for PolarStarPolearm {
 
 pub struct PolarStarCatalyst(PolarStar);
 impl PolarStarCatalyst {
-    pub fn record() -> WeaponRecord { PolarStar::record().type_(Catalyst).name("Polar Star (Catalyst)") }
+    pub fn record() -> WeaponRecord { PolarStar::record().type_(Catalyst).name("Polar Star (Catalyst)").version(99.) }
     pub fn new() -> Self { Self(PolarStar::new()) }
 }
 impl Timeline for PolarStarCatalyst {}

@@ -5,6 +5,105 @@ use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReact
 use crate::sim2::record::{CharacterData, Enemy};
 
 #[derive(Debug)]
+pub struct DamageResult {
+    pub name: &'static str,
+    pub kind: DamageType,
+    pub time: f32,
+
+    // // outgoing power
+    // pub atk: f32,
+    // pub bonus: f32,
+    // pub crcd: f32,
+    // pub multiplier: f32,
+    // // incoming power
+    // pub defense: f32,
+    // pub resistance: f32,
+
+    // outgoing and incoming damage
+    pub damage: f32,
+
+    // damage of reaction
+    pub reaction: f32,
+}
+
+impl DamageResult {
+    pub fn new(attack: Attack, state: &State, data: &CharacterData, enemy: &mut Enemy) -> Self {
+        if attack.aura_application {
+            Self::reaction(attack, state, data, enemy)
+        } else {
+            Self::without_reaction(attack, state, data, enemy)
+        }
+    }
+
+    pub fn reaction(attack: Attack, state: &State, data: &CharacterData, enemy: &mut Enemy) -> Self {
+        use ElementalReactionType::*;
+        let atk = attack.atk(state, data.character.name);
+        let bonus = attack.bonus(state);
+        let crcd = state.CRCD();
+        let multiplier = attack.multiplier(state);
+        let defense = attack.defense(&enemy);
+        let resistance = attack.resistance(&enemy);
+        let damage = atk * bonus * crcd * multiplier * defense * resistance;
+        let elemental_reaction = ElementalReaction::new(enemy.aura.aura, attack.element.aura);
+        let reaction = match elemental_reaction {
+            Overloaded(ref er) |
+            Shatter(ref er) |
+            ElectorCharged(ref er) |
+            Superconduct(ref er) |
+            Swirl(ref er) => enemy.resistance(attack.time, &er.attack) * er.transformative_reaction(state.em, state.transformative_bonus),
+            Vaporize(ref er) |
+            Melt(ref er) => damage * er.amplifying_reaction(state.em, state.amplifying_bonus),
+            Crystallize(_) |
+            Equalize(_) |
+            Freeze(_) |
+            Burn(_) |
+            Neutralize(_) => 0.,
+        };
+        enemy.undergo_reaction(&attack, &elemental_reaction);
+        let Attack { kind, time, idx, .. } = attack;
+        Self {
+            name: data.character.name,
+            kind, time,
+            damage, reaction,
+        }
+    }
+
+    pub fn without_reaction(attack: Attack, state: &State, data: &CharacterData, enemy: &mut Enemy) -> Self {
+        let atk = attack.atk(state, data.character.name);
+        let bonus = attack.bonus(state);
+        let crcd = state.CRCD();
+        let multiplier = attack.multiplier(state);
+        let defense = attack.defense(&enemy);
+        let resistance = attack.resistance(&enemy);
+        let Attack { kind, time, idx, .. } = attack;
+        Self {
+            name: data.character.name,
+            kind, time,
+            damage: atk * bonus * crcd * multiplier * defense * resistance,
+            reaction: 0.
+        }
+    }
+
+    pub fn total_damage(&self) -> f32 {
+        self.damage + self.reaction
+    }
+}
+
+pub trait DamageResultUtil {
+    fn total_damage(&self) -> f32;
+}
+
+impl DamageResultUtil for Vec<DamageResult> {
+    fn total_damage(&self) -> f32 {
+        let mut total = 0.;
+        for i in self.iter() {
+            total += i.damage + i.reaction;
+        }
+        total
+    }
+}
+
+#[derive(Debug)]
 pub struct Attack {
     // type of this `Attack`. For example, Xiangling's skill summons Guoba to
     // deal DoT Pyro DMG. since these damages are created by her skill, the
@@ -25,54 +124,29 @@ pub struct Attack {
 }
 
 impl Attack {
-    pub fn outgoing_damage(&self, state: &State, data: &CharacterData) -> f32 {
-        let bonus = state.DMG_bonus(&self.kind, &self.element.aura);
-        let crcd = state.CRCD();
-        let atk = match (data.character.name, &self.kind) {
+    pub fn atk(&self, state: &State, name: &str) -> f32 {
+        match (name, &self.kind) {
             ("Albedo", DamageType::Skill) |
             ("Noelle", DamageType::Skill) => state.DEF(),
             _ => state.ATK(),
-        };
-        let power = atk * bonus * crcd;
-        self.multiplier / 100.0 * power * state.get_talent_bonus(&self.kind)
+        }
     }
 
-    pub fn incoming_damage(&self, outgoing_damage: f32, state: &State, data: &CharacterData, enemy: &mut Enemy) -> f32 {
+    pub fn bonus(&self, state: &State) -> f32 {
+        state.DMG_bonus(&self.kind, &self.element.aura)
+    }
+
+    pub fn multiplier(&self, state: &State) -> f32 {
+        self.multiplier / 100.0 * state.get_talent_bonus(&self.kind)
+    }
+
+    pub fn defense(&self, enemy: &Enemy) -> f32 {
         let def_down = 1.0 - enemy.def_down / 100.0;
-        let enemy_defense = enemy.level / (enemy.level * def_down + enemy.level);
-        let resistance = enemy.resistance(self.time, &self.element.aura);
-        let dmg = outgoing_damage * resistance * enemy_defense;
-        if self.aura_application {
-            self.elemental_reaction(dmg, resistance, state, data, enemy)
-        } else {
-            dmg
-        }
+        enemy.level / (enemy.level * def_down + enemy.level)
     }
 
-    pub fn elemental_reaction(&self, outgoing_damage: f32, resistance: f32, state: &State, data: &CharacterData, enemy: &mut Enemy) -> f32 {
-        use ElementalReactionType::*;
-        let elemental_reaction = ElementalReaction::new(enemy.aura.aura, self.element.aura);
-        let dmg = match elemental_reaction {
-            Overloaded(ref er) |
-            Shatter(ref er) |
-            ElectorCharged(ref er) |
-            Superconduct(ref er) |
-            Swirl(ref er) => outgoing_damage + enemy.resistance(self.time, &er.attack) * er.transformative_reaction(state.em, state.transformative_bonus),
-            Vaporize(ref er) |
-            Melt(ref er) => outgoing_damage * er.amplifying_reaction(state.em, state.amplifying_bonus),
-            Crystallize(_) |
-            Equalize(_) |
-            Freeze(_) |
-            Burn(_) |
-            Neutralize(_) => outgoing_damage,
-        };
-        enemy.aura.trigger2(self.time, &mut enemy.aura_time, &self);
-        match &elemental_reaction {
-            Freeze(_) => enemy.isfrozen = true,
-            Superconduct(_) => enemy.superconduct_time = self.time,
-            _ => (),
-        }
-        dmg
+    pub fn resistance(&self, enemy: &Enemy) -> f32 {
+        enemy.resistance(self.time, &self.element.aura)
     }
 }
 

@@ -63,7 +63,7 @@ impl ElementalGauge {
         }
     }
 
-    pub fn trigger2(&mut self, time: f32, last_time: &mut f32, attack: &Attack) -> () {
+    pub fn trigger2(&mut self, time: f32, last_time: &mut f32, other: &ElementalGauge) -> () {
         // decay over time
         if self.aura != Physical {
             self.unit -= (time - *last_time) / self.decay.decay_rate_conversion();
@@ -75,7 +75,6 @@ impl ElementalGauge {
         }
 
         // reaction
-        let other = &attack.element;
         let er = ElementalReaction::new(self.aura, other.aura);
         match (&er, &other.aura) {
             // + incoming attack adds the aura
@@ -222,15 +221,15 @@ impl ElementalReaction {
             (Physical, Physical)=> Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
             (Physical, _)       => Equalize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
             (Pyro, Pyro)        => Equalize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
-            (Pyro, Hydro)       => Vaporize(Self { enemy_aura, trigger, attack: trigger, rm: 2.0 }),
+            (Pyro, Hydro)       => Vaporize(Self { enemy_aura, trigger, attack: trigger, rm: 1.0 }),
             (Pyro, Electro)     => Overloaded(Self { enemy_aura, trigger, attack: Pyro, rm: 4.0 }),
-            (Pyro, Cryo)        => Melt(Self { enemy_aura, trigger, attack: trigger, rm: 1.5 }),
+            (Pyro, Cryo)        => Melt(Self { enemy_aura, trigger, attack: trigger, rm: 0.5 }),
             (Pyro, Anemo)       => Swirl(Self { enemy_aura, trigger, attack: Pyro, rm: 1.2 }),
             (Pyro, Geo)         => Crystallize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
             (Pyro, Dendro)      => Burn(Self { enemy_aura, trigger, attack: Pyro, rm: 1.0 }),
             (Pyro, Physical)    => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
 
-            (Hydro, Pyro)       => Vaporize(Self { enemy_aura, trigger, attack: trigger, rm: 1.5 }),
+            (Hydro, Pyro)       => Vaporize(Self { enemy_aura, trigger, attack: trigger, rm: 0.5 }),
             (Hydro, Hydro)      => Equalize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
             (Hydro, Electro)    => ElectorCharged(Self { enemy_aura, trigger, attack: Electro, rm: 2.4 }),
             (Hydro, Cryo)       => Freeze(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
@@ -248,7 +247,7 @@ impl ElementalReaction {
             (Electro, Dendro)   => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
             (Electro, Physical) => Neutralize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
 
-            (Cryo, Pyro)        => Melt(Self { enemy_aura, trigger, attack: trigger, rm: 2.0 }),
+            (Cryo, Pyro)        => Melt(Self { enemy_aura, trigger, attack: trigger, rm: 1.0 }),
             (Cryo, Hydro)       => Freeze(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),
             (Cryo, Electro)     => Superconduct(Self { enemy_aura, trigger, attack: Cryo, rm: 1.0 }),
             (Cryo, Cryo)        => Equalize(Self { enemy_aura, trigger, attack: trigger, rm: 0.0 }),

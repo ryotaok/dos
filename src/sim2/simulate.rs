@@ -1,6 +1,6 @@
 use crate::sim2::state::State;
 use crate::sim2::timeline::ActionState;
-use crate::sim2::attack::{Attack, CharacterAttack, WeaponAttack};
+use crate::sim2::attack::{Attack, DamageResult, CharacterAttack, WeaponAttack};
 use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, FieldEnergy};
 use crate::sim2::record::{TimelineMember, FieldMember, CharacterData, Enemy};
 
@@ -73,7 +73,7 @@ pub fn decide_action<const N: usize>(history: &mut History<N>, members: &mut [Ti
     }
 }
 
-pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut [FieldMember; N], data: &[CharacterData; N], enemy: &mut Enemy) -> f32 {
+pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut [FieldMember; N], data: &[CharacterData; N], enemy: &mut Enemy) -> Vec<DamageResult> {
     let mut atk_queue: Vec<Attack> = Vec::new();
     let mut states = [State::default(); N];
     for i in 0..N {
@@ -93,8 +93,8 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
         // member.artifact.reset_attack();
     }
     atk_queue.sort_unstable_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
-    let mut total_dmg = 0.0;
-    for attack in atk_queue.iter_mut() {
+    let mut result: Vec<DamageResult> = Vec::with_capacity(atk_queue.len());
+    for mut attack in atk_queue.into_iter() {
         // No states can be used to simulate attacks exceeding `end_time`.
         if attack.time > history.end_time {
             break;
@@ -106,16 +106,19 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
             let d = &data[i];
             let member = &mut members[i];
             let action_state = &history.state[history.state_index(attack.time)][i];
-            member.character.modify(action_state, d, attack, state, enemy);
-            member.weapon.modify(action_state, d, attack, state, enemy);
-            member.artifact.modify(action_state, d, attack, state, enemy);
+            member.character.modify(action_state, d, &mut attack, state, enemy);
+            member.weapon.modify(action_state, d, &mut attack, state, enemy);
+            member.artifact.modify(action_state, d, &mut attack, state, enemy);
         }
-        // then change enemy state (within fn elemental_reaction)
-        let dmg = attack.outgoing_damage(&states[attack.idx.0], &data[attack.idx.0]);
-        // println!("{:?} {:?} {:?}", attack.time, attack.kind, dmg / 2.);
-        total_dmg += attack.incoming_damage(dmg, &states[attack.idx.0], &data[attack.idx.0], enemy);
+        // // then change enemy state (within fn elemental_reaction)
+        // let dmg = attack.outgoing_damage(&states[attack.idx.0], &data[attack.idx.0]);
+        // // println!("{:?} {:?} {:?}", attack.time, attack.kind, dmg / 2.);
+        // total_dmg += attack.incoming_damage(dmg, &states[attack.idx.0], &data[attack.idx.0], enemy);
+        let state = &states[attack.idx.0];
+        let d = &data[attack.idx.0];
+        result.push(DamageResult::new(attack, state, d, enemy));
     }
-    total_dmg
+    result
 }
 
 #[cfg(test)]
@@ -126,6 +129,7 @@ mod tests {
     use crate::sim2::testutil::{Sim2TestCharacter, NoopTimeline};
     use crate::sim2::element::{ElementalGauge, ElementalGaugeDecay};
     use crate::sim2::types::{Vision};
+    use crate::sim2::attack::{DamageResultUtil};
     use crate::sim2::timeline::{ActionColumn, Timeline};
     use crate::sim2::record::{WeaponRecord, Artifact};
 
@@ -171,7 +175,7 @@ mod tests {
         let wr = WeaponRecord::default();
         let ar = Artifact::default();
         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
-        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = 17.*100. + 2.*200. + 1.*300.;
         assert_eq!(dmg, expect);
     }
@@ -192,7 +196,7 @@ mod tests {
         let wr = WeaponRecord::default();
         let ar = Artifact::default().pyro_dmg(50.0);
         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
-        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = 17.*100. + 2.*200.*1.5 + 1.*300.*1.5;
         assert_eq!(dmg, expect);
     }
@@ -213,7 +217,7 @@ mod tests {
         let wr = WeaponRecord::default();
         let ar = Artifact::default().pyro_dmg(50.0);
         let mut data = [CharacterData::new(0, &cr, &wr, &ar); 1];
-        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = 1.5 * (17.*100. + 2.*200. + 1.*300.);
         assert_eq!(dmg, 3600.0);
     }
@@ -239,7 +243,7 @@ mod tests {
             unit: 1.,
             decay: ElementalGaugeDecay::A,
         };
-        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         // two vaporize by burst and the 1st skill, aura application by the 2nd
         // skill
         let expect = 17.*100. + 200. + 200.*1.5 + 1.*300.*1.5;
@@ -268,7 +272,7 @@ mod tests {
             unit: 1.,
             decay: ElementalGaugeDecay::A,
         };
-        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = 17.*100. + 2.*200. + 1.*300.*2.;
         assert_eq!(dmg, expect);
         assert_eq!(enemy.aura.aura, Pyro);
@@ -295,7 +299,7 @@ mod tests {
             unit: 1.,
             decay: ElementalGaugeDecay::A,
         };
-        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect: f32 = 17.*100.*1.2 + 2.*200. + 1.*300. + 725.36;
         assert_eq!(dmg.floor(), expect.floor());
         assert_eq!(enemy.aura.aura, Cryo);
@@ -387,7 +391,7 @@ mod tests {
             artifact: &mut artifact2,
         }];
 
-        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy);
+        let dmg = calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
         let expect = 8.*100. + 2.*200. + 2.*300.;
         assert_eq!(dmg, expect);
     }

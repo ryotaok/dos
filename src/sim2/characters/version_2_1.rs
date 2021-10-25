@@ -91,6 +91,7 @@ impl Timeline for RaidenShogun {
     }
 
     fn reset_timeline(&mut self) -> () {
+        self.burst_time = -99.;
         self.energy_restoration = 0;
     }
 }
@@ -334,6 +335,7 @@ impl CharacterAttack for Aloy {
     }
 
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.skill_time = time;
         atk_queue.add_skill(319.68, &CRYO_GAUGE1A, time, event, data, state);
         for i in 1..7 {
             atk_queue.add_skill(72.0, &CRYO_GAUGE1A, time + 0.5 * i as f32, event, data, state);
@@ -355,6 +357,10 @@ impl CharacterAttack for Aloy {
 
     fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         atk_queue.add_na(117.12, self.infusion(time), time, event, data, state);
+    }
+
+    fn reset_attack(&mut self) -> () {
+        self.skill_time = -99.;
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

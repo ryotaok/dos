@@ -338,7 +338,8 @@ impl CharacterAttack for Lisa {
 // When Razor's Energy is below 50%, increases Energy Recharge by 30%.
 #[derive(Debug)]
 pub struct Razor {
-    electro_sigil: u8
+    electro_sigil: u8,
+    burst_time: f32,
 }
 
 impl Razor {
@@ -352,7 +353,8 @@ impl Razor {
 
     pub fn new() -> Self {
         Self {
-            electro_sigil: 0
+            electro_sigil: 0,
+            burst_time: -99.,
         }
     }
 }
@@ -384,7 +386,7 @@ impl Timeline for Razor {
         }
         match event {
             CharacterAction::Burst => {
-                state.atk_spd += 40.;
+                self.burst_time = state.current_time;
                 // a1
                 state.reduce_skill += 20.;
             },
@@ -399,6 +401,9 @@ impl Timeline for Razor {
             },
             _ => (),
         }
+        if state.current_time - self.burst_time <= 15. {
+            state.atk_spd += 40.;
+        }
     }
 
     fn reset_timeline(&mut self) -> () {
@@ -408,10 +413,13 @@ impl Timeline for Razor {
 
 impl CharacterAttack for Razor {
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        // burst can be used if on field
         atk_queue.add_burst(288.0, &ELECTRO_GAUGE2B, time, event, data, state);
-        for i in 0..20 {
-            let t = time + 0.75 * i as f32;
-            atk_queue.add_burst(43.2, &ELECTRO_GAUGE1A, t, event, data, state);
+        if data.idx.0 == 0 {
+            for i in 0..20 {
+                let t = time + 0.75 * i as f32;
+                atk_queue.add_burst(43.2, &ELECTRO_GAUGE1A, t, event, data, state);
+            }
         }
     }
 

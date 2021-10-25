@@ -36,7 +36,8 @@ impl Tartaglia {
     }
 
     fn riptide_attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        if time - self.riptide >= 1.5 {
+        // riptide deals damage if on field
+        if data.idx.0 == 0 && time - self.riptide >= 1.5 {
             atk_queue.add_skill(119.0, &HYDRO_GAUGE1A, time, event, data, state);
             self.riptide = time;
         }

@@ -376,6 +376,8 @@ impl GearScore {
     }
 }
 
+pub const SCORE: GearScore = GearScore { score: 140.0 };
+
 #[cfg(test)]
 mod tests {
     use super::*;

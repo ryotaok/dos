@@ -106,14 +106,14 @@ pub struct SerpentSpineR5 {
 impl SerpentSpineR5 {
     pub fn record() -> WeaponRecord {
         WeaponRecord::default()
-            .name("Serpent Spine (start 3s)").type_(Claymore).version(1.0)
+            .name("Serpent Spine (start 2s)").type_(Claymore).version(1.0)
             .base_atk(510.0)
             .cr(27.6)
     }
 
     pub fn new() -> Self {
         Self {
-            stack: 3.,
+            stack: 2.,
             time: -99.,
         }
     }
@@ -136,7 +136,7 @@ impl WeaponAttack for SerpentSpineR5 {
     }
 
     fn reset_modify(&mut self) -> () {
-        self.stack = 3.;
+        self.stack = 2.;
         self.time = -99.;
     }
 }

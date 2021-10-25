@@ -32,6 +32,67 @@ use version_1_6::*;
 use version_2_0::*;
 use version_2_1::*;
 
+// // use std::hash::{Hash};
+// #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+// pub enum CharacterName {
+//     // pyro
+//     Amber,
+//     Bennett,
+//     Xiangling,
+//     Diluc,
+//     Klee,
+//     // hydro
+//     Barbara,
+//     Xingqiu,
+//     Mona,
+//     // electro
+//     Beidou,
+//     Fischl,
+//     Lisa,
+//     Razor,
+//     Keqing,
+//     // cryo
+//     Chongyun,
+//     Kaeya,
+//     Qiqi,
+//     // anemo
+//     Sucrose,
+//     TravelerAnemo,
+//     Jean,
+//     Venti,
+//     // geo
+//     Ningguang,
+//     Noelle,
+//     TravelerGeo,
+//     // version_1_1
+//     Tartaglia,
+//     Diona,
+//     Zhongli,
+//     Xinyan,
+//     // version_1_2
+//     Albedo,
+//     Ganyu,
+//     // version_1_3
+//     Xiao,
+//     HuTao,
+//     // version_1_4
+//     Rosaria,
+//     // version_1_5
+//     Yanfei,
+//     Eula,
+//     // version_1_6
+//     Kazuha,
+//     // version_2_0
+//     Ayaka,
+//     Yoimiya,
+//     Sayu,
+//     // version_2_1
+//     RaidenShogun,
+//     KujouSara,
+//     Aloy,
+//     SangonomiyaKokomi,
+// }
+
 #[derive(Debug)]
 pub enum CharacterUnion {
     // pyro

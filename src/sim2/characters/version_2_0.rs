@@ -223,6 +223,10 @@ impl CharacterAttack for Yoimiya {
         atk_queue.add_na(188.87, self.infusion(time), time, event, data, state);
     }
 
+    fn reset_attack(&mut self) -> () {
+        self.skill_time = -99.;
+    }
+
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         if action_state.did_burst() {
             self.a4_time = action_state.current_time;
