@@ -31,7 +31,7 @@ use crate::sim2::state::State;
 use crate::sim2::timeline::ActionState;
 use crate::sim2::attack::{Attack, DamageResult};
 use crate::sim2::simulate::History;
-use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, Preference};
+use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, Preference, combination_filter};
 use crate::sim2::record::{TimelineMember, FieldMember, CharacterData, CharacterRecord, WeaponRecord, Artifact, Enemy};
 
 #[derive(Debug, Eq)]
@@ -115,133 +115,6 @@ impl Recorder {
     }
 }
 
-fn combination_filter_attacker(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Artifact, args: &Args) -> bool {
-    if cr.version > args.character_version ||
-       wr.version > args.weapon_version ||
-       ar.version > args.artifact_version {
-        return false;
-    }
-
-    // check weapon
-    if cr.weapon != wr.type_ {
-        return false;
-    }
-
-    // check artifact
-    let physical_attack = ar.is_physical_goblet_user(&cr.name);
-    let mut result = if ar.preference.len() == 0 {
-        true
-    } else {
-        false
-    };
-    for p in ar.preference.iter() {
-        if p == &cr.vision
-        || (physical_attack && p == &Preference::Physical)
-        || p == &cr.weapon
-        || p == &Preference::Attacker {
-            result = true;
-            break;
-        }
-    }
-
-    result
-}
-
-fn combination_filter_supporter(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Artifact, args: &Args) -> bool {
-    if cr.version > args.character_version ||
-       wr.version > args.weapon_version ||
-       ar.version > args.artifact_version {
-        return false;
-    }
-
-    // check weapon
-    if cr.weapon != wr.type_ {
-        return false;
-    }
-
-    // check artifact
-    let mut result = if ar.preference.len() == 0 {
-        true
-    } else {
-        false
-    };
-    for p in ar.preference {
-        if *p == cr.vision
-        || *p == cr.weapon
-        || *p == Preference::Supporter {
-            result = true;
-            break;
-        }
-    }
-
-    result
-}
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn filter_1() {
-//         let c = characters::pyro::Diluc::record();
-//         let w = weapons::claymore_4star::RainslasherR5::record();
-//         let a = artifact::ViridescentVenerer::record();
-//         let args = Args::default();
-//         assert!(!combination_filter_attacker(&c, &w, &a, &args));
-//         assert!(!combination_filter_supporter(&c, &w, &a, &args));
-//     }
-
-//     #[test]
-//     fn filter_2() {
-//         let c = characters::pyro::Diluc::record();
-//         let w = weapons::claymore_4star::RainslasherR5::record();
-//         let a = artifact::GladiatorsFinale::record();
-//         let args = Args::default();
-//         assert!(combination_filter_attacker(&c, &w, &a, &args));
-//         assert!(combination_filter_supporter(&c, &w, &a, &args));
-//     }
-
-//     #[test]
-//     fn filter_3() {
-//         let c = characters::electro::Razor::record();
-//         let w = weapons::claymore_4star::RainslasherR5::record();
-//         let a = artifact::PaleFlame::record();
-//         let args = Args::default();
-//         assert!(combination_filter_attacker(&c, &w, &a, &args));
-//         // assert!(combination_filter_supporter(&c, &w, &a, &args));
-//     }
-
-//     #[test]
-//     fn filter_4() {
-//         let c = characters::electro::Razor::record();
-//         let w = weapons::claymore_4star::RainslasherR5::record();
-//         let a = artifact::ThunderingFury::record();
-//         let args = Args::default();
-//         assert!(combination_filter_attacker(&c, &w, &a, &args));
-//         assert!(combination_filter_supporter(&c, &w, &a, &args));
-//     }
-
-//     #[test]
-//     fn filter_5() {
-//         let c = characters::hydro::Xingqiu::record();
-//         let w = weapons::sword_4star::PrototypeRancourR5::record();
-//         let a = artifact::BlizzardStrayer::record();
-//         let args = Args::default();
-//         assert!(combination_filter_attacker(&c, &w, &a, &args));
-//         assert!(combination_filter_supporter(&c, &w, &a, &args));
-//     }
-
-//     #[test]
-//     fn filter_6() {
-//         let c = characters::cryo::Kaeya::record();
-//         let w = weapons::sword_4star::PrototypeRancourR5::record();
-//         let a = artifact::BlizzardStrayer::record();
-//         let args = Args::default();
-//         assert!(combination_filter_attacker(&c, &w, &a, &args));
-//         assert!(combination_filter_supporter(&c, &w, &a, &args));
-//     }
-// }
-
 fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> () {
     let input_characters: Vec<(CharacterRecord, characters::CharacterUnion)> = characters::all().drain(start..end).collect();
     let mut member1 = Permutation3::new(
@@ -250,28 +123,23 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         artifact::all(),
     );
 
-    let mut cache: HashMap<&'static str, History<1>> = HashMap::new();
     let mut items: Vec<Recorder> = Vec::new();
     for ((cr1, mut ca1), (wr1, mut wa1), (mut ar1, mut aa1)) in member1.iter() {
-        if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
+        if !combination_filter(&cr1, &wr1, &ar1, args) {
             member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
             continue;
         }
 
         let mut enemy = Enemy::hilichurl();
         let mut recorder = Recorder::new(args.simulation_time, &(&cr1, &wr1, &ar1));
-        let (init_history, mut history) = if let Some(h) = cache.remove(&cr1.name) {
-            (false, h)
-        } else {
-            (true, History::<1>::new(args.simulation_time, args.unit_time))
-        };
+        let mut history = History::<1>::new(args.simulation_time, args.unit_time);
         let dmg: Vec<DamageResult>;
 
         ar1.flat_atk = 311.;
         ar1.infuse_goblet(&cr1.vision, &cr1.name);
 
         let mut data = [CharacterData::new(0, &cr1, &wr1, &ar1); 1];
-        if init_history {
+        {
             let mut members = [TimelineMember {
                 character: ca1.timeline(),
                 weapon: wa1.timeline(),
@@ -301,7 +169,6 @@ fn permu3(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         }
 
         // destruct objects
-        cache.insert(&cr1.name, history);
         ar1.dry_goblet();
         member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
         for r in dmg.iter() {
@@ -337,7 +204,7 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
 
     let mut cache: HashMap<(&'static str,&'static str), History<2>> = HashMap::new();
     for ((cr1, mut ca1), (wr1, mut wa1), (mut ar1, mut aa1)) in member1.iter() {
-        if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
+        if !combination_filter(&cr1, &wr1, &ar1, args) {
             member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
             continue;
         }
@@ -345,7 +212,7 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         ar1.infuse_goblet(&cr1.vision, &cr1.name);
         let mut items: Vec<Recorder> = Vec::new();
         for ((cr2, mut ca2), (wr2, mut wa2), (mut ar2, mut aa2)) in member2.iter() {
-            if cr1.name == cr2.name || !combination_filter_attacker(&cr2, &wr2, &ar2, args) {
+            if cr1.name == cr2.name || !combination_filter(&cr2, &wr2, &ar2, args) {
                 member2.back(((cr2, ca2), (wr2, wa2), (ar2, aa2)));
                 continue;
             }
@@ -451,7 +318,7 @@ fn permu9(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
     );
 
     for ((cr1, mut ca1), (wr1, mut wa1), (mut ar1, mut aa1)) in member1.iter() {
-        if !combination_filter_attacker(&cr1, &wr1, &ar1, args) {
+        if !combination_filter(&cr1, &wr1, &ar1, args) {
             member1.back(((cr1, ca1), (wr1, wa1), (ar1, aa1)));
             continue;
         }
@@ -459,7 +326,7 @@ fn permu9(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
         ar1.infuse_goblet(&cr1.vision, &cr1.name);
         let mut no_dup: Vec<&'static str> = Vec::new();
         for ((cr2, mut ca2), (wr2, mut wa2), (mut ar2, mut aa2)) in member2.iter() {
-            if cr1.name == cr2.name || !combination_filter_supporter(&cr2, &wr2, &ar2, args) {
+            if cr1.name == cr2.name || !combination_filter(&cr2, &wr2, &ar2, args) {
                 member2.back(((cr2, ca2), (wr2, wa2), (ar2, aa2)));
                 continue;
             }
@@ -471,7 +338,7 @@ fn permu9(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
 
             let mut items: Vec<Recorder> = Vec::new();
             for ((cr3, mut ca3), (wr3, mut wa3), (mut ar3, mut aa3)) in member3.iter() {
-                if no_dup.contains(&cr3.name) || cr1.name == cr3.name || cr2.name == cr3.name || !combination_filter_supporter(&cr3, &wr3, &ar3, args) {
+                if no_dup.contains(&cr3.name) || cr1.name == cr3.name || cr2.name == cr3.name || !combination_filter(&cr3, &wr3, &ar3, args) {
                     member3.back(((cr3, ca3), (wr3, wa3), (ar3, aa3)));
                     continue;
                 }

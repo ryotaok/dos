@@ -11,6 +11,7 @@ use WeaponType::*;
 pub struct GoldenMajesty {
     stack: f32,
     time: f32,
+    atk: f32,
 }
 
 impl GoldenMajesty {
@@ -21,10 +22,18 @@ impl GoldenMajesty {
             .atk(49.6)
     }
 
-    pub fn new() -> Self {
+    pub fn new(refinement: usize) -> Self {
         Self {
             stack: 0.,
             time: -99.,
+            atk: match refinement {
+                1 => 8.,
+                2 => 10.,
+                3 => 12.,
+                4 => 14.,
+                5 => 16.,
+                _ => unreachable!(),
+            }
         }
     }
 }
@@ -42,7 +51,7 @@ impl WeaponAttack for GoldenMajesty {
             }
         }
         if attack.idx == data.idx && attack.time - self.time <= 8. {
-            state.atk += 8. * self.stack;
+            state.atk += self.atk * self.stack;
         }
     }
 
@@ -55,12 +64,20 @@ impl WeaponAttack for GoldenMajesty {
 pub struct TheUnforged(GoldenMajesty);
 
 impl TheUnforged {
-    pub fn record() -> WeaponRecord {
-        GoldenMajesty::record().name("The Unforged").type_(Claymore)
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let name = match refinement {
+            1 => "The Unforged",
+            2 => "The Unforged (R2)",
+            3 => "The Unforged (R3)",
+            4 => "The Unforged (R4)",
+            5 => "The Unforged (R5)",
+            _ => unreachable!(),
+        };
+        GoldenMajesty::record().name(name).type_(Claymore)
     }
 
-    pub fn new() -> Self {
-        Self(GoldenMajesty::new())
+    pub fn new(refinement: usize) -> Self {
+        Self(GoldenMajesty::new(refinement))
     }
 }
 
@@ -77,12 +94,20 @@ impl WeaponAttack for TheUnforged {
 pub struct SummitShaper(GoldenMajesty);
 
 impl SummitShaper {
-    pub fn record() -> WeaponRecord {
-        GoldenMajesty::record().name("Summit shaper").type_(Sword)
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let name = match refinement {
+            1 => "Summit Shaper",
+            2 => "Summit Shaper (R2)",
+            3 => "Summit Shaper (R3)",
+            4 => "Summit Shaper (R4)",
+            5 => "Summit Shaper (R5)",
+            _ => unreachable!(),
+        };
+        GoldenMajesty::record().name(name).type_(Sword)
     }
 
-    pub fn new() -> Self {
-        Self(GoldenMajesty::new())
+    pub fn new(refinement: usize) -> Self {
+        Self(GoldenMajesty::new(refinement))
     }
 }
 
@@ -99,12 +124,20 @@ impl WeaponAttack for SummitShaper {
 pub struct VortexVanquisher(GoldenMajesty);
 
 impl VortexVanquisher {
-    pub fn record() -> WeaponRecord {
-        GoldenMajesty::record().name("Vortex Vanquisher").type_(Polearm)
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let name = match refinement {
+            1 => "Vortex Vanquisher",
+            2 => "Vortex Vanquisher (R2)",
+            3 => "Vortex Vanquisher (R3)",
+            4 => "Vortex Vanquisher (R4)",
+            5 => "Vortex Vanquisher (R5)",
+            _ => unreachable!(),
+        };
+        GoldenMajesty::record().name(name).type_(Polearm)
     }
 
-    pub fn new() -> Self {
-        Self(GoldenMajesty::new())
+    pub fn new(refinement: usize) -> Self {
+        Self(GoldenMajesty::new(refinement))
     }
 }
 
@@ -121,12 +154,20 @@ impl WeaponAttack for VortexVanquisher {
 pub struct MemoryOfDust(GoldenMajesty);
 
 impl MemoryOfDust {
-    pub fn record() -> WeaponRecord {
-        GoldenMajesty::record().name("Memory of Dust").type_(Catalyst)
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let name = match refinement {
+            1 => "Memory of Dust",
+            2 => "Memory of Dust (R2)",
+            3 => "Memory of Dust (R3)",
+            4 => "Memory of Dust (R4)",
+            5 => "Memory of Dust (R5)",
+            _ => unreachable!(),
+        };
+        GoldenMajesty::record().name(name).type_(Catalyst)
     }
 
-    pub fn new() -> Self {
-        Self(GoldenMajesty::new())
+    pub fn new(refinement: usize) -> Self {
+        Self(GoldenMajesty::new(refinement))
     }
 }
 

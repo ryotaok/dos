@@ -16,6 +16,7 @@ pub mod version_1_5;
 pub mod version_1_6;
 pub mod version_2_0;
 pub mod version_2_1;
+pub mod version_2_2;
 
 use pyro::*;
 use hydro::*;
@@ -31,67 +32,7 @@ use version_1_5::*;
 use version_1_6::*;
 use version_2_0::*;
 use version_2_1::*;
-
-// // use std::hash::{Hash};
-// #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-// pub enum CharacterName {
-//     // pyro
-//     Amber,
-//     Bennett,
-//     Xiangling,
-//     Diluc,
-//     Klee,
-//     // hydro
-//     Barbara,
-//     Xingqiu,
-//     Mona,
-//     // electro
-//     Beidou,
-//     Fischl,
-//     Lisa,
-//     Razor,
-//     Keqing,
-//     // cryo
-//     Chongyun,
-//     Kaeya,
-//     Qiqi,
-//     // anemo
-//     Sucrose,
-//     TravelerAnemo,
-//     Jean,
-//     Venti,
-//     // geo
-//     Ningguang,
-//     Noelle,
-//     TravelerGeo,
-//     // version_1_1
-//     Tartaglia,
-//     Diona,
-//     Zhongli,
-//     Xinyan,
-//     // version_1_2
-//     Albedo,
-//     Ganyu,
-//     // version_1_3
-//     Xiao,
-//     HuTao,
-//     // version_1_4
-//     Rosaria,
-//     // version_1_5
-//     Yanfei,
-//     Eula,
-//     // version_1_6
-//     Kazuha,
-//     // version_2_0
-//     Ayaka,
-//     Yoimiya,
-//     Sayu,
-//     // version_2_1
-//     RaidenShogun,
-//     KujouSara,
-//     Aloy,
-//     SangonomiyaKokomi,
-// }
+use version_2_2::*;
 
 #[derive(Debug)]
 pub enum CharacterUnion {
@@ -146,11 +87,14 @@ pub enum CharacterUnion {
     Ayaka(Ayaka),
     Yoimiya(Yoimiya),
     Sayu(Sayu),
+    TravelerElectro(TravelerElectro),
     // version_2_1
     RaidenShogun(RaidenShogun),
     KujouSara(KujouSara),
     Aloy(Aloy),
     SangonomiyaKokomi(SangonomiyaKokomi),
+    // version_2_2
+    Thoma(Thoma),
 }
 
 impl CharacterUnion {
@@ -208,11 +152,14 @@ impl CharacterUnion {
             Ayaka(x) => x,
             Yoimiya(x) => x,
             Sayu(x) => x,
+            TravelerElectro(x) => x,
             // version_2_1
             RaidenShogun(x) => x,
             KujouSara(x) => x,
             Aloy(x) => x,
             SangonomiyaKokomi(x) => x,
+            // version_2_2
+            Thoma(x) => x,
         }
     }
 
@@ -270,16 +217,19 @@ impl CharacterUnion {
             Ayaka(x) => x,
             Yoimiya(x) => x,
             Sayu(x) => x,
+            TravelerElectro(x) => x,
             // version_2_1
             RaidenShogun(x) => x,
             KujouSara(x) => x,
             Aloy(x) => x,
             SangonomiyaKokomi(x) => x,
+            // version_2_2
+            Thoma(x) => x,
         }
     }
 }
 
-pub const N_CHARACTERS: usize = 42;
+pub const N_CHARACTERS: usize = 44;
 
 pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     vec![
@@ -334,11 +284,14 @@ pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     (Ayaka::record(), CharacterUnion::Ayaka(Ayaka::new())),
     (Yoimiya::record(), CharacterUnion::Yoimiya(Yoimiya::new())),
     (Sayu::record(), CharacterUnion::Sayu(Sayu::new())),
+    (TravelerElectro::record(), CharacterUnion::TravelerElectro(TravelerElectro::new())),
     // version_2_1
     (RaidenShogun::record(), CharacterUnion::RaidenShogun(RaidenShogun::new())),
     (KujouSara::record(), CharacterUnion::KujouSara(KujouSara::new())),
     (Aloy::record(), CharacterUnion::Aloy(Aloy::new())),
     (SangonomiyaKokomi::record(), CharacterUnion::SangonomiyaKokomi(SangonomiyaKokomi::new())),
+    // version_2_2
+    (Thoma::record(), CharacterUnion::Thoma(Thoma::new())),
     ]
 }
 

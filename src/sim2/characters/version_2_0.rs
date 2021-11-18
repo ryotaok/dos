@@ -354,3 +354,100 @@ impl CharacterAttack for Sayu {
     // fn reset_modify(&mut self) -> () {
     // }
 }
+
+// When another nearby character in the party obtains an Abundance Amulet
+// created by Lightning Blade, Lightning Blade's CD is decreased by 1.5s.
+
+// Increases the Energy Recharge effect granted by Lightning Blade's Abundance
+// Amulet by 10% of the Traveler's Energy Recharge.
+#[derive(Debug)]
+pub struct TravelerElectro {}
+
+impl TravelerElectro {
+    pub fn record() -> CharacterRecord {
+        CharacterRecord::default()
+            .name("Traveler (Electro)").vision(Electro).weapon(Sword).version(1.0)
+            .base_hp(10875.0).base_atk(212.0).base_def(683.0)
+            .atk(24.0)
+            .energy_cost(80.)
+    }
+
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Timeline for TravelerElectro {
+    // perform an action
+    fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
+        // is burst CD off and has enough energy
+        if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
+        // check if skill can be used (a1)
+        } else if state.rel_time.press >= 10.5 {
+            CharacterAction::PressSkill
+        // check if normal attacks can be used (both animations are ended)
+        } else if state.rel_time.na >= 0.51 {
+            // 5 attacks in 2.55 seconds
+            data.na_idx.to_na(5, state.na_carryover(0.51))
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    // generate energy and modify acceleration states according to the event
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match event {
+            CharacterAction::PressSkill => {
+                field_energy.push_p(Particle::new(data.character.vision, 3.5));
+                // Abundance Amulets
+                let bonus = 1. + 0.1 * state.er / 100.;
+                field_energy.push_e(8. * bonus);
+            },
+            CharacterAction::Burst => {
+                // the thunder hits 20 times
+                field_energy.push_e(20.);
+            },
+            _ => (),
+        }
+    }
+}
+
+impl CharacterAttack for TravelerElectro {
+    fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_burst(205.92, &ELECTRO_GAUGE2B, time, event, data, state);
+        for i in 1..21 {
+            atk_queue.add_burst(59.04, &ELECTRO_GAUGE1A, time + 0.5 * i as f32, event, data, state);
+        }
+    }
+
+    fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_skill(141.6, &ELECTRO_GAUGE1A, time, event, data, state);
+    }
+
+    fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(87.89, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(85.85, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(104.72, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(115.26, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(139.91, &PHYSICAL_GAUGE, time, event, data, state);
+    }
+
+    // fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+    // }
+
+    // fn reset_modify(&mut self) -> () {
+    // }
+}

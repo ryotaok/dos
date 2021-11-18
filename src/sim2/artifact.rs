@@ -185,7 +185,15 @@ impl ThunderingFury {
     }
 }
 
-impl Timeline for ThunderingFury {}
+impl Timeline for ThunderingFury {
+    fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        match (event) {
+            CharacterAction::PressSkill |
+            CharacterAction::HoldSkill => state.reduce_skill += 2.,
+            _ => (),
+        }
+    }
+}
 
 impl WeaponAttack for ThunderingFury {}
 
@@ -436,7 +444,7 @@ impl CrimsonWitchOfFlamesHp {
         Artifact::default()
             .name("Crimson Witch of Flames (HP)")
             .version(1.0)
-            .preference(&[Preference::Pyro])
+            .preference(&[Preference::HuTao])
             .pyro_dmg(15.0)
             .amplifying_bonus(15.0).transformative_bonus(40.0)
             .hp(SCORE.hp(40.0)).cr(SCORE.cr(60.0))
@@ -466,10 +474,14 @@ impl NoblesseOblige {
     }
 
     pub fn record() -> Artifact {
+        use Preference::*;
         Artifact::default()
             .name("Noblesse Oblige")
             .version(1.0)
-            .preference(&[Preference::Supporter])
+            .preference(&[
+                Chongyun, Keqing, Ningguang, Amber, Diluc, Zhongli, Albedo, Aloy,
+                Kaeya, Mona, Bennett, Ganyu, Rosaria
+                ])
             .burst_dmg(20.0)
             .atk(SCORE.atk(40.0)).cr(SCORE.cr(60.0))
     }
@@ -527,7 +539,7 @@ impl GladiatorsFinaleDef {
         Artifact::default()
             .name("Gladiator's Finale (DEF)")
             .version(1.0)
-            .preference(&[Preference::Melee])
+            .preference(&[Preference::Noelle, Preference::Albedo,])
             .atk(18.0)
             .na_dmg(35.0)
             .def(SCORE.def(40.0)).cr(SCORE.cr(60.0))
@@ -566,10 +578,15 @@ impl WeaponAttack for RetracingBolide {}
 
 impl RetracingBolide {
     pub fn record() -> Artifact {
+        use Preference::*;
         Artifact::default()
             .name("Retracing Bolide")
             .version(1.0)
-            .preference(&[Preference::Attacker])
+            .preference(&[
+                Diluc, Klee, Razor, Keqing, Noelle,
+                Tartaglia, Xinyan, Ganyu, Xiao, HuTao, Yanfei, Eula,
+                Ayaka, Yoimiya, Aloy
+                ])
             .na_dmg(40.0).ca_dmg(40.0)
             .atk(SCORE.atk(40.0)).cr(SCORE.cr(60.0))
     }
@@ -587,7 +604,7 @@ impl RetracingBolideDef {
         Artifact::default()
             .name("Retracing Bolide (DEF)")
             .version(1.0)
-            .preference(&[Preference::Attacker])
+            .preference(&[Preference::Noelle])
             .na_dmg(40.0).ca_dmg(40.0)
             .def(SCORE.def(40.0)).cr(SCORE.cr(60.0))
     }
@@ -659,7 +676,7 @@ impl LavawalkerHp {
         Artifact::default()
             .name("Lavawalker (HP)")
             .version(1.0)
-            .preference(&[Preference::Pyro])
+            .preference(&[Preference::HuTao])
             .hp(SCORE.hp(40.0))
             .cr(SCORE.cr(60.0))
     }
@@ -746,7 +763,7 @@ impl GfelmHpCr {
         Artifact::default()
             .name("GFE HP 105 ATK 105 DMG15")
             .version(1.0)
-            .preference(&[Preference::Hydro])
+            .preference(&[Preference::SangonomiyaKokomi])
             .elemental_dmg(15.0)
             .hp(SCORE.hp(50.0)).atk(SCORE.atk(50.0))
     }
@@ -926,10 +943,15 @@ impl TenacityOfTheMillelith {
     }
 
     pub fn record() -> Artifact {
+        use Preference::*;
         Artifact::default()
             .name("Tenacity of the Millelith")
             .version(1.5)
-            .preference(&[Preference::Supporter])
+            .preference(&[
+                Fischl, Qiqi,
+                Zhongli, Xinyan, Albedo,
+                RaidenShogun,
+                ])
             .hp(20.0)
             .atk(SCORE.atk(40.0)).cr(SCORE.cr(60.0))
     }
@@ -954,6 +976,36 @@ impl WeaponAttack for TenacityOfTheMillelith {
 }
 
 #[derive(Debug)]
+pub struct TenacityOfTheMillelithHP(TenacityOfTheMillelith);
+
+impl TenacityOfTheMillelithHP {
+    pub fn new() -> Self {
+        Self(TenacityOfTheMillelith::new())
+    }
+
+    pub fn record() -> Artifact {
+        Artifact::default()
+            .name("Tenacity of the Millelith (HP)")
+            .version(1.5)
+            .preference(&[Preference::SangonomiyaKokomi ])
+            .hp(20. + SCORE.cr(50.))
+            .atk(SCORE.atk(50.))
+    }
+}
+
+impl Timeline for TenacityOfTheMillelithHP {}
+
+impl WeaponAttack for TenacityOfTheMillelithHP {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        self.0.modify(action_state, data, attack, state, enemy);
+    }
+
+    fn reset_modify(&mut self) -> () {
+        self.0.reset_modify();
+    }
+}
+
+#[derive(Debug)]
 pub struct ShimenawasReminiscence {
     time: f32,
     did_activate: Vec<f32>,
@@ -971,10 +1023,16 @@ impl ShimenawasReminiscence {
     }
 
     pub fn record() -> Artifact {
+        use Preference::*;
         Artifact::default()
             .name("Shimenawa's Reminiscence")
             .version(2.0)
-            .preference(&[Preference::Attacker])
+            // copy of "Retracing Bolide"
+            .preference(&[
+                Diluc, Klee, Razor, Keqing, Noelle,
+                Tartaglia, Xinyan, Ganyu, Xiao, HuTao, Yanfei, Eula,
+                Ayaka, Yoimiya, Aloy
+            ])
             .atk(18.0 + SCORE.atk(40.0)).cr(SCORE.cr(60.0))
     }
 }
@@ -1034,10 +1092,14 @@ pub struct EmblemOfSeveredFate {
 // 75% DMG increase can be obtained in this way.
 impl EmblemOfSeveredFate {
     pub fn record() -> Artifact {
+        use Preference::*;
         Artifact::default()
             .name("Emblem of Severed Fate")
             .version(2.0)
-            .preference(&[])
+            .preference(&[
+                Beidou, Lisa, Xingqiu, Xiangling, Diona, Eula,
+                Ayaka, TravelerElectro, RaidenShogun, KujouSara, Thoma
+            ])
             .er(20.0)
             .atk(SCORE.atk(40.0)).cr(SCORE.cr(60.0))
     }
@@ -1074,10 +1136,14 @@ pub struct EmblemOfSeveredFateER {}
 
 impl EmblemOfSeveredFateER {
     pub fn record() -> Artifact {
+        use Preference::*;
         Artifact::default()
             .name("EoSF ATK70 CR47 ER77")
             .version(2.0)
-            .preference(&[])
+            .preference(&[
+                Beidou, Lisa, Xingqiu, Xiangling, Diona, Eula,
+                Ayaka, TravelerElectro, RaidenShogun, KujouSara, Thoma
+            ])
             .er(20.0 + SCORE.er(33.3333))
             .atk(SCORE.atk(33.3333)).cr(SCORE.cr(33.3333))
     }
@@ -1227,65 +1293,61 @@ mod tests {
         assert_eq!(dmg.floor(), expect.floor());
     }
 
-    // #[test]
-    // fn viridescent_venerer() {
-    //     let mut enemy = TestEnvironment::enemy();
-    //     let mut members: Vec<CharacterData> = Vec::new();
-    //     let mut abilities: Vec<FieldAbility> = Vec::new();
-    //     let mut atk_queue: Vec<*const Attack> = Vec::new();
-    //     let mut field_energy: Vec<FieldEnergy> = Vec::new();
+    #[test]
+    fn viridescent_venerer() {
+        let mut history = testutil::history_2at02();
+        let mut enemy = Enemy::simple();
+        let cr1 = Sim2TestCharacter::record(Anemo);
+        let cr2 = Sim2TestCharacter::record(Pyro);
+        let wr = WeaponRecord::default();
+        let ar = Artifact::default();
+        let mut data = [CharacterData::new(0, &cr1, &wr, &ar), CharacterData::new(1, &cr2, &wr, &ar)];
 
-    //     let mut aa = ViridescentVenerer::new();
+        let mut character1 = Sim2TestCharacter::new();
+        let mut character2 = Sim2TestCharacter::new();
+        let mut weapon1    = WeaponRecord::default();
+        let mut weapon2    = WeaponRecord::default();
+        let mut artifact1  = ViridescentVenerer::new();
+        let mut artifact2  = Artifact::default();
+        let mut members = [FieldMember {
+            character: &mut character1,
+            weapon: &mut weapon1,
+            artifact: &mut artifact1,
+        }, FieldMember {
+            character: &mut character2,
+            weapon: &mut weapon2,
+            artifact: &mut artifact2,
+        }];
+        enemy.aura = ElementalGauge {
+            aura: Vision::Pyro,
+            unit: 1.0,
+            decay: ElementalGaugeDecay::A,
+        };
 
-    //     let mut env1 = TestEnvironment::new();
-    //     let (data, ability) = env1.artifact(State::new().infusion(true), Anemo, &mut aa);
-    //     members.push(data);
-    //     abilities.push(ability);
+        let dmg = simulate::calculate_damage(&mut history, &mut members, &mut data, &mut enemy).total_damage();
 
-    //     let mut total_dmg = 0.0;
-    //     enemy.aura = ElementalGauge {
-    //         aura: Vision::Pyro,
-    //         unit: 1.0,
-    //         decay: ElementalGaugeDecay::A,
-    //     };
-    //     for _ in 0..10 {
-    //         total_dmg += simulate(0.2, &mut members, &mut abilities, &mut atk_queue, &mut field_energy, &mut enemy);
-    //     }
+        let expect: f32 = (
+            // 2 swirls
+            // swirl damage: 725.36 * 1.2 = 870.432
+            2. * 870.432 * 1.2
 
-    //     // let mut env = TestEnvironment::new();
-    //     // let mut aa = ViridescentVenerer;
-    //     // let mut members = vec![
-    //     //     env.artifact(FieldCharacterIndex(0), State::new().infusion(true), Anemo, &mut aa),
-    //     // ];
-    //     // // members[0].fc.data.ar.state.infusion = true;
-    //     // let mut enemy = TestEnvironment::enemy();
-    //     // enemy.aura = ElementalGauge {
-    //     //     aura: Vision::Pyro,
-    //     //     unit: 1.0,
-    //     //     decay: ElementalGaugeDecay::A,
-    //     // };
-    //     // let mut total_dmg = 0.0;
-    //     // for _ in 0..10 {
-    //     //     total_dmg += simulate(&mut members, &mut enemy, 0.2);
-    //     // }
-    //     let expect = (
-    //         // skill (level multiplier * reaction multiplier * bonus * TODO resistance (* TODO bypass enemy defense))
-    //           (725.36 * 1.2) * 1.2 * 2.0 + 200.0 * 1.2
-    //         // na
-    //         + (725.36 * 1.2) * 1.2 * 2.0 + 100.0 * 1.2
-    //         // na (action multiplier * vv 2 set bonus * vv 4 set RES down)
-    //         + 100.0 * 1.2
-    //         // na
-    //         + 100.0 * 1.2
-    //         // na
-    //         + 100.0 * 1.2
-    //         // na
-    //         + 100.0 * 1.2
-    //     );
-    //     let differnce = (total_dmg - expect).abs();
-    //     println!("{:?} {:?}", total_dmg, expect);
-    //     assert!(differnce <= 0.001);
-    // }
+            // [Burst, Burst(Pyro)],
+            // because the enemy has no resistance, VV gives 20% increased damage.
+            + 300. + 300. * 1.2
+
+            // [PressSkill, PressSkill(Pyro)],
+            + 200. + 200. * 1.2
+            // [Na1(0.), Na1(0.)],
+            + 2. * 100.
+            // [Na2(0.), Na2(0.)],
+            + 2. * 100.
+            // [Na3(0.), Na3(0.)],
+            + 2. * 100.
+            // [Na4(0.), Na4(0.)],
+            + 2. * 100.
+        );
+        assert_eq!(dmg.floor(), expect.floor());
+    }
 
     #[test]
     fn paleflame_1() {

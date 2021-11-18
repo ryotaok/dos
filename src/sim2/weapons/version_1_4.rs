@@ -82,6 +82,7 @@ impl AlleyHunter {
             .name("Alley Hunter").type_(Bow).version(1.4)
             .base_atk(565.0)
             .atk(27.6)
+            .na_dmg(40.).ca_dmg(40.).skill_dmg(40.).burst_dmg(40.)
     }
 
     pub fn new() -> Self {
@@ -94,25 +95,25 @@ impl AlleyHunter {
 
 impl Timeline for AlleyHunter {}
 
-impl WeaponAttack for AlleyHunter {
-    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        if action_state.current_time - self.time > 4. {
-            self.stack += 1.;
-            self.time = action_state.current_time;
-            if self.stack > 5. {
-                self.stack = 5.;
-            }
-        }
-        if attack.idx == data.idx {
-            state.all_dmg += 8.0 * (5. - self.stack);
-        }
-    }
-
-    fn reset_modify(&mut self) -> () {
-        self.stack = 0.;
-        self.time = 0.;
-    }
-}
+impl WeaponAttack for AlleyHunter {}
+// impl WeaponAttack for AlleyHunter {
+//     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+//         if action_state.current_time - self.time > 4. {
+//             self.stack += 1.;
+//             self.time = action_state.current_time;
+//             if self.stack > 5. {
+//                 self.stack = 5.;
+//             }
+//         }
+//         if attack.idx == data.idx {
+//             state.all_dmg += 8.0 * (5. - self.stack);
+//         }
+//     }
+//     fn reset_modify(&mut self) -> () {
+//         self.stack = 0.;
+//         self.time = 0.;
+//     }
+// }
 
 pub struct WineAndSong;
 

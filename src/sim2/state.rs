@@ -37,7 +37,7 @@ impl Default for ICDColumn<u8> {
 #[derive(Debug, Clone, Copy)]
 pub struct State {
     pub base_hp: f32, pub base_def: f32, pub base_atk: f32,
-    pub hp: f32, pub def: f32, pub atk: f32, pub flat_atk: f32, pub cr: f32, pub cd: f32, pub em: f32,
+    pub hp: f32, pub def: f32, pub atk: f32, pub flat_atk: f32, pub flat_dmg: f32, pub cr: f32, pub cd: f32, pub em: f32,
     pub na_dmg: f32, pub ca_dmg: f32, pub skill_dmg: f32, pub burst_dmg: f32, pub all_dmg: f32,
     pub physical_dmg: f32, pub pyro_dmg: f32, pub cryo_dmg: f32, pub hydro_dmg: f32, pub electro_dmg: f32,
     pub anemo_dmg: f32, pub geo_dmg: f32, pub dendro_dmg: f32, pub elemental_dmg: f32,
@@ -50,7 +50,7 @@ impl Default for State {
     fn default() -> Self {
         Self {
             base_hp: 0.0, base_def: 0.0, base_atk: 0.0,
-            hp: 0.0, def: 0.0, atk: 0.0, flat_atk: 0.0, cr: 0.0, cd: 0.0, em: 0.0,
+            hp: 0.0, def: 0.0, atk: 0.0, flat_atk: 0.0, flat_dmg: 0.0, cr: 0.0, cd: 0.0, em: 0.0,
             na_dmg: 0.0, ca_dmg: 0.0, skill_dmg: 0.0, burst_dmg: 0.0, all_dmg: 0.0,
             physical_dmg: 0.0, pyro_dmg: 0.0, cryo_dmg: 0.0, hydro_dmg: 0.0, electro_dmg: 0.0,
             anemo_dmg: 0.0, geo_dmg: 0.0, dendro_dmg: 0.0, elemental_dmg: 0.0,
@@ -70,6 +70,7 @@ impl State {
         self.def = data.character.def + data.weapon.def + data.artifact.def;
         self.atk = data.character.atk + data.weapon.atk + data.artifact.atk;
         self.flat_atk = data.artifact.flat_atk;
+        self.flat_dmg = 0.0;
         self.cr = data.character.cr + data.weapon.cr + data.artifact.cr;
         self.cd = data.character.cd + data.weapon.cd + data.artifact.cd;
         self.em = data.character.em + data.weapon.em + data.artifact.em;

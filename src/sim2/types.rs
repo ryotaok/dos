@@ -1,6 +1,8 @@
 use std::cmp::PartialEq;
 
 use crate::sim2::attack::Attack;
+    use crate::sim2::cli::Args;
+use crate::sim2::record::{CharacterRecord, WeaponRecord, Artifact};
 use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReaction, PYRO_GAUGE1A, CRYO_GAUGE1A, HYDRO_GAUGE1A, ELECTRO_GAUGE1A, ANEMO_GAUGE1A, GEO_GAUGE1A, DENDRO_GAUGE1A, PHYSICAL_GAUGE,};
 
 // use self::AttackType::*;
@@ -207,7 +209,66 @@ impl Particle {
 pub enum Preference {
     Pyro, Hydro, Electro, Cryo,
     Anemo, Geo, Dendro, Physical,
-    Melee, Ranged, Attacker, Supporter,
+    Melee, Ranged,
+    // pyro
+    Amber,
+    Bennett,
+    Xiangling,
+    Diluc,
+    Klee,
+    // hydro
+    Barbara,
+    Xingqiu,
+    Mona,
+    // electro
+    Beidou,
+    Fischl,
+    Lisa,
+    Razor,
+    Keqing,
+    // cryo
+    Chongyun,
+    Kaeya,
+    Qiqi,
+    // anemo
+    Sucrose,
+    TravelerAnemo,
+    Jean,
+    Venti,
+    // geo
+    Ningguang,
+    Noelle,
+    TravelerGeo,
+    // version_1_1
+    Tartaglia,
+    Diona,
+    Zhongli,
+    Xinyan,
+    // version_1_2
+    Albedo,
+    Ganyu,
+    // version_1_3
+    Xiao,
+    HuTao,
+    // version_1_4
+    Rosaria,
+    // version_1_5
+    Yanfei,
+    Eula,
+    // version_1_6
+    Kazuha,
+    // version_2_0
+    Ayaka,
+    Yoimiya,
+    Sayu,
+    TravelerElectro,
+    // version_2_1
+    RaidenShogun,
+    KujouSara,
+    Aloy,
+    SangonomiyaKokomi,
+    // version_2_2
+    Thoma,
 }
 
 impl PartialEq<Vision> for Preference {
@@ -238,6 +299,107 @@ impl PartialEq<WeaponType> for Preference {
         }
     }
 }
+
+impl PartialEq<str> for Preference {
+    fn eq(&self, other: &str) -> bool {
+        match (&self, other) {
+            // pyro
+            (Preference::Amber, "Amber") => true,
+            (Preference::Bennett, "Bennett") => true,
+            (Preference::Xiangling, "Xiangling") => true,
+            (Preference::Diluc, "Diluc") => true,
+            (Preference::Klee, "Klee") => true,
+            // hydro
+            (Preference::Barbara, "Barbara") => true,
+            (Preference::Xingqiu, "Xingqiu") => true,
+            (Preference::Mona, "Mona") => true,
+            // electro
+            (Preference::Beidou, "Beidou") => true,
+            (Preference::Fischl, "Fischl") => true,
+            (Preference::Lisa, "Lisa") => true,
+            (Preference::Razor, "Razor") => true,
+            (Preference::Keqing, "Keqing") => true,
+            // cryo
+            (Preference::Chongyun, "Chongyun") => true,
+            (Preference::Kaeya, "Kaeya") => true,
+            (Preference::Qiqi, "Qiqi") => true,
+            // anemo
+            (Preference::Sucrose, "Sucrose") => true,
+            (Preference::TravelerAnemo, "Traveler (Anemo)") => true,
+            (Preference::Jean, "Jean") => true,
+            (Preference::Venti, "Venti") => true,
+            // geo
+            (Preference::Ningguang, "Ningguang") => true,
+            (Preference::Noelle, "Noelle") => true,
+            (Preference::Noelle, "Noelle (C6)") => true,
+            (Preference::TravelerGeo, "Traveler (Geo)") => true,
+            // version_1_1
+            (Preference::Tartaglia, "Tartaglia") => true,
+            (Preference::Diona, "Diona") => true,
+            (Preference::Zhongli, "Zhongli") => true,
+            (Preference::Xinyan, "Xinyan") => true,
+            // version_1_2
+            (Preference::Albedo, "Albedo") => true,
+            (Preference::Ganyu, "Ganyu") => true,
+            // version_1_3
+            (Preference::Xiao, "Xiao") => true,
+            (Preference::HuTao, "HuTao") => true,
+            // version_1_4
+            (Preference::Rosaria, "Rosaria") => true,
+            // version_1_5
+            (Preference::Yanfei, "Yanfei") => true,
+            (Preference::Eula, "Eula") => true,
+            // version_1_6
+            (Preference::Kazuha, "Kazuha") => true,
+            // version_2_0
+            (Preference::Ayaka, "Ayaka") => true,
+            (Preference::Yoimiya, "Yoimiya") => true,
+            (Preference::Sayu, "Sayu") => true,
+            (Preference::TravelerElectro, "Traveler (Electro)") => true,
+            // version_2_1
+            (Preference::RaidenShogun, "Raiden Shogun") => true,
+            (Preference::KujouSara, "Kujou Sara") => true,
+            (Preference::Aloy, "Aloy") => true,
+            (Preference::SangonomiyaKokomi, "Sangonomiya Kokomi") => true,
+            // version_2_2
+            (Preference::Thoma, "Thoma") => true,
+            _ => false,
+        }
+    }
+}
+
+pub fn combination_filter(cr: &CharacterRecord, wr: &WeaponRecord, ar: &Artifact, args: &Args) -> bool {
+    if cr.version > args.character_version ||
+       wr.version > args.weapon_version ||
+       ar.version > args.artifact_version {
+        return false;
+    }
+
+    // check weapon
+    if cr.weapon != wr.type_ {
+        return false;
+    }
+
+    // check artifact
+    let physical_attack = ar.is_physical_goblet_user(&cr.name);
+    let mut result = if ar.preference.len() == 0 {
+        true
+    } else {
+        false
+    };
+    for p in ar.preference.iter() {
+        if p == &cr.vision
+        || (physical_attack && p == &Preference::Physical)
+        || p == &cr.weapon
+        || p == cr.name {
+            result = true;
+            break;
+        }
+    }
+
+    result
+}
+
 
 #[derive(Debug, Copy, Clone)]
 pub struct UnstackableBuff(usize);
@@ -381,6 +543,9 @@ pub const SCORE: GearScore = GearScore { score: 140.0 };
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sim2::characters;
+    use crate::sim2::weapons;
+    use crate::sim2::artifact;
 
     #[test]
     fn usb_eq() {
@@ -405,5 +570,60 @@ mod tests {
         let tm = TENACITY_OF_THE_MILLELITH;
         let mm = MILLENNIAL_MOVEMENT_SERIES;
         assert_eq!(*no.turn_on(&tm).turn_on(&mm), UnstackableBuff(7));
+    }
+
+    #[test]
+    fn filter_1() {
+        let c = characters::pyro::Diluc::record();
+        let w = weapons::claymore_4star::RainslasherR5::record();
+        let a = artifact::ViridescentVenerer::record();
+        let args = Args::default();
+        assert!(!combination_filter(&c, &w, &a, &args));
+    }
+
+    #[test]
+    fn filter_2() {
+        let c = characters::pyro::Diluc::record();
+        let w = weapons::claymore_4star::RainslasherR5::record();
+        let a = artifact::GladiatorsFinale::record();
+        let args = Args::default();
+        assert!(combination_filter(&c, &w, &a, &args));
+    }
+
+    #[test]
+    fn filter_3() {
+        let c = characters::electro::Razor::record();
+        let w = weapons::claymore_4star::RainslasherR5::record();
+        let a = artifact::PaleFlame::record();
+        let args = Args::default();
+        assert!(combination_filter(&c, &w, &a, &args));
+        // assert!(combination_filter_supporter(&c, &w, &a, &args));
+    }
+
+    #[test]
+    fn filter_4() {
+        let c = characters::electro::Razor::record();
+        let w = weapons::claymore_4star::RainslasherR5::record();
+        let a = artifact::ThunderingFury::record();
+        let args = Args::default();
+        assert!(combination_filter(&c, &w, &a, &args));
+    }
+
+    #[test]
+    fn filter_5() {
+        let c = characters::hydro::Xingqiu::record();
+        let w = weapons::sword_4star::PrototypeRancourR5::record();
+        let a = artifact::BlizzardStrayer::record();
+        let args = Args::default();
+        assert!(combination_filter(&c, &w, &a, &args));
+    }
+
+    #[test]
+    fn filter_6() {
+        let c = characters::cryo::Kaeya::record();
+        let w = weapons::sword_4star::PrototypeRancourR5::record();
+        let a = artifact::BlizzardStrayer::record();
+        let args = Args::default();
+        assert!(combination_filter(&c, &w, &a, &args));
     }
 }

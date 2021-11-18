@@ -110,13 +110,11 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
             member.weapon.modify(action_state, d, &mut attack, state, enemy);
             member.artifact.modify(action_state, d, &mut attack, state, enemy);
         }
-        // // then change enemy state (within fn elemental_reaction)
-        // let dmg = attack.outgoing_damage(&states[attack.idx.0], &data[attack.idx.0]);
-        // // println!("{:?} {:?} {:?}", attack.time, attack.kind, dmg / 2.);
-        // total_dmg += attack.incoming_damage(dmg, &states[attack.idx.0], &data[attack.idx.0], enemy);
         let state = &states[attack.idx.0];
         let d = &data[attack.idx.0];
-        result.push(DamageResult::new(attack, state, d, enemy));
+        let dmg = DamageResult::new(attack, state, d, enemy);
+        // println!("{:?} {:?} {:?}", dmg.time, dmg.kind, dmg.total_damage());
+        result.push(dmg);
     }
     result
 }

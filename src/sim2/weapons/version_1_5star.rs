@@ -13,19 +13,36 @@ use WeaponType::*;
 
 pub struct SkywardBlade {
     time: f32,
+    multiplier: f32,
 }
 
 impl SkywardBlade {
-    pub fn record() -> WeaponRecord {
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let (cr, name) = match refinement {
+            1 => (4., "Skyward Blade"),
+            2 => (5., "Skyward Blade (R2)"),
+            3 => (6., "Skyward Blade (R3)"),
+            4 => (7., "Skyward Blade (R4)"),
+            5 => (8., "Skyward Blade (R5)"),
+            _ => unreachable!(),
+        };
         WeaponRecord::default()
-            .name("Skyward Blade").type_(Sword).version(1.0)
+            .name(name).type_(Sword).version(1.0)
             .base_atk(608.0)
-            .cr(4.0).er(55.1)
+            .cr(cr).er(55.1)
     }
 
-    pub fn new() -> Self {
+    pub fn new(refinement: usize) -> Self {
         Self {
-            time: -99.
+            time: -99.,
+            multiplier: match refinement {
+                1 => 20.,
+                2 => 25.,
+                3 => 30.,
+                4 => 35.,
+                5 => 40.,
+                _ => unreachable!(),
+            }
         }
     }
 }
@@ -54,7 +71,7 @@ impl WeaponAttack for SkywardBlade {
            (event.is_na() || event.is_ca()) {
             atk_queue.push(Attack {
                 kind: DamageType::AdditionalAttack,
-                multiplier: 20.,
+                multiplier: self.multiplier,
                 element: &PHYSICAL_GAUGE,
                 aura_application: false,
                 time,
@@ -70,20 +87,37 @@ impl WeaponAttack for SkywardBlade {
 
 pub struct AquilaFavonia {
     time: f32,
+    multiplier: f32,
 }
 
 impl AquilaFavonia {
-    pub fn record() -> WeaponRecord {
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let (atk, name) = match refinement {
+            1 => (20., "Aquila Favonia"),
+            2 => (25., "Aquila Favonia (R2)"),
+            3 => (30., "Aquila Favonia (R3)"),
+            4 => (35., "Aquila Favonia (R4)"),
+            5 => (40., "Aquila Favonia (R5)"),
+            _ => unreachable!(),
+        };
         WeaponRecord::default()
-            .name("Aquila Favonia").type_(Sword).version(1.0)
+            .name(name).type_(Sword).version(1.0)
             .base_atk(674.0)
-            .atk(20.0)
+            .atk(atk)
             .physical_dmg(41.3)
     }
 
-    pub fn new() -> Self {
+    pub fn new(refinement: usize) -> Self {
         Self {
-            time: -99.
+            time: -99.,
+            multiplier: match refinement {
+                1 => 200.,
+                2 => 230.,
+                3 => 260.,
+                4 => 290.,
+                5 => 320.,
+                _ => unreachable!(),
+            }
         }
     }
 
@@ -97,7 +131,7 @@ impl WeaponAttack for AquilaFavonia {
             self.time = time;
             atk_queue.push(Attack {
                 kind: DamageType::AdditionalAttack,
-                multiplier: 200.,
+                multiplier: self.multiplier,
                 element: &PHYSICAL_GAUGE,
                 aura_application: false,
                 time,
@@ -113,20 +147,37 @@ impl WeaponAttack for AquilaFavonia {
 
 pub struct SkywardPride {
     stack: u8,
+    multiplier: f32,
 }
 
 impl SkywardPride {
-    pub fn record() -> WeaponRecord {
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let (dmg, name) = match refinement {
+            1 => (8., "Skyward Pride"),
+            2 => (10., "Skyward Pride (R2)"),
+            3 => (12., "Skyward Pride (R3)"),
+            4 => (14., "Skyward Pride (R4)"),
+            5 => (16., "Skyward Pride (R5)"),
+            _ => unreachable!(),
+        };
         WeaponRecord::default()
-            .name("Skyward Pride").type_(Claymore).version(1.0)
+            .name(name).type_(Claymore).version(1.0)
             .base_atk(674.0)
             .er(36.8)
-            .na_dmg(8.0).ca_dmg(8.0).skill_dmg(8.0).burst_dmg(8.0)
+            .na_dmg(dmg).ca_dmg(dmg).skill_dmg(dmg).burst_dmg(dmg)
     }
 
-    pub fn new() -> Self {
+    pub fn new(refinement: usize) -> Self {
         Self {
-            stack: 0
+            stack: 0,
+            multiplier: match refinement {
+                1 => 80.,
+                2 => 100.,
+                3 => 120.,
+                4 => 140.,
+                5 => 160.,
+                _ => unreachable!(),
+            }
         }
     }
  }
@@ -143,7 +194,7 @@ impl WeaponAttack for SkywardPride {
             self.stack += 1;
             atk_queue.push(Attack {
                 kind: DamageType::AdditionalAttack,
-                multiplier: 80.,
+                multiplier: self.multiplier,
                 element: &PHYSICAL_GAUGE,
                 aura_application: false,
                 time,
@@ -160,11 +211,19 @@ impl WeaponAttack for SkywardPride {
 pub struct WolfsGravestone;
 
 impl WolfsGravestone {
-    pub fn record() -> WeaponRecord {
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let (atk, name) = match refinement {
+            1 => (20., "Wolf's Gravestone"),
+            2 => (25., "Wolf's Gravestone (R2)"),
+            3 => (30., "Wolf's Gravestone (R3)"),
+            4 => (35., "Wolf's Gravestone (R4)"),
+            5 => (40., "Wolf's Gravestone (R5)"),
+            _ => unreachable!(),
+        };
         WeaponRecord::default()
-            .name("Wolf's Gravestone").type_(Claymore).version(1.0)
+            .name(name).type_(Claymore).version(1.0)
             .base_atk(608.0)
-            .atk(49.6 + 20.0)
+            .atk(49.6 + atk)
     }
 }
 
@@ -174,19 +233,36 @@ impl WeaponAttack for WolfsGravestone {}
 
 pub struct SkywardSpine {
     time: f32,
+    multiplier: f32,
 }
 
 impl SkywardSpine {
-    pub fn record() -> WeaponRecord {
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let (cr, name) = match refinement {
+            1 => (8., "Skyward Spine"),
+            2 => (10., "Skyward Spine (R2)"),
+            3 => (12., "Skyward Spine (R3)"),
+            4 => (14., "Skyward Spine (R4)"),
+            5 => (16., "Skyward Spine (R5)"),
+            _ => unreachable!(),
+        };
         WeaponRecord::default()
-            .name("Skyward Spine").type_(Polearm).version(1.0)
+            .name(name).type_(Polearm).version(1.0)
             .base_atk(674.0)
-            .cr(8.0).er(36.8).atk_spd(12.0)
+            .cr(cr).er(36.8).atk_spd(12.0)
     }
 
-    pub fn new() -> Self {
+    pub fn new(refinement: usize) -> Self {
         Self {
-            time: -99.
+            time: -99.,
+            multiplier: match refinement {
+                1 => 40.,
+                2 => 55.,
+                3 => 70.,
+                4 => 85.,
+                5 => 100.,
+                _ => unreachable!(),
+            }
         }
     }
  }
@@ -201,7 +277,7 @@ impl WeaponAttack for SkywardSpine {
             self.time = time;
             atk_queue.push(Attack {
                 kind: DamageType::AdditionalAttack,
-                multiplier: 40.,
+                multiplier: self.multiplier,
                 element: &PHYSICAL_GAUGE,
                 aura_application: false,
                 time,
@@ -218,20 +294,46 @@ impl WeaponAttack for SkywardSpine {
 pub struct PrimordialJadeWingedSpear {
     stack: f32,
     time: f32,
+    atk: f32,
+    dmg: f32,
 }
 
 impl PrimordialJadeWingedSpear {
-    pub fn record() -> WeaponRecord {
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let name = match refinement {
+            1 => "Primordial Jade Winged-Spear",
+            2 => "Primordial Jade Winged-Spear (R2)",
+            3 => "Primordial Jade Winged-Spear (R3)",
+            4 => "Primordial Jade Winged-Spear (R4)",
+            5 => "Primordial Jade Winged-Spear (R5)",
+            _ => unreachable!(),
+        };
         WeaponRecord::default()
-            .name("Primordial Jade Winged-Spear").type_(Polearm).version(1.0)
+            .name(name).type_(Polearm).version(1.0)
             .base_atk(674.0)
             .cr(22.1)
     }
 
-    pub fn new() -> Self {
+    pub fn new(refinement: usize) -> Self {
         Self {
             stack: 0.,
             time: -99.,
+            atk: match refinement {
+                1 => 3.2,
+                2 => 3.9,
+                3 => 4.6,
+                4 => 5.3,
+                5 => 6.0,
+                _ => unreachable!(),
+            },
+            dmg: match refinement {
+                1 => 12.,
+                2 => 15.,
+                3 => 18.,
+                4 => 21.,
+                5 => 24.,
+                _ => unreachable!(),
+            },
         }
     }
  }
@@ -249,9 +351,9 @@ impl WeaponAttack for PrimordialJadeWingedSpear {
             }
         }
         if attack.idx == data.idx && attack.time - self.time <= 6. {
-            state.atk += 3.2 * self.stack;
+            state.atk += self.atk * self.stack;
             if self.stack == 7. {
-                state.all_dmg += 12.0;
+                state.all_dmg += self.dmg;
             }
         }
     }
@@ -263,20 +365,46 @@ impl WeaponAttack for PrimordialJadeWingedSpear {
 }
 
 pub struct SkywardHarp {
-    time: f32
+    time: f32,
+    chance: f32,
+    frequency: f32,
 }
 
 impl SkywardHarp {
-    pub fn record() -> WeaponRecord {
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let (cd, name) = match refinement {
+            1 => (20., "Skyward Harp"),
+            2 => (25., "Skyward Harp (R2)"),
+            3 => (30., "Skyward Harp (R3)"),
+            4 => (35., "Skyward Harp (R4)"),
+            5 => (40., "Skyward Harp (R5)"),
+            _ => unreachable!(),
+        };
         WeaponRecord::default()
-            .name("Skyward Harp").type_(Bow).version(1.0)
+            .name(name).type_(Bow).version(1.0)
             .base_atk(674.0)
-            .cr(22.1).cd(20.0)
+            .cr(22.1).cd(cd)
     }
 
-    pub fn new() -> Self {
+    pub fn new(refinement: usize) -> Self {
         Self {
-            time: -99.
+            time: -99.,
+            chance: match refinement {
+                1 => 60.,
+                2 => 70.,
+                3 => 80.,
+                4 => 90.,
+                5 => 100.,
+                _ => unreachable!(),
+            },
+            frequency: match refinement {
+                1 => 4.,
+                2 => 3.5,
+                3 => 3.,
+                4 => 2.5,
+                5 => 2.,
+                _ => unreachable!(),
+            },
         }
     }
  }
@@ -285,8 +413,8 @@ impl Timeline for SkywardHarp {}
 
 impl WeaponAttack for SkywardHarp {
     fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        if time - self.time > 4. &&
-           testutil::chance() < 0.6 &&
+        if time - self.time > self.frequency &&
+           testutil::chance() < self.chance &&
            (event.is_na() || event.is_ca() || event.is_skill() || event.is_burst()) {
             self.time = time;
             atk_queue.push(Attack {
@@ -308,12 +436,20 @@ impl WeaponAttack for SkywardHarp {
 pub struct AmosBow;
 
 impl AmosBow {
-     pub fn record() -> WeaponRecord {
+     pub fn record(refinement: usize) -> WeaponRecord {
+        let (dmg, name) = match refinement {
+            1 => (12. + 8. * 5., "Amos' Bow"),
+            2 => (15. + 10. * 5., "Amos' Bow (R2)"),
+            3 => (18. + 12. * 5., "Amos' Bow (R3)"),
+            4 => (21. + 14. * 5., "Amos' Bow (R4)"),
+            5 => (24. + 16. * 5., "Amos' Bow (R5)"),
+            _ => unreachable!(),
+        };
         WeaponRecord::default()
-            .name("Amos' Bow").type_(Bow).version(1.0)
+            .name(name).type_(Bow).version(1.0)
             .base_atk(608.0)
             .atk(49.6)
-            .na_dmg(12.0 + 40.0).ca_dmg(12.0 + 40.0)
+            .na_dmg(dmg).ca_dmg(dmg)
     }
 }
 
@@ -325,22 +461,39 @@ pub struct SkywardAtlas {
     stack: u8,
     start_time: f32,
     last_attack: f32,
+    multiplier: f32,
 }
 
 impl SkywardAtlas {
-    pub fn record() -> WeaponRecord {
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let (dmg, name) = match refinement {
+            1 => (12., "Skyward Atlas"),
+            2 => (15., "Skyward Atlas (R2)"),
+            3 => (18., "Skyward Atlas (R3)"),
+            4 => (21., "Skyward Atlas (R4)"),
+            5 => (24., "Skyward Atlas (R5)"),
+            _ => unreachable!(),
+        };
         WeaponRecord::default()
-            .name("Skyward Atlas").type_(Catalyst).version(1.0)
+            .name(name).type_(Catalyst).version(1.0)
             .base_atk(674.0)
             .atk(33.1)
-            .pyro_dmg(12.0).cryo_dmg(12.0).hydro_dmg(12.0).electro_dmg(12.0).anemo_dmg(12.0).geo_dmg(12.0).dendro_dmg(12.0)
+            .pyro_dmg(dmg).cryo_dmg(dmg).hydro_dmg(dmg).electro_dmg(dmg).anemo_dmg(dmg).geo_dmg(dmg).dendro_dmg(dmg)
     }
 
-    pub fn new() -> Self {
+    pub fn new(refinement: usize) -> Self {
         Self {
             stack: 0,
             start_time: -99.,
             last_attack: -99.,
+            multiplier: match refinement {
+                1 => 160.,
+                2 => 200.,
+                3 => 240.,
+                4 => 280.,
+                5 => 320.,
+                _ => unreachable!(),
+            }
         }
     }
  }
@@ -359,7 +512,7 @@ impl WeaponAttack for SkywardAtlas {
             self.last_attack = time;
             atk_queue.push(Attack {
                 kind: DamageType::AdditionalAttack,
-                multiplier: 160.,
+                multiplier: self.multiplier,
                 element: &PHYSICAL_GAUGE,
                 aura_application: false,
                 time,
@@ -378,20 +531,37 @@ impl WeaponAttack for SkywardAtlas {
 pub struct LostPrayerToTheSacredWinds {
     stack: f32,
     time: f32,
+    dmg: f32,
 }
 
 impl LostPrayerToTheSacredWinds {
-    pub fn record() -> WeaponRecord {
+    pub fn record(refinement: usize) -> WeaponRecord {
+        let name = match refinement {
+            1 => "Lost Prayer to the Sacred Winds",
+            2 => "Lost Prayer to the Sacred Winds (R2)",
+            3 => "Lost Prayer to the Sacred Winds (R3)",
+            4 => "Lost Prayer to the Sacred Winds (R4)",
+            5 => "Lost Prayer to the Sacred Winds (R5)",
+            _ => unreachable!(),
+        };
         WeaponRecord::default()
-            .name("Lost Prayer to the Sacred Winds").type_(Catalyst).version(1.0)
+            .name(name).type_(Catalyst).version(1.0)
             .base_atk(608.0)
             .cr(33.1)
     }
 
-    pub fn new() -> Self {
+    pub fn new(refinement: usize) -> Self {
         Self {
             stack: 0.,
             time: -99.,
+            dmg: match refinement {
+                1 => 8.,
+                2 => 10.,
+                3 => 12.,
+                4 => 14.,
+                5 => 16.,
+                _ => unreachable!(),
+            }
         }
     }
  }
@@ -409,7 +579,7 @@ impl WeaponAttack for LostPrayerToTheSacredWinds {
             }
         }
         if attack.idx == data.idx && attack.time - self.time <= 8. {
-            state.elemental_dmg += 8. * self.stack;
+            state.elemental_dmg += self.dmg * self.stack;
         }
     }
 

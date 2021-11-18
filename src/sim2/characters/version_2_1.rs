@@ -473,9 +473,9 @@ impl CharacterAttack for SangonomiyaKokomi {
         }
         if attack.idx == data.idx && attack.time - self.burst_time <= 10. {
             match &attack.kind {
-                DamageType::Burst => state.flat_atk += 18.75 / 100. * state.HP(),
-                DamageType::Skill => state.flat_atk += 12.77 / 100. * state.HP(),
-                DamageType::Na    => state.flat_atk += 8.71 / 100. * state.HP(),
+                DamageType::Burst => state.flat_dmg += 18.75 / 100. * state.HP(),
+                DamageType::Skill => state.flat_dmg += 12.77 / 100. * state.HP(),
+                DamageType::Na    => state.flat_dmg += 8.71 / 100. * state.HP(),
                 _ => (),
             }
         }

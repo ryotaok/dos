@@ -14,6 +14,8 @@ pub mod version_1_5;
 pub mod version_1_6;
 pub mod version_2_0;
 pub mod version_2_1;
+pub mod version_2_2;
+pub mod version_2_3;
 
 use crate::sim2::timeline::Timeline;
 use crate::sim2::attack::WeaponAttack;
@@ -35,6 +37,8 @@ use version_1_5::*;
 use version_1_6::*;
 use version_2_0::*;
 use version_2_1::*;
+use version_2_2::*;
+use version_2_3::*;
 
 pub enum WeaponUnion {
     // sword_4star
@@ -146,13 +150,18 @@ pub enum WeaponUnion {
     EverlastingMoonglow(EverlastingMoonglow),
     LuxuriousSeaLord(LuxuriousSeaLord),
     TheCatch(TheCatch),
+    // version_2_2
     PolarStar(PolarStar),
     PolarStarSword(PolarStarSword),
     PolarStarClaymore(PolarStarClaymore),
     PolarStarPolearm(PolarStarPolearm),
     PolarStarCatalyst(PolarStarCatalyst),
     Akuoumaru(Akuoumaru),
+    MouunsMoon(MouunsMoon),
+    WavebreakersFin(WavebreakersFin),
+    // version_2_3
     RedhornStonethresher(RedhornStonethresher),
+    CinnabarSpindle(CinnabarSpindle),
 }
 
 impl WeaponUnion {
@@ -268,13 +277,18 @@ impl WeaponUnion {
             EverlastingMoonglow(x) => x,
             LuxuriousSeaLord(x) => x,
             TheCatch(x) => x,
+            // version_2_2
             PolarStar(x) => x,
             PolarStarSword(x) => x,
             PolarStarClaymore(x) => x,
             PolarStarPolearm(x) => x,
             PolarStarCatalyst(x) => x,
             Akuoumaru(x) => x,
+            MouunsMoon(x) => x,
+            WavebreakersFin(x) => x,
+            // version_2_3
             RedhornStonethresher(x) => x,
+            CinnabarSpindle(x) => x,
         }
     }
 
@@ -390,13 +404,18 @@ impl WeaponUnion {
             EverlastingMoonglow(x) => x,
             LuxuriousSeaLord(x) => x,
             TheCatch(x) => x,
+            // version_2_2
             PolarStar(x) => x,
             PolarStarSword(x) => x,
             PolarStarClaymore(x) => x,
             PolarStarPolearm(x) => x,
             PolarStarCatalyst(x) => x,
             Akuoumaru(x) => x,
+            MouunsMoon(x) => x,
+            WavebreakersFin(x) => x,
+            // version_2_3
             RedhornStonethresher(x) => x,
+            CinnabarSpindle(x) => x,
         }
     }
 }
@@ -456,21 +475,21 @@ pub fn all() -> Vec<(WeaponRecord, WeaponUnion)> {
     (SacrificialBowR5::record(), WeaponUnion::SacrificialBowR5(SacrificialBowR5::new())),
     (SacrificialFragmentsR5::record(), WeaponUnion::SacrificialFragmentsR5(SacrificialFragmentsR5::new())),
     // version_1_5star
-    (SkywardBlade::record(), WeaponUnion::SkywardBlade(SkywardBlade::new())),
-    (AquilaFavonia::record(), WeaponUnion::AquilaFavonia(AquilaFavonia::new())),
-    (SkywardPride::record(), WeaponUnion::SkywardPride(SkywardPride::new())),
-    (WolfsGravestone::record(), WeaponUnion::WolfsGravestone(WolfsGravestone)),
-    (SkywardSpine::record(), WeaponUnion::SkywardSpine(SkywardSpine::new())),
-    (PrimordialJadeWingedSpear::record(), WeaponUnion::PrimordialJadeWingedSpear(PrimordialJadeWingedSpear::new())),
-    (SkywardHarp::record(), WeaponUnion::SkywardHarp(SkywardHarp::new())),
-    (AmosBow::record(), WeaponUnion::AmosBow(AmosBow)),
-    (SkywardAtlas::record(), WeaponUnion::SkywardAtlas(SkywardAtlas::new())),
-    (LostPrayerToTheSacredWinds::record(), WeaponUnion::LostPrayerToTheSacredWinds(LostPrayerToTheSacredWinds::new())),
+    (SkywardBlade::record(1), WeaponUnion::SkywardBlade(SkywardBlade::new(1))),
+    (AquilaFavonia::record(1), WeaponUnion::AquilaFavonia(AquilaFavonia::new(1))),
+    (SkywardPride::record(1), WeaponUnion::SkywardPride(SkywardPride::new(1))),
+    (WolfsGravestone::record(1), WeaponUnion::WolfsGravestone(WolfsGravestone)),
+    (SkywardSpine::record(1), WeaponUnion::SkywardSpine(SkywardSpine::new(1))),
+    (PrimordialJadeWingedSpear::record(1), WeaponUnion::PrimordialJadeWingedSpear(PrimordialJadeWingedSpear::new(1))),
+    (SkywardHarp::record(1), WeaponUnion::SkywardHarp(SkywardHarp::new(1))),
+    (AmosBow::record(1), WeaponUnion::AmosBow(AmosBow)),
+    (SkywardAtlas::record(1), WeaponUnion::SkywardAtlas(SkywardAtlas::new(1))),
+    (LostPrayerToTheSacredWinds::record(1), WeaponUnion::LostPrayerToTheSacredWinds(LostPrayerToTheSacredWinds::new(1))),
     // version_1_1
-    (TheUnforged::record(), WeaponUnion::TheUnforged(TheUnforged::new())),
-    (SummitShaper::record(), WeaponUnion::SummitShaper(SummitShaper::new())),
-    (VortexVanquisher::record(), WeaponUnion::VortexVanquisher(VortexVanquisher::new())),
-    (MemoryOfDust::record(), WeaponUnion::MemoryOfDust(MemoryOfDust::new())),
+    (TheUnforged::record(1), WeaponUnion::TheUnforged(TheUnforged::new(1))),
+    (SummitShaper::record(1), WeaponUnion::SummitShaper(SummitShaper::new(1))),
+    (VortexVanquisher::record(1), WeaponUnion::VortexVanquisher(VortexVanquisher::new(1))),
+    (MemoryOfDust::record(1), WeaponUnion::MemoryOfDust(MemoryOfDust::new(1))),
     // version_1_2
     (FesteringDesire::record(), WeaponUnion::FesteringDesire(FesteringDesire::new())),
     (SnowTombedStarsilver::record(), WeaponUnion::SnowTombedStarsilver(SnowTombedStarsilver::new())),
@@ -512,13 +531,18 @@ pub fn all() -> Vec<(WeaponRecord, WeaponUnion)> {
     (EverlastingMoonglow::record(), WeaponUnion::EverlastingMoonglow(EverlastingMoonglow::new())),
     (LuxuriousSeaLord::record(), WeaponUnion::LuxuriousSeaLord(LuxuriousSeaLord::new())),
     (TheCatch::record(), WeaponUnion::TheCatch(TheCatch::new())),
+    // version_2_2
     (PolarStar::record(), WeaponUnion::PolarStar(PolarStar::new())),
     (PolarStarSword::record(), WeaponUnion::PolarStarSword(PolarStarSword::new())),
     (PolarStarClaymore::record(), WeaponUnion::PolarStarClaymore(PolarStarClaymore::new())),
     (PolarStarPolearm::record(), WeaponUnion::PolarStarPolearm(PolarStarPolearm::new())),
     (PolarStarCatalyst::record(), WeaponUnion::PolarStarCatalyst(PolarStarCatalyst::new())),
     (Akuoumaru::record(), WeaponUnion::Akuoumaru(Akuoumaru::new())),
+    (MouunsMoon::record(), WeaponUnion::MouunsMoon(MouunsMoon::new())),
+    (WavebreakersFin::record(), WeaponUnion::WavebreakersFin(WavebreakersFin::new())),
+    // version_2_3
     (RedhornStonethresher::record(), WeaponUnion::RedhornStonethresher(RedhornStonethresher::new())),
+    (CinnabarSpindle::record(), WeaponUnion::CinnabarSpindle(CinnabarSpindle::new())),
     ]
 }
 
@@ -667,7 +691,7 @@ mod tests {
         let mut data      = [CharacterData::new(0, &cr, &wr, &ar); 1];
         let mut enemy     = Enemy::simple();
         let mut character = Sim2TestCharacter::new();
-        let mut weapon    = SkywardBlade::new();
+        let mut weapon    = SkywardBlade::new(1);
         let mut artifact  = Artifact::default();
         {
             let mut states = [ActionState::new(); 1];
