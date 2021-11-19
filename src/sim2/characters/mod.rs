@@ -17,6 +17,7 @@ pub mod version_1_6;
 pub mod version_2_0;
 pub mod version_2_1;
 pub mod version_2_2;
+pub mod version_2_3;
 
 use pyro::*;
 use hydro::*;
@@ -33,6 +34,7 @@ use version_1_6::*;
 use version_2_0::*;
 use version_2_1::*;
 use version_2_2::*;
+use version_2_3::*;
 
 #[derive(Debug)]
 pub enum CharacterUnion {
@@ -95,6 +97,9 @@ pub enum CharacterUnion {
     SangonomiyaKokomi(SangonomiyaKokomi),
     // version_2_2
     Thoma(Thoma),
+    // version_2_3
+    AratakiItto(AratakiItto),
+    Gorou(Gorou),
 }
 
 impl CharacterUnion {
@@ -160,6 +165,9 @@ impl CharacterUnion {
             SangonomiyaKokomi(x) => x,
             // version_2_2
             Thoma(x) => x,
+            // version_2_3
+            AratakiItto(x) => x,
+            Gorou(x) => x,
         }
     }
 
@@ -225,11 +233,14 @@ impl CharacterUnion {
             SangonomiyaKokomi(x) => x,
             // version_2_2
             Thoma(x) => x,
+            // version_2_3
+            AratakiItto(x) => x,
+            Gorou(x) => x,
         }
     }
 }
 
-pub const N_CHARACTERS: usize = 44;
+pub const N_CHARACTERS: usize = 46;
 
 pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     vec![
@@ -292,6 +303,9 @@ pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     (SangonomiyaKokomi::record(), CharacterUnion::SangonomiyaKokomi(SangonomiyaKokomi::new())),
     // version_2_2
     (Thoma::record(), CharacterUnion::Thoma(Thoma::new())),
+    // version_2_3
+    (AratakiItto::record(), CharacterUnion::AratakiItto(AratakiItto::new())),
+    (Gorou::record(), CharacterUnion::Gorou(Gorou::new())),
     ]
 }
 

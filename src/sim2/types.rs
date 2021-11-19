@@ -269,6 +269,9 @@ pub enum Preference {
     SangonomiyaKokomi,
     // version_2_2
     Thoma,
+    // version_2_3
+    AratakiItto,
+    Gorou,
 }
 
 impl PartialEq<Vision> for Preference {
@@ -343,7 +346,7 @@ impl PartialEq<str> for Preference {
             (Preference::Ganyu, "Ganyu") => true,
             // version_1_3
             (Preference::Xiao, "Xiao") => true,
-            (Preference::HuTao, "HuTao") => true,
+            (Preference::HuTao, "Hu Tao") => true,
             // version_1_4
             (Preference::Rosaria, "Rosaria") => true,
             // version_1_5
@@ -363,6 +366,9 @@ impl PartialEq<str> for Preference {
             (Preference::SangonomiyaKokomi, "Sangonomiya Kokomi") => true,
             // version_2_2
             (Preference::Thoma, "Thoma") => true,
+            // version_2_3
+            (Preference::AratakiItto, "Arataki Itto") => true,
+            (Preference::Gorou, "Gorou") => true,
             _ => false,
         }
     }
@@ -486,6 +492,52 @@ impl From<&String> for Vision {
             "Physical" => Physical,
             _ => panic!("invalid vision string: {:?}", key),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct PeriodicStack {
+    start_time: f32,
+    time: f32,
+    interval: f32,
+    duration: f32,
+}
+
+impl PeriodicStack {
+    pub fn new(time: f32, interval: f32, duration: f32) -> Self {
+        Self {
+            start_time: time,
+            time,
+            interval,
+            duration,
+        }
+    }
+
+    pub fn disable() -> Self {
+        Self {
+            start_time: 9999.,
+            time: 9999.,
+            interval: 0.,
+            duration: 0.,
+        }
+    }
+
+    pub fn grant(&mut self, time: f32) -> u8 {
+        if time >= self.time {
+            if self.is_duration_valid() {
+                self.time += self.interval;
+            } else {
+                // stop granting seals
+                self.time = 9999.;
+            }
+            1
+        } else {
+            0
+        }
+    }
+
+    pub fn is_duration_valid(&self) -> bool {
+        self.time + self.interval - self.start_time <= self.duration
     }
 }
 

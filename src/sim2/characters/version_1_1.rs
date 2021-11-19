@@ -57,6 +57,8 @@ impl Timeline for Tartaglia {
         } else if state.rel_time.na >= 0.4025 {
             // 6 attacks in 2.415 seconds
             data.na_idx.to_na(6, state.na_carryover(0.4025))
+        } else if data.can_use_ca && state.rel_time.ca >= 10. {
+            CharacterAction::Ca(state.ca_carryover(10.))
         } else {
             CharacterAction::StandStill
         }
@@ -112,8 +114,14 @@ impl CharacterAttack for Tartaglia {
         atk_queue.add_na(74.46, &HYDRO_GAUGE1A, time + 0.1111, event, data, state);
     }
 
+    fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        atk_queue.add_na(119., &HYDRO_GAUGE1A, time, event, data, state);
+        atk_queue.add_na(142.29, &HYDRO_GAUGE1A, time + 0.1111, event, data, state);
+    }
+
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         state.na_talent += 5.;
+        state.ca_talent += 5.;
     }
 
     fn reset_modify(&mut self) -> () {

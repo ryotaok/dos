@@ -64,10 +64,10 @@ impl WeaponAttack for PolarStar {
             if attack.time - self.na <= 12. {
                 stack += 1;
             }
-            // if attack.time - self.ca <= 12. {
-            //     stack += 1;
-            // }
-            stack += 1;
+            if attack.time - self.ca <= 12. {
+                stack += 1;
+            }
+            // stack += 1;
             match stack {
                 4 => state.atk += 48.0,
                 3 => state.atk += 30.0,

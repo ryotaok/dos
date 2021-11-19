@@ -1,52 +1,12 @@
 use crate::sim2::state::State;
 use crate::sim2::timeline::{ActionState, Timeline};
 use crate::sim2::attack::{Attack, CharacterAttack, AtkQueue};
-use crate::sim2::types::{CharacterAction, DamageType, Vision, FieldCharacterIndex, WeaponType, FieldEnergy, Particle, VecFieldEnergy, ToNaAction};
+use crate::sim2::types::{PeriodicStack, CharacterAction, DamageType, Vision, FieldCharacterIndex, WeaponType, FieldEnergy, Particle, VecFieldEnergy, ToNaAction};
 use crate::sim2::element::{ElementalGauge, PHYSICAL_GAUGE, PYRO_GAUGE1A, PYRO_GAUGE2B, HYDRO_GAUGE1A, HYDRO_GAUGE2B, ELECTRO_GAUGE1A, ELECTRO_GAUGE2B, CRYO_GAUGE1A, CRYO_GAUGE2B, ANEMO_GAUGE1A, ANEMO_GAUGE2B, GEO_GAUGE1A, GEO_GAUGE2B, DENDRO_GAUGE1A, DENDRO_GAUGE2B};
 use crate::sim2::record::{CharacterRecord, CharacterData, Enemy};
 
 use WeaponType::*;
 use Vision::*;
-
-#[derive(Debug)]
-struct BurstScarletSeal {
-    start_time: f32,
-    time: f32,
-}
-
-impl BurstScarletSeal {
-    fn new(time: f32) -> Self {
-        Self {
-            start_time: time,
-            time,
-        }
-    }
-
-    fn disable() -> Self {
-        Self {
-            start_time: 9999.,
-            time: 9999.,
-        }
-    }
-
-    fn grant(&mut self, time: f32) -> u8 {
-        if time >= self.time {
-            if self.is_duration_valid() {
-                self.time += 1.;
-            } else {
-                // stop granting seals
-                self.time = 9999.;
-            }
-            1
-        } else {
-            0
-        }
-    }
-
-    fn is_duration_valid(&self) -> bool {
-        self.time + 1. - self.start_time <= 15.
-    }
-}
 
 // When Yanfei consumes Scarlet Seals by using a Charged Attack, each Scarlet
 // Seal will increase Yanfei's Pyro DMG Bonus by 5%. This effect lasts for 6s.
@@ -60,7 +20,7 @@ impl BurstScarletSeal {
 pub struct Yanfei {
     scarlet_seal: u8,
     burst_time: f32,
-    burst_seal: BurstScarletSeal,
+    burst_seal: PeriodicStack,
     a1_bonus: f32,
     a1_time: f32,
 }
@@ -78,7 +38,7 @@ impl Yanfei {
         Self {
             scarlet_seal: 0,
             burst_time: -99.,
-            burst_seal: BurstScarletSeal::disable(),
+            burst_seal: PeriodicStack::disable(),
             a1_bonus: 0.,
             a1_time: -99.,
         }
@@ -109,7 +69,7 @@ impl Timeline for Yanfei {
     // generate energy and modify acceleration states according to the event
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         match event {
-            CharacterAction::Burst => self.burst_seal = BurstScarletSeal::new(state.current_time),
+            CharacterAction::Burst => self.burst_seal = PeriodicStack::new(state.current_time, 1., 15.),
             CharacterAction::PressSkill => {
                 self.scarlet_seal = 3;
                 field_energy.push_p(Particle::new(data.character.vision, 3.));
@@ -159,7 +119,7 @@ impl CharacterAttack for Yanfei {
         self.scarlet_seal += self.burst_seal.grant(action_state.current_time);
         match action_state.to_damagetype() {
             DamageType::Burst => {
-                self.burst_seal = BurstScarletSeal::new(action_state.current_time);
+                self.burst_seal = PeriodicStack::new(action_state.current_time, 1., 15.);
                 self.burst_time = action_state.current_time;
             },
             DamageType::Skill => self.scarlet_seal = 3,
@@ -191,7 +151,7 @@ impl CharacterAttack for Yanfei {
 
     fn reset_modify(&mut self) -> () {
         self.scarlet_seal = 0;
-        self.burst_seal = BurstScarletSeal::disable();
+        self.burst_seal = PeriodicStack::disable();
         self.burst_time = -99.;
         self.a1_bonus = 0.;
         self.a1_time = -99.;

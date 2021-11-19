@@ -218,11 +218,13 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
             }
 
             let mut enemy = Enemy::hilichurl();
-            let (init_history, mut history) = if let Some(h) = cache.remove(&(cr1.name, cr2.name)) {
-                (false, h)
-            } else {
-                (true, History::<2>::new(args.simulation_time, args.unit_time))
-            };
+            // let (init_history, mut history) = if let Some(h) = cache.remove(&(cr1.name, cr2.name)) {
+            //     (false, h)
+            // } else {
+            //     (true, History::<2>::new(args.simulation_time, args.unit_time))
+            // };
+            let init_history = true;
+            let mut history = History::<2>::new(args.simulation_time, args.unit_time);
             let dmg: Vec<DamageResult>;
 
             // supporter role
@@ -285,7 +287,7 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
             }
 
             // destruct objects
-            cache.insert((cr1.name, cr2.name), history);
+            // cache.insert((cr1.name, cr2.name), history);
             ar2.dry_goblet();
             member2.back(((cr2, ca2), (wr2, wa2), (ar2, aa2)));
             for r in dmg.iter() {

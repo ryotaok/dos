@@ -34,10 +34,12 @@ pub enum ArtifactUnion {
     GlacierAndSnowfield(GlacierAndSnowfield),
     PaleFlame(PaleFlame),
     TenacityOfTheMillelith(TenacityOfTheMillelith),
+    TenacityOfTheMillelithHP(TenacityOfTheMillelithHP),
     ShimenawasReminiscence(ShimenawasReminiscence),
     GfShimenawa(GfShimenawa),
     EmblemOfSeveredFate(EmblemOfSeveredFate),
     EmblemOfSeveredFateER(EmblemOfSeveredFateER),
+    HuskOfOpulentDreams(HuskOfOpulentDreams),
 }
 
 impl ArtifactUnion {
@@ -69,10 +71,12 @@ impl ArtifactUnion {
             GlacierAndSnowfield(x) => x,
             PaleFlame(x) => x,
             TenacityOfTheMillelith(x) => x,
+            TenacityOfTheMillelithHP(x) => x,
             ShimenawasReminiscence(x) => x,
             GfShimenawa(x) => x,
             EmblemOfSeveredFate(x) => x,
             EmblemOfSeveredFateER(x) => x,
+            HuskOfOpulentDreams(x) => x,
         }
     }
 
@@ -104,10 +108,12 @@ impl ArtifactUnion {
             GlacierAndSnowfield(x) => x,
             PaleFlame(x) => x,
             TenacityOfTheMillelith(x) => x,
+            TenacityOfTheMillelithHP(x) => x,
             ShimenawasReminiscence(x) => x,
             GfShimenawa(x) => x,
             EmblemOfSeveredFate(x) => x,
             EmblemOfSeveredFateER(x) => x,
+            HuskOfOpulentDreams(x) => x,
         }
     }
 }
@@ -139,10 +145,12 @@ pub fn all() -> Vec<(Artifact, ArtifactUnion)> {
     (GlacierAndSnowfield::record(), ArtifactUnion::GlacierAndSnowfield(GlacierAndSnowfield::new())),
     (PaleFlame::record(), ArtifactUnion::PaleFlame(PaleFlame::new())),
     (TenacityOfTheMillelith::record(), ArtifactUnion::TenacityOfTheMillelith(TenacityOfTheMillelith::new())),
+    (TenacityOfTheMillelithHP::record(), ArtifactUnion::TenacityOfTheMillelithHP(TenacityOfTheMillelithHP::new())),
     (ShimenawasReminiscence::record(), ArtifactUnion::ShimenawasReminiscence(ShimenawasReminiscence::new())),
     (GfShimenawa::record(), ArtifactUnion::GfShimenawa(GfShimenawa)),
     (EmblemOfSeveredFate::record(), ArtifactUnion::EmblemOfSeveredFate(EmblemOfSeveredFate::new())),
     (EmblemOfSeveredFateER::record(), ArtifactUnion::EmblemOfSeveredFateER(EmblemOfSeveredFateER::new())),
+    (HuskOfOpulentDreams::record(), ArtifactUnion::HuskOfOpulentDreams(HuskOfOpulentDreams::new())),
     ]
 }
 
@@ -539,7 +547,7 @@ impl GladiatorsFinaleDef {
         Artifact::default()
             .name("Gladiator's Finale (DEF)")
             .version(1.0)
-            .preference(&[Preference::Noelle, Preference::Albedo,])
+            .preference(&[Preference::Noelle, Preference::Albedo, Preference::AratakiItto])
             .atk(18.0)
             .na_dmg(35.0)
             .def(SCORE.def(40.0)).cr(SCORE.cr(60.0))
@@ -562,7 +570,7 @@ impl WanderersTroupe {
         Artifact::default()
             .name("Wanderer's Troupe")
             .version(1.0)
-            .preference(&[Preference::Ranged])
+            .preference(&[Preference::Ganyu])
             .em(80.0)
             .ca_dmg(35.0)
             .atk(SCORE.atk(40.0)).cr(SCORE.cr(60.0))
@@ -1161,6 +1169,65 @@ impl WeaponAttack for EmblemOfSeveredFateER {
         if attack.idx == data.idx && attack.kind == Burst {
             emblem_of_severed_fate(action_state, state);
         }
+    }
+}
+
+// 4 Piece: A character equipped with this Artifact set will obtain the
+// Curiosity effect in the following conditions: When on the field, the
+// character gains 1 stack after hitting an opponent with a Geo attack,
+// triggering a maximum of once every 0.3s. When off the field, the character
+// gains 1 stack every 3s. Curiosity can stack up to 4 times, each providing 6%
+// DEF and a 6% Geo DMG Bonus. When 6 seconds pass without gaining a Curiosity
+// stack, 1 stack is lost.
+#[derive(Debug)]
+pub struct HuskOfOpulentDreams {
+    stack: f32,
+    time: f32,
+}
+
+impl HuskOfOpulentDreams {
+    pub fn new() -> Self {
+        Self {
+            time: -99.,
+            stack: 0.,
+        }
+    }
+
+    pub fn record() -> Artifact {
+        use Preference::*;
+        Artifact::default()
+            .name("Husk of Opulent Dreams")
+            .version(2.3)
+            .preference(&[Noelle, Albedo, AratakiItto, Gorou ])
+            .def(30. + SCORE.def(40.0)).cr(SCORE.cr(60.0))
+    }
+}
+
+impl Timeline for HuskOfOpulentDreams {}
+
+impl WeaponAttack for HuskOfOpulentDreams {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        if data.idx.0 == 0 {
+            // on-field
+            if attack.idx == data.idx && attack.element.aura == Vision::Geo && self.time - attack.time >= 0.3 {
+                self.stack += 1.;
+            }
+        } else {
+            // off-field
+            if self.time - attack.time >= 3. {
+                self.stack += 1.;
+            }
+        }
+        if self.stack > 4. {
+            self.stack = 4.;
+        }
+        state.def += 6. * self.stack;
+        state.geo_dmg += 6. * self.stack;
+    }
+
+    fn reset_modify(&mut self) -> () {
+        self.time = -99.;
+        self.stack = 0.;
     }
 }
 
