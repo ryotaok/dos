@@ -500,7 +500,6 @@ pub struct FieldMember<'a> {
 pub struct CharacterData<'a> {
     pub idx: FieldCharacterIndex,
     pub na_idx: usize,
-    pub can_use_ca: bool,
     pub character: &'a CharacterRecord,
     pub weapon: &'a WeaponRecord,
     pub artifact: &'a Artifact,
@@ -511,7 +510,6 @@ impl<'a> CharacterData<'a> {
         Self {
             idx: FieldCharacterIndex(idx),
             na_idx: 1,
-            can_use_ca: idx == 0,
             character,
             weapon,
             artifact,

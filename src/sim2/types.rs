@@ -19,6 +19,16 @@ pub fn approx_equal(a: f32, b: f32, decimal_places: u8) -> bool {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct FieldCharacterIndex(pub usize);
 
+impl FieldCharacterIndex {
+    pub fn is_on_field(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn is_off_field(&self) -> bool {
+        self.0 != 0
+    }
+}
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum WeaponType {
     Sword,
@@ -369,6 +379,7 @@ impl PartialEq<str> for Preference {
             // version_2_3
             (Preference::AratakiItto, "Arataki Itto") => true,
             (Preference::Gorou, "Gorou") => true,
+            (Preference::Gorou, "Gorou_C6") => true,
             _ => false,
         }
     }

@@ -38,16 +38,16 @@ impl Thoma {
 impl Timeline for Thoma {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 15. {
+        if state.rel_time.press >= 15. {
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.4875 {
             // 4 attacks in 1.95 seconds
             data.na_idx.to_na(4, state.na_carryover(0.4875))
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         } else {
             CharacterAction::StandStill
         }

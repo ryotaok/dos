@@ -228,7 +228,7 @@ fn permu6(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
             let dmg: Vec<DamageResult>;
 
             // supporter role
-            ar2.atk_spd = -80.;
+            // ar2.atk_spd = -90.;
             ar2.flat_atk = 311.;
             ar2.infuse_goblet(&cr2.vision, &cr2.name);
 
@@ -334,7 +334,7 @@ fn permu9(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
             }
 
             // supporter role
-            ar2.atk_spd = -80.;
+            // ar2.atk_spd = -90.;
             ar2.flat_atk = 311.;
             ar2.infuse_goblet(&cr2.vision, &cr2.name);
 
@@ -346,7 +346,7 @@ fn permu9(tx: Sender<Vec<Recorder>>, start: usize, end: usize, args: &Args) -> (
                 }
 
                 // supporter role
-                ar3.atk_spd = -80.;
+                // ar3.atk_spd = -90.;
                 ar3.flat_atk = 311.;
                 ar3.infuse_goblet(&cr3.vision, &cr3.name);
 

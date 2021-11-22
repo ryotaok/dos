@@ -46,14 +46,14 @@ impl Kazuha {
 impl Timeline for Kazuha {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
-        } else if self.midare_ranzan {
+        if self.midare_ranzan {
             CharacterAction::Ca(0.)
         // check if skill can be used
         } else if state.rel_time.hold >= 9. {
             CharacterAction::HoldSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.4332 {
             // 5 attacks in 2.166 seconds

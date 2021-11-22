@@ -31,6 +31,46 @@ impl<const N: usize> History<N> {
     }
 }
 
+// the "delay time" is 3 seconds
+#[derive(Debug)]
+struct Policy<'a> {
+    time: f32,
+    state: &'a ActionState,
+}
+
+impl<'a> Policy<'a> {
+    pub fn new(time: f32, state: &'a ActionState) -> Self {
+        Self {
+            time,
+            state,
+        }
+    }
+
+    pub fn react_on_field(&self, action: CharacterAction) -> CharacterAction {
+        if self.time < 3. && action.is_skill() {
+            action
+        } else if self.time >= 3. {
+            action
+        } else {
+            CharacterAction::StandStill
+        }
+    }
+
+    pub fn react_off_field(&self, action: CharacterAction) -> CharacterAction {
+        if self.time < 3. {
+            action
+        } else {
+            if action.is_burst() {
+                action
+            } else if action.is_skill() && (self.state.rel_time.press > 20. && self.state.rel_time.hold > 20.) {
+                action
+            } else {
+                CharacterAction::StandStill
+            }
+        }
+    }
+}
+
 pub fn decide_action<const N: usize>(history: &mut History<N>, members: &mut [TimelineMember; N], states: &mut [ActionState; N], data: &mut [CharacterData; N]) -> () {
     let mut field_energy: Vec<FieldEnergy> = Vec::new();
     let mut current_time: f32 = 0.;
@@ -38,7 +78,19 @@ pub fn decide_action<const N: usize>(history: &mut History<N>, members: &mut [Ti
     while current_time <= history.end_time {
         let mut actions = [CharacterAction::StandStill; N];
         for (i, member) in members.iter_mut().enumerate() {
-            let action = member.character.decide_action(&states[i], &mut data[i]);
+            let action = {
+                let a = member.character.decide_action(&states[i], &mut data[i]);
+                if N == 1 {
+                    a
+                } else {
+                    let p = Policy::new(current_time, &states[i]);
+                    if i == 0 {
+                        p.react_on_field(a)
+                    } else {
+                        p.react_off_field(a)
+                    }
+                }
+            };
             let state = &mut states[i];
             let d = &data[i];
             state.update1(&action, current_time, history.unit_time);
@@ -329,7 +381,7 @@ mod tests {
         assert_eq!(history.action, expect);
     }
 
-    #[test]
+    #[test] #[ignore]
     fn two_members_timeline() {
         let target = testutil::history_2at02();
         let mut history = History::<2>::new(2.0, 0.2);

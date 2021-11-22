@@ -47,17 +47,17 @@ impl Tartaglia {
 impl Timeline for Tartaglia {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 30. {
+        if state.rel_time.press >= 30. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.4025 {
             // 6 attacks in 2.415 seconds
             data.na_idx.to_na(6, state.na_carryover(0.4025))
-        } else if data.can_use_ca && state.rel_time.ca >= 10. {
+        } else if data.idx.is_on_field() && state.rel_time.ca >= 10. {
             CharacterAction::Ca(state.ca_carryover(10.))
         } else {
             CharacterAction::StandStill
@@ -153,12 +153,12 @@ impl Diona {
 impl Timeline for Diona {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.hold >= 15. {
+        if state.rel_time.hold >= 15. {
             CharacterAction::HoldSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.4466 {
             // 5 attacks in 2.333 seconds
@@ -247,12 +247,12 @@ impl Zhongli {
 impl Timeline for Zhongli {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 12. && state.energy >= 40. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 10. {
+        if state.rel_time.press >= 20. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 12. && state.energy >= 40. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.4875 {
             // 6 attacks in 2.925 seconds
@@ -278,7 +278,7 @@ impl CharacterAttack for Zhongli {
 
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         atk_queue.add_skill(28.8, &GEO_GAUGE2B, time, event, data, state);
-        for i in 0..5 {
+        for i in 0..10 {
             atk_queue.add_skill(57.6, &GEO_GAUGE1A, time + (2 * i) as f32, event, data, state);
         }
     }
@@ -346,12 +346,12 @@ impl Xinyan {
 impl Timeline for Xinyan {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 18. {
+        if state.rel_time.press >= 18. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.7 {
             // 4 attacks in 2.8 seconds

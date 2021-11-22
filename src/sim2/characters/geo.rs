@@ -47,7 +47,7 @@ impl Timeline for Ningguang {
         // is burst CD off and has enough energy
         } else if state.rel_time.burst >= 12. && state.energy >= 40. {
             CharacterAction::Burst
-        } else if data.can_use_ca && self.star_jade > 1 && state.rel_time.na >= 0.8 {
+        } else if data.idx.is_on_field() && self.star_jade > 1 && state.rel_time.na >= 0.8 {
             CharacterAction::Ca(state.ca_carryover(1.5))
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.8 && state.rel_time.ca >= 1.5 {
@@ -160,12 +160,12 @@ impl Noelle {
 impl Timeline for Noelle {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 24. {
+        if state.rel_time.press >= 24. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.654 {
             // 4 attacks in 2.616 seconds
@@ -249,12 +249,12 @@ impl TravelerGeo {
 impl Timeline for TravelerGeo {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 6. {
+        if state.rel_time.press >= 6. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.51 {
             // 5 attacks in 2.55 seconds

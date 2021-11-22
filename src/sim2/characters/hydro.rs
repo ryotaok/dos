@@ -36,12 +36,12 @@ impl Barbara {
 impl Timeline for Barbara {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 32. {
+        if state.rel_time.press >= 32. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.375 {
             // 4 attacks in 1.5 seconds
@@ -107,12 +107,12 @@ impl Xingqiu {
 impl Timeline for Xingqiu {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 21. {
+        if state.rel_time.press >= 21. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5666 {
             // 5 attacks in 2.833 seconds
@@ -135,9 +135,9 @@ impl CharacterAttack for Xingqiu {
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         for i in 0..13 {
             let t = time + 1.233 * i as f32;
-            atk_queue.add_burst(103.12, &HYDRO_GAUGE1A, t, event, data, state);
-            atk_queue.add_burst(103.12, &HYDRO_GAUGE1A, t, event, data, state);
-            atk_queue.add_burst(103.12, &HYDRO_GAUGE1A, t, event, data, state);
+            atk_queue.apply_burst(103.12, &HYDRO_GAUGE1A, t, event, data, state);
+            atk_queue.apply_burst(103.12, &HYDRO_GAUGE1A, t, event, data, state);
+            atk_queue.apply_burst(103.12, &HYDRO_GAUGE1A, t, event, data, state);
         }
     }
 
@@ -206,12 +206,12 @@ impl Mona {
 impl Timeline for Mona {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 12. {
+        if state.rel_time.press >= 12. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.375 {
             // 4 attacks in 1.5 seconds

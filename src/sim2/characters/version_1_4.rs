@@ -40,12 +40,12 @@ impl Rosaria {
 impl Timeline for Rosaria {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 6. {
+        if state.rel_time.press >= 6. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5466 {
             // 5 attacks in 2.733 seconds
@@ -66,10 +66,10 @@ impl Timeline for Rosaria {
 
 impl CharacterAttack for Rosaria {
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_burst(187.2, &CRYO_GAUGE1A, time, event, data, state);
-        atk_queue.add_burst(273.6, &CRYO_GAUGE1A, time+0.1111, event, data, state);
+        atk_queue.apply_burst(187.2, &CRYO_GAUGE1A, time, event, data, state);
+        atk_queue.apply_burst(273.6, &CRYO_GAUGE1A, time+0.1111, event, data, state);
         for i in 1..5 {
-            atk_queue.add_burst(237.6, &CRYO_GAUGE1A, time + (2 * i) as f32, event, data, state);
+            atk_queue.apply_burst(237.6, &CRYO_GAUGE1A, time + (2 * i) as f32, event, data, state);
         }
     }
 

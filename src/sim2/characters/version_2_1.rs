@@ -51,12 +51,12 @@ impl RaidenShogun {
 impl Timeline for RaidenShogun {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 18. && state.energy >= 90. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 10. {
+        if state.rel_time.press >= 20. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 18. && state.energy >= 90. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.4234 {
             // 5 attacks in 2.117 seconds
@@ -104,7 +104,7 @@ impl CharacterAttack for RaidenShogun {
 
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         atk_queue.add_skill(210.96, &ELECTRO_GAUGE1A, time, event, data, state);
-        for i in 1..12 {
+        for i in 1..22 {
             atk_queue.add_skill(75.6, &ELECTRO_GAUGE1A, time + 0.9 * i as f32, event, data, state);
         }
     }
@@ -186,12 +186,12 @@ impl KujouSara {
 impl Timeline for KujouSara {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 10. {
+        if state.rel_time.press >= 10. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.42 {
             // 5 attacks in 2.1 seconds
@@ -286,8 +286,8 @@ impl Aloy {
         }
     }
 
-    fn infusion(&self, time: f32) -> &'static ElementalGauge {
-        if time - self.skill_time <= 10. {
+    fn infusion(&self, time: f32, is_on_field: bool) -> &'static ElementalGauge {
+        if is_on_field && time - self.skill_time <= 10. {
             &CRYO_GAUGE1A
         } else {
             &PHYSICAL_GAUGE
@@ -305,12 +305,12 @@ impl Aloy {
 impl Timeline for Aloy {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 12. && state.energy >= 40. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 20. {
+        if state.rel_time.press >= 20. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 12. && state.energy >= 40. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.7 {
             // 4 attacks in 2.8 seconds
@@ -343,20 +343,20 @@ impl CharacterAttack for Aloy {
     }
 
     fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(37.68, self.infusion(time), time, event, data, state);
-        atk_queue.add_na(42.39, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(37.68, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
+        atk_queue.add_na(42.39, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(76.93, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(76.93, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(94.2, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(94.2, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(117.12, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(117.12, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn reset_attack(&mut self) -> () {
@@ -419,11 +419,13 @@ impl SangonomiyaKokomi {
 impl Timeline for SangonomiyaKokomi {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 18. && state.energy >= 70. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 20. {
+        if data.idx.is_on_field() && state.rel_time.press >= 20. {
+            CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 18. && state.energy >= 70. {
+            CharacterAction::Burst
+        } else if data.idx.is_off_field() && state.rel_time.press >= 20. {
             CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5 {
@@ -437,7 +439,7 @@ impl Timeline for SangonomiyaKokomi {
     // generate energy and modify acceleration states according to the event
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
         match event {
-            CharacterAction::Burst => state.reduce_skill = 99.,
+            CharacterAction::Burst => state.reduce_skill = 20.,
             CharacterAction::PressSkill => field_energy.push_p(Particle::new(data.character.vision, 4.)),
             _ => (),
         }
@@ -451,7 +453,7 @@ impl CharacterAttack for SangonomiyaKokomi {
 
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         for i in 0..7 {
-            atk_queue.add_skill(196.54, &HYDRO_GAUGE1A, time + (2 * i) as f32, event, data, state);
+            atk_queue.apply_skill(196.54, &HYDRO_GAUGE1A, time + (2 * i) as f32, event, data, state);
         }
     }
 

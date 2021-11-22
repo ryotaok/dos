@@ -39,12 +39,12 @@ impl Ayaka {
 impl Timeline for Ayaka {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 10. {
+        if state.rel_time.press >= 10. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.4234 {
             // 5 attacks in 2.117 seconds
@@ -152,8 +152,8 @@ impl Yoimiya {
         }
     }
 
-    fn infusion(&self, time: f32) -> &'static ElementalGauge {
-        if time - self.skill_time <= 10. {
+    fn infusion(&self, time: f32, is_on_field: bool) -> &'static ElementalGauge {
+        if is_on_field && time - self.skill_time <= 10. {
             &PYRO_GAUGE1A
         } else {
             &PHYSICAL_GAUGE
@@ -164,12 +164,12 @@ impl Yoimiya {
 impl Timeline for Yoimiya {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 18. {
+        if state.rel_time.press >= 18. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.42 {
             // 5 attacks in 2.1 seconds
@@ -202,25 +202,25 @@ impl CharacterAttack for Yoimiya {
     }
 
     fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(63.59, self.infusion(time), time, event, data, state);
-        atk_queue.add_na(63.59, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(63.59, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
+        atk_queue.add_na(63.59, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(121.99, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(121.99, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(158.59, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(158.59, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(82.82, self.infusion(time), time, event, data, state);
-        atk_queue.add_na(82.82, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(82.82, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
+        atk_queue.add_na(82.82, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(188.87, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(188.87, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn reset_attack(&mut self) -> () {
@@ -236,7 +236,7 @@ impl CharacterAttack for Yoimiya {
             self.skill_time = action_state.current_time;
         }
         if attack.idx == data.idx {
-            if attack.time - self.skill_time <= 10. {
+            if data.idx.is_on_field() && attack.time - self.skill_time <= 10. {
                 state.na_talent += 61.74;
                 if attack.kind == DamageType::Na {
                     self.a1_time = attack.time;
@@ -294,12 +294,12 @@ impl Sayu {
 impl Timeline for Sayu {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 6. {
+        if state.rel_time.press >= 6. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.654 {
             // 4 attacks in 2.616 seconds
@@ -380,12 +380,12 @@ impl TravelerElectro {
 impl Timeline for TravelerElectro {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // check if skill can be used (a1)
-        } else if state.rel_time.press >= 10.5 {
+        if state.rel_time.press >= 10.5 {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.51 {
             // 5 attacks in 2.55 seconds

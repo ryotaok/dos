@@ -48,15 +48,15 @@ impl Yanfei {
 impl Timeline for Yanfei {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // use ca
-        } else if data.can_use_ca && self.scarlet_seal >= 3 && state.rel_time.ca >= 1. && state.rel_time.na >= 0.5 {
+        if data.idx.is_on_field() && self.scarlet_seal >= 3 && state.rel_time.ca >= 1. && state.rel_time.na >= 0.5 {
             CharacterAction::Ca(state.ca_carryover(1.))
         // check if skill can be used
         } else if state.rel_time.press >= 9. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5 {
             // 3 attacks in 1.5 seconds

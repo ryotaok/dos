@@ -22,6 +22,7 @@ pub enum ArtifactUnion {
     WanderersTroupe(WanderersTroupe),
     RetracingBolide(RetracingBolide),
     RetracingBolideDef(RetracingBolideDef),
+    RetracingBolideHP(RetracingBolideHP),
     Thundersoother(Thundersoother),
     Lavawalker(Lavawalker),
     LavawalkerHp(LavawalkerHp),
@@ -35,6 +36,7 @@ pub enum ArtifactUnion {
     PaleFlame(PaleFlame),
     TenacityOfTheMillelith(TenacityOfTheMillelith),
     TenacityOfTheMillelithHP(TenacityOfTheMillelithHP),
+    TenacityOfTheMillelithDEF(TenacityOfTheMillelithDEF),
     ShimenawasReminiscence(ShimenawasReminiscence),
     GfShimenawa(GfShimenawa),
     EmblemOfSeveredFate(EmblemOfSeveredFate),
@@ -59,6 +61,7 @@ impl ArtifactUnion {
             WanderersTroupe(x) => x,
             RetracingBolide(x) => x,
             RetracingBolideDef(x) => x,
+            RetracingBolideHP(x) => x,
             Thundersoother(x) => x,
             Lavawalker(x) => x,
             LavawalkerHp(x) => x,
@@ -72,6 +75,7 @@ impl ArtifactUnion {
             PaleFlame(x) => x,
             TenacityOfTheMillelith(x) => x,
             TenacityOfTheMillelithHP(x) => x,
+            TenacityOfTheMillelithDEF(x) => x,
             ShimenawasReminiscence(x) => x,
             GfShimenawa(x) => x,
             EmblemOfSeveredFate(x) => x,
@@ -96,6 +100,7 @@ impl ArtifactUnion {
             WanderersTroupe(x) => x,
             RetracingBolide(x) => x,
             RetracingBolideDef(x) => x,
+            RetracingBolideHP(x) => x,
             Thundersoother(x) => x,
             Lavawalker(x) => x,
             LavawalkerHp(x) => x,
@@ -109,6 +114,7 @@ impl ArtifactUnion {
             PaleFlame(x) => x,
             TenacityOfTheMillelith(x) => x,
             TenacityOfTheMillelithHP(x) => x,
+            TenacityOfTheMillelithDEF(x) => x,
             ShimenawasReminiscence(x) => x,
             GfShimenawa(x) => x,
             EmblemOfSeveredFate(x) => x,
@@ -120,6 +126,7 @@ impl ArtifactUnion {
 
 pub fn all() -> Vec<(Artifact, ArtifactUnion)> {
     vec![
+    // (Gfelm::record(), ArtifactUnion::Gfelm(Gfelm)),
     (Bcpf::record(), ArtifactUnion::Bcpf(Bcpf)),
     (ThunderingFury::record(), ArtifactUnion::ThunderingFury(ThunderingFury::new())),
     (ViridescentVenerer::record(), ArtifactUnion::ViridescentVenerer(ViridescentVenerer::new())),
@@ -133,6 +140,7 @@ pub fn all() -> Vec<(Artifact, ArtifactUnion)> {
     (WanderersTroupe::record(), ArtifactUnion::WanderersTroupe(WanderersTroupe)),
     (RetracingBolide::record(), ArtifactUnion::RetracingBolide(RetracingBolide)),
     (RetracingBolideDef::record(), ArtifactUnion::RetracingBolideDef(RetracingBolideDef)),
+    (RetracingBolideHP::record(), ArtifactUnion::RetracingBolideHP(RetracingBolideHP)),
     (Thundersoother::record(), ArtifactUnion::Thundersoother(Thundersoother::new())),
     (Lavawalker::record(), ArtifactUnion::Lavawalker(Lavawalker::new())),
     (LavawalkerHp::record(), ArtifactUnion::LavawalkerHp(LavawalkerHp::new())),
@@ -146,6 +154,7 @@ pub fn all() -> Vec<(Artifact, ArtifactUnion)> {
     (PaleFlame::record(), ArtifactUnion::PaleFlame(PaleFlame::new())),
     (TenacityOfTheMillelith::record(), ArtifactUnion::TenacityOfTheMillelith(TenacityOfTheMillelith::new())),
     (TenacityOfTheMillelithHP::record(), ArtifactUnion::TenacityOfTheMillelithHP(TenacityOfTheMillelithHP::new())),
+    (TenacityOfTheMillelithDEF::record(), ArtifactUnion::TenacityOfTheMillelithDEF(TenacityOfTheMillelithDEF::new())),
     (ShimenawasReminiscence::record(), ArtifactUnion::ShimenawasReminiscence(ShimenawasReminiscence::new())),
     (GfShimenawa::record(), ArtifactUnion::GfShimenawa(GfShimenawa)),
     (EmblemOfSeveredFate::record(), ArtifactUnion::EmblemOfSeveredFate(EmblemOfSeveredFate::new())),
@@ -612,9 +621,27 @@ impl RetracingBolideDef {
         Artifact::default()
             .name("Retracing Bolide (DEF)")
             .version(1.0)
-            .preference(&[Preference::Noelle])
+            .preference(&[Preference::Noelle,Preference::AratakiItto])
             .na_dmg(40.0).ca_dmg(40.0)
             .def(SCORE.def(40.0)).cr(SCORE.cr(60.0))
+    }
+}
+
+#[derive(Debug)]
+pub struct RetracingBolideHP;
+
+impl Timeline for RetracingBolideHP {}
+
+impl WeaponAttack for RetracingBolideHP {}
+
+impl RetracingBolideHP {
+    pub fn record() -> Artifact {
+        Artifact::default()
+            .name("Retracing Bolide (HP)")
+            .version(1.0)
+            .preference(&[Preference::HuTao])
+            .na_dmg(40.0).ca_dmg(40.0)
+            .hp(SCORE.hp(40.0)).cr(SCORE.cr(60.0))
     }
 }
 
@@ -957,7 +984,7 @@ impl TenacityOfTheMillelith {
             .version(1.5)
             .preference(&[
                 Fischl, Qiqi,
-                Zhongli, Xinyan, Albedo,
+                Zhongli, Xinyan,
                 RaidenShogun,
                 ])
             .hp(20.0)
@@ -996,7 +1023,7 @@ impl TenacityOfTheMillelithHP {
             .name("Tenacity of the Millelith (HP)")
             .version(1.5)
             .preference(&[Preference::SangonomiyaKokomi ])
-            .hp(20. + SCORE.cr(50.))
+            .hp(20. + SCORE.hp(50.))
             .atk(SCORE.atk(50.))
     }
 }
@@ -1004,6 +1031,37 @@ impl TenacityOfTheMillelithHP {
 impl Timeline for TenacityOfTheMillelithHP {}
 
 impl WeaponAttack for TenacityOfTheMillelithHP {
+    fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
+        self.0.modify(action_state, data, attack, state, enemy);
+    }
+
+    fn reset_modify(&mut self) -> () {
+        self.0.reset_modify();
+    }
+}
+
+#[derive(Debug)]
+pub struct TenacityOfTheMillelithDEF(TenacityOfTheMillelith);
+
+impl TenacityOfTheMillelithDEF {
+    pub fn new() -> Self {
+        Self(TenacityOfTheMillelith::new())
+    }
+
+    pub fn record() -> Artifact {
+        Artifact::default()
+            .name("Tenacity of the Millelith (DEF)")
+            .version(1.5)
+            .preference(&[Preference::Albedo ])
+            .hp(20.)
+            .def(SCORE.def(40.))
+            .cr(SCORE.cr(60.))
+    }
+}
+
+impl Timeline for TenacityOfTheMillelithDEF {}
+
+impl WeaponAttack for TenacityOfTheMillelithDEF {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
         self.0.modify(action_state, data, attack, state, enemy);
     }
@@ -1189,14 +1247,14 @@ impl HuskOfOpulentDreams {
     pub fn new() -> Self {
         Self {
             time: -99.,
-            stack: 0.,
+            stack: 2.,
         }
     }
 
     pub fn record() -> Artifact {
         use Preference::*;
         Artifact::default()
-            .name("Husk of Opulent Dreams")
+            .name("Husk of Opulent Dreams (start 2s)")
             .version(2.3)
             .preference(&[Noelle, Albedo, AratakiItto, Gorou ])
             .def(30. + SCORE.def(40.0)).cr(SCORE.cr(60.0))
@@ -1227,7 +1285,7 @@ impl WeaponAttack for HuskOfOpulentDreams {
 
     fn reset_modify(&mut self) -> () {
         self.time = -99.;
-        self.stack = 0.;
+        self.stack = 2.;
     }
 }
 

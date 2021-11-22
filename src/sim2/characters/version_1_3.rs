@@ -41,8 +41,8 @@ impl Xiao {
         }
     }
 
-    fn infusion(&self, time: f32) -> &'static ElementalGauge {
-        if time - self.burst_time <= 15. {
+    fn infusion(&self, time: f32, is_on_field: bool) -> &'static ElementalGauge {
+        if is_on_field && time - self.burst_time <= 15. {
             &ANEMO_GAUGE1A
         } else {
             &PHYSICAL_GAUGE
@@ -54,19 +54,19 @@ impl Timeline for Xiao {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
         let during_burst = state.current_time - self.burst_time <= 18.;
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 18. && state.energy >= 70. {
-            self.burst_time = state.current_time;
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 10. {
+        if state.rel_time.press >= 10. {
             self.charge = 1;
             CharacterAction::PressSkill
         } else if self.charge < 2 {
             self.charge += 1;
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 18. && state.energy >= 70. {
+            self.burst_time = state.current_time;
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
-        } else if data.can_use_ca && during_burst && state.rel_time.ca >= 1.7 {
+        } else if data.idx.is_on_field() && during_burst && state.rel_time.ca >= 1.7 {
             CharacterAction::Ca(state.ca_carryover(1.7))
         } else if !during_burst && state.rel_time.na >= 0.625 {
             // 6 attacks in 3.75 seconds
@@ -101,33 +101,33 @@ impl CharacterAttack for Xiao {
     }
 
     fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(49.14, self.infusion(time), time, event, data, state);
-        atk_queue.add_na(49.14, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(49.14, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
+        atk_queue.add_na(49.14, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(101.58, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(101.58, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(122.3, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(122.3, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(67.2, self.infusion(time), time, event, data, state);
-        atk_queue.add_na(67.2, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(67.2, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
+        atk_queue.add_na(67.2, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(127.64, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(127.64, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na6(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(170.97, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(170.97, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_ca(404.02, self.infusion(time), time, event, data, state);
+        atk_queue.add_ca(404.02, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn reset_attack(&mut self) -> () {
@@ -204,8 +204,8 @@ impl HuTao {
         }
     }
 
-    fn infusion(&self, time: f32) -> &'static ElementalGauge {
-        if time - self.skill_time <= 9. {
+    fn infusion(&self, time: f32, is_on_field: bool) -> &'static ElementalGauge {
+        if is_on_field && time - self.skill_time <= 9. {
             &PYRO_GAUGE1A
         } else {
             &PHYSICAL_GAUGE
@@ -217,14 +217,14 @@ impl Timeline for HuTao {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
         let during_skill = state.current_time - self.skill_time <= 9.;
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 16. {
+        if state.rel_time.press >= 16. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
-        } else if data.can_use_ca && during_skill && state.rel_time.ca >= 0.925 {
+        } else if data.idx.is_on_field() && during_skill && state.rel_time.ca >= 0.925 {
             CharacterAction::Ca(state.ca_carryover(0.925))
         } else if !during_skill && state.rel_time.na >= 0.4875 {
             // 6 attacks in 2.925 seconds
@@ -265,33 +265,33 @@ impl CharacterAttack for HuTao {
     }
 
     fn na1(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(83.65, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(83.65, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na2(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(86.09, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(86.09, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na3(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(108.92, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(108.92, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na4(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(117.11, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(117.11, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na5(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(59.36, self.infusion(time), time, event, data, state);
-        atk_queue.add_na(62.8, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(59.36, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
+        atk_queue.add_na(62.8, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn na6(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(153.36, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(153.36, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_na(83.65, self.infusion(time), time, event, data, state);
-        atk_queue.add_ca(242.57, self.infusion(time), time, event, data, state);
+        atk_queue.add_na(83.65, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
+        atk_queue.add_ca(242.57, self.infusion(time, data.idx.is_on_field()), time, event, data, state);
     }
 
     fn reset_attack(&mut self) -> () {

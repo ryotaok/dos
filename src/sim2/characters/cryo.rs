@@ -46,12 +46,12 @@ impl Chongyun {
 impl Timeline for Chongyun {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 12. && state.energy >= 40. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 15. {
+        if state.rel_time.press >= 15. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 12. && state.energy >= 40. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.7085 {
             // 4 attacks in 2.834 seconds
@@ -156,12 +156,12 @@ impl Kaeya {
 impl Timeline for Kaeya {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 6. {
+        if state.rel_time.press >= 6. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5468 {
             // 5 attacks in 2.734 seconds
@@ -243,12 +243,12 @@ impl Qiqi {
 impl Timeline for Qiqi {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 30. {
+        if state.rel_time.press >= 30. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.45 {
             // 5 attacks in 2.25 seconds

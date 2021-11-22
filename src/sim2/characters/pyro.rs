@@ -38,14 +38,14 @@ impl Amber {
 impl Timeline for Amber {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 12. && state.energy >= 40. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 15. {
+        if state.rel_time.press >= 15. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 12. && state.energy >= 40. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
-        } else if data.can_use_ca && state.rel_time.ca >= 2. {
+        } else if data.idx.is_on_field() && state.rel_time.ca >= 2. {
             CharacterAction::Ca(state.ca_carryover(2.))
         } else {
             CharacterAction::StandStill
@@ -129,12 +129,12 @@ impl Bennett {
 impl Timeline for Bennett {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 4. {
+        if state.rel_time.press >= 4. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5134 {
             // 5 attacks in 2.567 seconds
@@ -228,12 +228,12 @@ impl Xiangling {
 impl Timeline for Xiangling {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 20. && state.energy >= 80. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 12. {
+        if state.rel_time.press >= 12. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 20. && state.energy >= 80. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.48 {
             // 5 attacks in 2.4 seconds
@@ -255,9 +255,9 @@ impl Timeline for Xiangling {
 impl CharacterAttack for Xiangling {
     // always apply pyro aura
     fn burst(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_burst(129.6, &PYRO_GAUGE1A, time, event, data, state);
-        atk_queue.add_burst(158.4, &PYRO_GAUGE1A, time + 0.3333, event, data, state);
-        atk_queue.add_burst(197.28, &PYRO_GAUGE1A, time + 0.6666, event, data, state);
+        atk_queue.apply_burst(129.6, &PYRO_GAUGE1A, time, event, data, state);
+        atk_queue.apply_burst(158.4, &PYRO_GAUGE1A, time + 0.3333, event, data, state);
+        atk_queue.apply_burst(197.28, &PYRO_GAUGE1A, time + 0.6666, event, data, state);
         for i in 1..11 {
             atk_queue.apply_burst(201.6, &PYRO_GAUGE1A, time + i as f32, event, data, state);
         }
@@ -266,7 +266,7 @@ impl CharacterAttack for Xiangling {
     // always apply pyro aura
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         for i in 0..4 {
-            atk_queue.add_skill(200.3, &PYRO_GAUGE1A, time + (2 * i) as f32, event, data, state);
+            atk_queue.apply_skill(200.3, &PYRO_GAUGE1A, time + (2 * i) as f32, event, data, state);
         }
     }
 
@@ -349,16 +349,16 @@ impl Diluc {
 impl Timeline for Diluc {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 12. && state.energy >= 40. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 10. {
+        if state.rel_time.press >= 10. {
             self.charge = 1;
             CharacterAction::PressSkill
         } else if self.charge < 3 {
             self.charge += 1;
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 12. && state.energy >= 40. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.7 {
             // 4 attacks in 2.8 seconds
@@ -466,17 +466,17 @@ impl Klee {
 impl Timeline for Klee {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // use ca when explosive_spark
-        } else if data.can_use_ca && self.explosive_spark {
+        if data.idx.is_on_field() && self.explosive_spark {
             self.explosive_spark = false;
             CharacterAction::Ca(0.)
         // check if skill can be used
         } else if state.rel_time.press >= 20. {
             self.explosive_spark = true;
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5 && state.rel_time.ca >= 1. {
             if data.na_idx == 3 {

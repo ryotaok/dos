@@ -123,7 +123,7 @@ impl Timeline for SerpentSpineR5 {}
 
 impl WeaponAttack for SerpentSpineR5 {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        if action_state.current_time - self.time >= 4. {
+        if action_state.current_time - self.time >= 4. && data.idx.is_on_field() {
             self.time = action_state.current_time;
             self.stack += 1.;
             if self.stack > 5. {

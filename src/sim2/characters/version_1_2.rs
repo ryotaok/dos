@@ -39,12 +39,12 @@ impl Albedo {
 impl Timeline for Albedo {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 12. && state.energy >= 40. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 10. {
+        if state.rel_time.press >= 20. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 12. && state.energy >= 40. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.5134 {
             // 5 attacks in 2.567 seconds
@@ -73,7 +73,7 @@ impl CharacterAttack for Albedo {
 
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         atk_queue.add_skill(234.72, &GEO_GAUGE1A, time, event, data, state);
-        for i in 0..5 {
+        for i in 0..10 {
             atk_queue.add_skill(240.48, &GEO_GAUGE1A, time + (2 * i) as f32, event, data, state);
         }
     }
@@ -140,14 +140,14 @@ impl Ganyu {
 impl Timeline for Ganyu {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // is burst CD off and has enough energy
-        if state.rel_time.burst >= 15. && state.energy >= 60. {
-            CharacterAction::Burst
         // check if skill can be used
-        } else if state.rel_time.press >= 10. {
+        if state.rel_time.press >= 10. {
             CharacterAction::PressSkill
+        // is burst CD off and has enough energy
+        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+            CharacterAction::Burst
         // check if normal attacks can be used (both animations are ended)
-        } else if data.can_use_ca && state.rel_time.ca >= 2.266 {
+        } else if data.idx.is_on_field() && state.rel_time.ca >= 2.266 {
             CharacterAction::Ca(state.ca_carryover(2.266))
         } else {
             CharacterAction::StandStill
