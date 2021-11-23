@@ -164,12 +164,12 @@ impl Yoimiya {
 impl Timeline for Yoimiya {
     // perform an action
     fn decide_action(&mut self, state: &ActionState, data: &mut CharacterData) -> CharacterAction {
-        // check if skill can be used
-        if state.rel_time.press >= 18. {
-            CharacterAction::PressSkill
         // is burst CD off and has enough energy
-        } else if state.rel_time.burst >= 15. && state.energy >= 60. {
+        if state.rel_time.burst >= 15. && state.energy >= 60. {
             CharacterAction::Burst
+        // check if skill can be used
+        } else if state.rel_time.press >= 18. {
+            CharacterAction::PressSkill
         // check if normal attacks can be used (both animations are ended)
         } else if state.rel_time.na >= 0.42 {
             // 5 attacks in 2.1 seconds

@@ -381,7 +381,7 @@ impl CharacterAttack for Xinyan {
     fn press(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
         atk_queue.add_skill(305.28, &PYRO_GAUGE1A, time, event, data, state);
         for i in 0..6 {
-            atk_queue.add_skill(60.48, &PYRO_GAUGE1A, time + (2 * i) as f32, event, data, state);
+            atk_queue.apply_skill(60.48, &PYRO_GAUGE1A, time + (2 * i) as f32, event, data, state);
         }
     }
 

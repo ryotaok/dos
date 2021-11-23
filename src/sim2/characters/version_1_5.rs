@@ -110,8 +110,8 @@ impl CharacterAttack for Yanfei {
     }
 
     fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_ca(0.0, &PYRO_GAUGE1A, time, event, data, state);
-        atk_queue.add_ca(80., &PYRO_GAUGE1A, time, event, data, state);
+        atk_queue.apply_ca(0.0, &PYRO_GAUGE1A, time, event, data, state);
+        atk_queue.apply_ca(80., &PYRO_GAUGE1A, time, event, data, state);
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

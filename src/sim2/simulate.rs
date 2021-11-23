@@ -133,6 +133,7 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
         for (state, event) in history.state.iter().zip(history.action.iter()) {
             member.character.attack(state[i].current_time, &event[i], &data[i], &mut atk_queue, &mut states[i], enemy);
             member.weapon.attack(state[i].current_time, &event[i], &data[i], &mut atk_queue, &mut states[i], enemy);
+            member.artifact.attack(state[i].current_time, &event[i], &data[i], &mut atk_queue, &mut states[i], enemy);
         }
     }
     for i in 0..N {
@@ -142,7 +143,7 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
         // However, it's just safe to call it anyway.
         member.weapon.reset_attack();
         // `artifact` is not used yet
-        // member.artifact.reset_attack();
+        member.artifact.reset_attack();
     }
     atk_queue.sort_unstable_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
     let mut result: Vec<DamageResult> = Vec::with_capacity(atk_queue.len());

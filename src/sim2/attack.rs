@@ -28,10 +28,22 @@ pub struct DamageResult {
 
 impl DamageResult {
     pub fn new(attack: Attack, state: &State, data: &CharacterData, enemy: &mut Enemy) -> Self {
-        if attack.aura_application {
+        if attack.kind == DamageType::FlatDMG {
+            Self::flat_dmg(attack, state, data, enemy)
+        } else if attack.aura_application {
             Self::reaction(attack, state, data, enemy)
         } else {
             Self::without_reaction(attack, state, data, enemy)
+        }
+    }
+
+    pub fn flat_dmg(attack: Attack, state: &State, data: &CharacterData, enemy: &mut Enemy) -> Self {
+        Self {
+            name: data.character.name,
+            kind: attack.kind,
+            time: attack.time,
+            damage: attack.multiplier,
+            reaction: 0.,
         }
     }
 
@@ -110,6 +122,7 @@ pub struct Attack {
     // `kind` is `DamageType::Skill`.
     pub kind: DamageType,
 
+    // when `kind` is `FlatDMG`, this value equals to the calculated damage
     pub multiplier: f32,
 
     // elemental gauge of this `Attack`.

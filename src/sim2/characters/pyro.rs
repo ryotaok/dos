@@ -74,7 +74,7 @@ impl CharacterAttack for Amber {
     }
 
     fn ca(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
-        atk_queue.add_ca(223.2, &PYRO_GAUGE2B, time, event, data, state);
+        atk_queue.apply_ca(223.2, &PYRO_GAUGE2B, time, event, data, state);
     }
 
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {

@@ -2,7 +2,7 @@ use crate::sim2::state::State;
 use crate::sim2::timeline::{ActionState, Timeline};
 use crate::sim2::attack::{Attack, WeaponAttack};
 use crate::sim2::types::{DamageType, CharacterAction, WeaponType, FieldEnergy, Preference, Vision, GearScore, SCORE, NOBLESSE_OBLIGE, TENACITY_OF_THE_MILLELITH};
-use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReaction};
+use crate::sim2::element::{ElementalGauge, ElementalReactionType, ElementalReaction, PHYSICAL_GAUGE};
 use crate::sim2::record::{CharacterData, Artifact, Enemy};
 
 use DamageType::*;
@@ -42,6 +42,8 @@ pub enum ArtifactUnion {
     EmblemOfSeveredFate(EmblemOfSeveredFate),
     EmblemOfSeveredFateER(EmblemOfSeveredFateER),
     HuskOfOpulentDreams(HuskOfOpulentDreams),
+    OceanHuedClam(OceanHuedClam),
+    OceanHuedClamKokomi(OceanHuedClamKokomi),
 }
 
 impl ArtifactUnion {
@@ -81,6 +83,8 @@ impl ArtifactUnion {
             EmblemOfSeveredFate(x) => x,
             EmblemOfSeveredFateER(x) => x,
             HuskOfOpulentDreams(x) => x,
+            OceanHuedClam(x) => x,
+            OceanHuedClamKokomi(x) => x,
         }
     }
 
@@ -120,6 +124,8 @@ impl ArtifactUnion {
             EmblemOfSeveredFate(x) => x,
             EmblemOfSeveredFateER(x) => x,
             HuskOfOpulentDreams(x) => x,
+            OceanHuedClam(x) => x,
+            OceanHuedClamKokomi(x) => x,
         }
     }
 }
@@ -160,6 +166,8 @@ pub fn all() -> Vec<(Artifact, ArtifactUnion)> {
     (EmblemOfSeveredFate::record(), ArtifactUnion::EmblemOfSeveredFate(EmblemOfSeveredFate::new())),
     (EmblemOfSeveredFateER::record(), ArtifactUnion::EmblemOfSeveredFateER(EmblemOfSeveredFateER::new())),
     (HuskOfOpulentDreams::record(), ArtifactUnion::HuskOfOpulentDreams(HuskOfOpulentDreams::new())),
+    (OceanHuedClam::record(), ArtifactUnion::OceanHuedClam(OceanHuedClam::new())),
+    (OceanHuedClamKokomi::record(), ArtifactUnion::OceanHuedClamKokomi(OceanHuedClamKokomi::new())),
     ]
 }
 
@@ -1265,13 +1273,11 @@ impl Timeline for HuskOfOpulentDreams {}
 
 impl WeaponAttack for HuskOfOpulentDreams {
     fn modify(&mut self, action_state: &ActionState, data: &CharacterData, attack: &mut Attack, state: &mut State, enemy: &mut Enemy) -> () {
-        if data.idx.0 == 0 {
-            // on-field
+        if data.idx.is_on_field() {
             if attack.idx == data.idx && attack.element.aura == Vision::Geo && self.time - attack.time >= 0.3 {
                 self.stack += 1.;
             }
         } else {
-            // off-field
             if self.time - attack.time >= 3. {
                 self.stack += 1.;
             }
@@ -1286,6 +1292,94 @@ impl WeaponAttack for HuskOfOpulentDreams {
     fn reset_modify(&mut self) -> () {
         self.time = -99.;
         self.stack = 2.;
+    }
+}
+
+// 4 Piece: When the character equipping this artifact set heals a character in
+// the party, a Sea-Dyed Foam will appear for 3 seconds, accumulating the amount
+// of HP recovered from healing (including overflow healing). At the end of the
+// duration, the Sea-Dyed Foam will explode, dealing DMG to nearby opponents
+// based on 90% of the accumulated healing. (This DMG is calculated similarly to
+// Reactions such as Electro-Charged, and Superconduct, but is not affected by
+// Elemental Mastery, Character Levels, or Reaction DMG Bonuses). Only one
+// Sea-Dyed Foam can be produced every 3.5 seconds. Each Sea-Dyed Foam can
+// accumulate up to 30,000 HP (including overflow healing). There can be no more
+// than one Sea-Dyed Foam active at any given time. This effect can still be
+// triggered even when the character who is using this artifact set is not on
+// the field.
+#[derive(Debug)]
+pub struct OceanHuedClam {
+    time: f32,
+}
+
+impl OceanHuedClam {
+    pub fn new() -> Self {
+        Self {
+            time: -99.,
+        }
+    }
+
+    pub fn record() -> Artifact {
+        use Preference::*;
+        Artifact::default()
+            .name("Ocean-Hued Clam (7k heal)")
+            .version(2.3)
+            .preference(&[Bennett, Barbara, Qiqi, Jean, Noelle, Diona, Sayu, ])
+            .atk(SCORE.atk(40.0))
+            .cr(SCORE.cr(60.0))
+    }
+}
+
+impl Timeline for OceanHuedClam {}
+
+// Assuming 2000 heal per second. Then 7000 heal for 3.5 seconds.
+impl WeaponAttack for OceanHuedClam {
+    fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        if time - self.time >= 3.5 {
+            self.time = time;
+            atk_queue.push(Attack {
+                kind: DamageType::FlatDMG,
+                multiplier: 0.9 * 7000.,
+                element: &PHYSICAL_GAUGE,
+                aura_application: false,
+                time,
+                idx: data.idx,
+            });
+        }
+    }
+
+    fn reset_attack(&mut self) -> () {
+        self.time = -99.;
+    }
+}
+
+#[derive(Debug)]
+pub struct OceanHuedClamKokomi(OceanHuedClam);
+
+impl OceanHuedClamKokomi {
+    pub fn new() -> Self {
+        Self(OceanHuedClam::new())
+    }
+
+    pub fn record() -> Artifact {
+        Artifact::default()
+            .name("Ocean-Hued Clam (7k heal)")
+            .version(2.3)
+            .preference(&[Preference::SangonomiyaKokomi])
+            .atk(SCORE.atk(50.0))
+            .hp(SCORE.hp(50.0))
+    }
+}
+
+impl Timeline for OceanHuedClamKokomi {}
+
+impl WeaponAttack for OceanHuedClamKokomi {
+    fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.0.attack(time, event, data, atk_queue, state, enemy);
+    }
+
+    fn reset_attack(&mut self) -> () {
+        self.0.reset_attack();
     }
 }
 

@@ -45,6 +45,7 @@ pub enum DamageType {
     Skill,
     Burst,
     AdditionalAttack,
+    FlatDMG, // Ocean-Hued Clam
 }
 
 // Each NA action may have a `carryover` time, which is obtained by
