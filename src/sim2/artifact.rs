@@ -42,6 +42,7 @@ pub enum ArtifactUnion {
     EmblemOfSeveredFate(EmblemOfSeveredFate),
     EmblemOfSeveredFateER(EmblemOfSeveredFateER),
     HuskOfOpulentDreams(HuskOfOpulentDreams),
+    HuskOfOpulentDreamsAlbedo(HuskOfOpulentDreamsAlbedo),
     OceanHuedClam(OceanHuedClam),
     OceanHuedClamKokomi(OceanHuedClamKokomi),
 }
@@ -83,6 +84,7 @@ impl ArtifactUnion {
             EmblemOfSeveredFate(x) => x,
             EmblemOfSeveredFateER(x) => x,
             HuskOfOpulentDreams(x) => x,
+            HuskOfOpulentDreamsAlbedo(x) => x,
             OceanHuedClam(x) => x,
             OceanHuedClamKokomi(x) => x,
         }
@@ -124,6 +126,7 @@ impl ArtifactUnion {
             EmblemOfSeveredFate(x) => x,
             EmblemOfSeveredFateER(x) => x,
             HuskOfOpulentDreams(x) => x,
+            HuskOfOpulentDreamsAlbedo(x) => x,
             OceanHuedClam(x) => x,
             OceanHuedClamKokomi(x) => x,
         }
@@ -166,6 +169,7 @@ pub fn all() -> Vec<(Artifact, ArtifactUnion)> {
     (EmblemOfSeveredFate::record(), ArtifactUnion::EmblemOfSeveredFate(EmblemOfSeveredFate::new())),
     (EmblemOfSeveredFateER::record(), ArtifactUnion::EmblemOfSeveredFateER(EmblemOfSeveredFateER::new())),
     (HuskOfOpulentDreams::record(), ArtifactUnion::HuskOfOpulentDreams(HuskOfOpulentDreams::new())),
+    (HuskOfOpulentDreamsAlbedo::record(), ArtifactUnion::HuskOfOpulentDreamsAlbedo(HuskOfOpulentDreamsAlbedo::new())),
     (OceanHuedClam::record(), ArtifactUnion::OceanHuedClam(OceanHuedClam::new())),
     (OceanHuedClamKokomi::record(), ArtifactUnion::OceanHuedClamKokomi(OceanHuedClamKokomi::new())),
     ]
@@ -212,6 +216,11 @@ impl ThunderingFury {
 
 impl Timeline for ThunderingFury {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        if data.character.name.contains("Lisa") ||
+           data.character.name.contains("Yae Miko (C2)") ||
+           data.character.name.contains("Yae Miko") {
+            return;
+        }
         match (event) {
             CharacterAction::PressSkill |
             CharacterAction::HoldSkill => state.reduce_skill += 2.,
@@ -1292,6 +1301,37 @@ impl WeaponAttack for HuskOfOpulentDreams {
     fn reset_modify(&mut self) -> () {
         self.time = -99.;
         self.stack = 2.;
+    }
+}
+
+#[derive(Debug)]
+pub struct HuskOfOpulentDreamsAlbedo(HuskOfOpulentDreams);
+
+impl HuskOfOpulentDreamsAlbedo {
+    pub fn new() -> Self {
+        Self(HuskOfOpulentDreams::new())
+    }
+
+    pub fn record() -> Artifact {
+        Artifact::default()
+            .name("Husk of Opulent Dreams (DEF goblet)")
+            .version(2.3)
+            .preference(&[Preference::Albedo])
+            .def(30. + 58.3 + SCORE.def(40.0))
+            .geo_dmg(-46.6)
+            .cr(SCORE.cr(60.0))
+    }
+}
+
+impl Timeline for HuskOfOpulentDreamsAlbedo {}
+
+impl WeaponAttack for HuskOfOpulentDreamsAlbedo {
+    fn attack(&mut self, time: f32, event: &CharacterAction, data: &CharacterData, atk_queue: &mut Vec<Attack>, state: &mut State, enemy: &mut Enemy) -> () {
+        self.0.attack(time, event, data, atk_queue, state, enemy);
+    }
+
+    fn reset_attack(&mut self) -> () {
+        self.0.reset_attack();
     }
 }
 

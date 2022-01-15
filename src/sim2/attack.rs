@@ -139,6 +139,7 @@ pub struct Attack {
 impl Attack {
     pub fn atk(&self, state: &State, name: &str) -> f32 {
         state.flat_dmg + match (name, &self.kind) {
+            ("Yun Jin", DamageType::Skill) |
             ("Gorou", DamageType::Burst) |
             ("Albedo", DamageType::Skill) |
             ("Noelle", DamageType::Skill) => state.DEF(),

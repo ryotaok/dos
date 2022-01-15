@@ -24,6 +24,9 @@ impl WeaponAttack for Composed {}
 
 impl Timeline for Composed {
     fn accelerate(&mut self, field_energy: &mut Vec<FieldEnergy>, event: &CharacterAction, state: &mut ActionState, data: &CharacterData) -> () {
+        if data.character.name == "Sangonomiya Kokomi" {
+            return;
+        }
         if state.current_time - self.time > 16. && event.is_skill() {
             state.reduce_skill = 99.;
             self.time = state.current_time;

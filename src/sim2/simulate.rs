@@ -167,6 +167,9 @@ pub fn calculate_damage<const N: usize>(history: &mut History<N>, members: &mut 
         let d = &data[attack.idx.0];
         let dmg = DamageResult::new(attack, state, d, enemy);
         // println!("{:?} {:?} {:?}", dmg.time, dmg.kind, dmg.total_damage());
+        // if dmg.kind != DamageType::Na && dmg.kind != DamageType::Ca {
+        //     result.push(dmg);
+        // }
         result.push(dmg);
     }
     result

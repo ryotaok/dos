@@ -41,7 +41,6 @@ Visit [my GitHub Page](https://ryotaok.github.io/dos/), and navigate to each cha
 I'd like to thank these sites that I could use their data, information and formulas:
 
 - <https://keqingmains.com>
-- <https://genshin-impact.fandom.com>
 
 ## License
 

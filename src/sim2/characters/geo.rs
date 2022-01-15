@@ -136,7 +136,7 @@ pub struct Noelle {
 impl Noelle {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Noelle (C6)").vision(Geo).weapon(Claymore).version(1.0)
+            .name("Noelle C6").vision(Geo).weapon(Claymore).version(1.0)
             .base_hp(12071.0).base_atk(191.0).base_def(799.0)
             .def(30.0)
             .energy_cost(60.)
@@ -235,7 +235,7 @@ pub struct TravelerGeo {}
 impl TravelerGeo {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Traveler (Geo)").vision(Geo).weapon(Sword).version(1.0)
+            .name("Traveler Geo").vision(Geo).weapon(Sword).version(1.0)
             .base_hp(10875.0).base_atk(212.0).base_def(683.0)
             .atk(24.0)
             .energy_cost(60.)

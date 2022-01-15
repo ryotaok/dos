@@ -18,6 +18,8 @@ pub mod version_2_0;
 pub mod version_2_1;
 pub mod version_2_2;
 pub mod version_2_3;
+pub mod version_2_4;
+pub mod version_2_5;
 
 use pyro::*;
 use hydro::*;
@@ -35,6 +37,8 @@ use version_2_0::*;
 use version_2_1::*;
 use version_2_2::*;
 use version_2_3::*;
+use version_2_4::*;
+use version_2_5::*;
 
 #[derive(Debug)]
 pub enum CharacterUnion {
@@ -100,6 +104,11 @@ pub enum CharacterUnion {
     // version_2_3
     AratakiItto(AratakiItto),
     Gorou(Gorou),
+    // version_2_4
+    Shenhe(Shenhe),
+    YunJin(YunJin),
+    // version_2_5
+    YaeMiko(YaeMiko),
 }
 
 impl CharacterUnion {
@@ -168,6 +177,11 @@ impl CharacterUnion {
             // version_2_3
             AratakiItto(x) => x,
             Gorou(x) => x,
+            // version_2_4
+            Shenhe(x) => x,
+            YunJin(x) => x,
+            // version_2_5
+            YaeMiko(x) => x,
         }
     }
 
@@ -236,11 +250,16 @@ impl CharacterUnion {
             // version_2_3
             AratakiItto(x) => x,
             Gorou(x) => x,
+            // version_2_4
+            Shenhe(x) => x,
+            YunJin(x) => x,
+            // version_2_5
+            YaeMiko(x) => x,
         }
     }
 }
 
-pub const N_CHARACTERS: usize = 46;
+pub const N_CHARACTERS: usize = 50;
 
 pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     vec![
@@ -306,6 +325,12 @@ pub fn all() -> Vec<(CharacterRecord, CharacterUnion)> {
     // version_2_3
     (AratakiItto::record(), CharacterUnion::AratakiItto(AratakiItto::new())),
     (Gorou::record(), CharacterUnion::Gorou(Gorou::new())),
+    // version_2_4
+    (Shenhe::record(), CharacterUnion::Shenhe(Shenhe::new())),
+    (YunJin::record(), CharacterUnion::YunJin(YunJin::new())),
+    // version_2_5
+    (YaeMiko::record(0), CharacterUnion::YaeMiko(YaeMiko::new(0))),
+    (YaeMiko::record(2), CharacterUnion::YaeMiko(YaeMiko::new(2))),
     ]
 }
 

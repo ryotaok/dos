@@ -183,7 +183,7 @@ pub struct Gorou {
 impl Gorou {
     pub fn record() -> CharacterRecord {
         CharacterRecord::default()
-            .name("Gorou_C6").vision(Geo).weapon(Bow).version(2.3)
+            .name("Gorou C6").vision(Geo).weapon(Bow).version(2.3)
             .base_hp(9570.).base_atk(183.).base_def(648.)
             .geo_dmg(24.)
             .energy_cost(80.)

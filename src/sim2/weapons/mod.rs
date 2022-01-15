@@ -16,6 +16,8 @@ pub mod version_2_0;
 pub mod version_2_1;
 pub mod version_2_2;
 pub mod version_2_3;
+pub mod version_2_4;
+pub mod version_2_5;
 
 use crate::sim2::timeline::Timeline;
 use crate::sim2::attack::WeaponAttack;
@@ -39,6 +41,8 @@ use version_2_0::*;
 use version_2_1::*;
 use version_2_2::*;
 use version_2_3::*;
+use version_2_4::*;
+use version_2_5::*;
 
 pub enum WeaponUnion {
     // sword_4star
@@ -162,6 +166,10 @@ pub enum WeaponUnion {
     // version_2_3
     RedhornStonethresher(RedhornStonethresher),
     CinnabarSpindle(CinnabarSpindle),
+    // version_2_4
+    CalamityQueller(CalamityQueller),
+    // version_2_5
+    KagurasVerity(KagurasVerity),
 }
 
 impl WeaponUnion {
@@ -289,6 +297,10 @@ impl WeaponUnion {
             // version_2_3
             RedhornStonethresher(x) => x,
             CinnabarSpindle(x) => x,
+            // version_2_4
+            CalamityQueller(x) => x,
+            // version_2_5
+            KagurasVerity(x) => x,
         }
     }
 
@@ -416,6 +428,10 @@ impl WeaponUnion {
             // version_2_3
             RedhornStonethresher(x) => x,
             CinnabarSpindle(x) => x,
+            // version_2_4
+            CalamityQueller(x) => x,
+            // version_2_5
+            KagurasVerity(x) => x,
         }
     }
 }
@@ -490,6 +506,7 @@ pub fn all() -> Vec<(WeaponRecord, WeaponUnion)> {
     (SummitShaper::record(1), WeaponUnion::SummitShaper(SummitShaper::new(1))),
     (VortexVanquisher::record(1), WeaponUnion::VortexVanquisher(VortexVanquisher::new(1))),
     (MemoryOfDust::record(1), WeaponUnion::MemoryOfDust(MemoryOfDust::new(1))),
+    (MemoryOfDust::record(4), WeaponUnion::MemoryOfDust(MemoryOfDust::new(4))),
     // version_1_2
     (FesteringDesire::record(), WeaponUnion::FesteringDesire(FesteringDesire::new())),
     (SnowTombedStarsilver::record(), WeaponUnion::SnowTombedStarsilver(SnowTombedStarsilver::new())),
@@ -543,6 +560,10 @@ pub fn all() -> Vec<(WeaponRecord, WeaponUnion)> {
     // version_2_3
     (RedhornStonethresher::record(), WeaponUnion::RedhornStonethresher(RedhornStonethresher::new())),
     (CinnabarSpindle::record(), WeaponUnion::CinnabarSpindle(CinnabarSpindle::new())),
+    // version_2_4
+    (CalamityQueller::record(), WeaponUnion::CalamityQueller(CalamityQueller::new())),
+    // version_2_5
+    (KagurasVerity::record(), WeaponUnion::KagurasVerity(KagurasVerity::new())),
     ]
 }
 

@@ -61,9 +61,9 @@ impl Default for Args {
     fn default() -> Self {
         Self {
             n_members: 1,
-            character_version: 2.3,
-            weapon_version: 2.3,
-            artifact_version: 2.3,
+            character_version: 2.5,
+            weapon_version: 2.5,
+            artifact_version: 2.5,
             unit_time: 0.2,
             simulation_time: 20.0,
             start_energy: -1,
@@ -124,9 +124,9 @@ Usage:
 
 Options:
     --n_members N         : Number of field members [default: 1]
-    --character_version N : characters up to the version will be simulated [default: 2.2]
-    --weapon_version N    : weapons up to the version will be simulated [default: 2.2]
-    --artifact_version N  : artifacts up to the version will be simulated [default: 2.2]
+    --character_version N : characters up to the version will be simulated [default: 2.5]
+    --weapon_version N    : weapons up to the version will be simulated [default: 2.5]
+    --artifact_version N  : artifacts up to the version will be simulated [default: 2.5]
     --unit_time N         : frequency of character actions [default: 0.2]
     --simulation_time N   : end the simulation at N seconds [default: 20.0]
     --start_energy N      : amount of energy given to characters at the beginning of the simulation. Negative values mean full energy [default: -1]
